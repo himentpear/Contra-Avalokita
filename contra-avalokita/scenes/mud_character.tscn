@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://dkscdjir88xqq"]
+
+[ext_resource type="Script" uid="uid://dc580gft0xnpn" path="res://scripts/mud_character.gd" id="1"]
+[ext_resource type="Script" uid="uid://d067ir33wvyvn" path="res://scripts/mud_rig.gd" id="2"]
+[ext_resource type="Script" uid="uid://33h26n0pyi4b" path="res://scripts/mud_body_renderer.gd" id="3"]
+[ext_resource type="Script" uid="uid://ba04ehr4sff46" path="res://scripts/mud_eye_controller.gd" id="4"]
+[ext_resource type="Script" uid="uid://kgefwktyyy3o" path="res://scripts/equipment_manager.gd" id="5"]
+[ext_resource type="Script" uid="uid://8ajlurpifbhx" path="res://scripts/weapon_manager.gd" id="6"]
+
+[sub_resource type="CapsuleShape2D" id="BodyShape"]
+height = 74.0
+
+[sub_resource type="CapsuleShape2D" id="HurtShape"]
+radius = 12.0
+height = 76.0
+
+[node name="MudCharacter" type="CharacterBody2D" unique_id=1897383256]
+texture_filter = 1
+collision_layer = 2
+script = ExtResource("1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2022185580]
+position = Vector2(0, -35)
+shape = SubResource("BodyShape")
+
+[node name="Visual" type="Node2D" parent="." unique_id=682394262]
+
+[node name="MudBodyRenderer" type="Node2D" parent="Visual" unique_id=1042152840]
+script = ExtResource("3")
+
+[node name="Rig" type="Node2D" parent="Visual" unique_id=1283206354]
+z_index = 10
+script = ExtResource("2")
+
+[node name="Eyes" type="Node2D" parent="Visual" unique_id=783648231]
+z_index = 3
+script = ExtResource("4")
+
+[node name="Equipment" type="Node2D" parent="Visual" unique_id=1028139131]
+script = ExtResource("5")
+
+[node name="WeaponSlots" type="Node2D" parent="Visual" unique_id=872362012]
+script = ExtResource("6")
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=1874068878]
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=728717001]
+position = Vector2(0, -35)
+shape = SubResource("HurtShape")
