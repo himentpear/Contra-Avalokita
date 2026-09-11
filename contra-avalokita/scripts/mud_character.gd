@@ -1,7 +1,45 @@
 class_name MudCharacter
 extends CharacterBody2D
+const HitEvent = preload("res://scripts/hit_event.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
+signal footstep(side: StringName)
+signal landed(impact_speed: float, hard: bool)
+@export var jump_squat_duration := 0.075
+@export var takeoff_duration := 0.075
+@export var minimum_landing_air_time := 0.08
+@export var soft_landing_speed := 140.0
+@export var hard_landing_speed := 280.0
+@export var apex_threshold := 35.0
+@export var landing_recovery_duration := 0.07
+var air_time := 0.0
+var last_air_velocity_y := 0.0
+var jump_phase: StringName = &"Grounded"
+var jump_squat_left := 0.0
+var landing_left := 0.0
+var landing_animation: StringName = &""
+var grounded_resume_phase := 0.0
+
+func update_jump_animation() -> void:
+	var clip: StringName = &""
+	if jump_squat_left > 0: jump_phase = &"JumpSquat"
+	elif not is_on_floor():
+		if velocity.y < 0 and air_time < takeoff_duration: jump_phase = &"Takeoff"
+		elif velocity.y < -apex_threshold: jump_phase = &"Rise"
+		elif absf(velocity.y) <= apex_threshold: jump_phase = &"Apex"
+		else: jump_phase = &"Fall"
+	elif landing_left > 0:
+		jump_phase = &"Recovery" if landing_left <= landing_recovery_duration else StringName(String(landing_animation).get_slice("/",1))
+	else: jump_phase = &"Grounded"
+	if jump_phase != &"Grounded": clip = StringName("Air/"+String(jump_phase))
+	if is_on_floor() and landing_left > 0 and jump_squat_left <= 0: clip = landing_animation
+	if clip != &"" and anim_player.current_animation != clip:
+		anim_player.play(clip,0.025)
+	# A finished non-looping clip clears current_animation. Reconcile the desired
+	# grounded clip directly, including an empty/stopped player after landing.
+	elif clip == &"" and state in [&"Idle",&"Walk",&"Run"] and (anim_player.current_animation != get_state_animation(state) or not anim_player.is_playing()):
+		anim_player.play(get_state_animation(state),0.09)
+		if state in [&"Walk",&"Run"]: anim_player.seek(grounded_resume_phase*anim_player.current_animation_length,true)
 @export var player_controlled := true
 @export var move_speed := 105.0
 @export_range(0.1, 0.9) var walk_speed_ratio := 0.43
@@ -11,6 +49,7 @@ signal damaged(amount: float)
 @export var attack_duration := 0.62
 @export var max_health := 100.0
 @export var allow_air_attack := true
+@export_range(0.1,1.0) var attack_movement_multiplier := 1.0
 var health := 100.0
 var state: StringName = &"Idle"
 var attack_time := 0.0
@@ -19,76 +58,700 @@ var facing := 1.0
 var move_intent := 0.0
 var jump_requested := false
 var attack_requested := false
+@export var punch_animations := PackedStringArray(["Punch/Attack_1", "Punch/Attack_2", "Punch/Attack_3"])
+@export var punch_windows: Array[Vector2] = [Vector2(0.06, 0.18), Vector2(0.08, 0.22), Vector2(0.10, 0.26)]
+@export var punch_damages: Array[float] = [7.0, 9.0, 12.0]
+@export var punch_combo_buffer_start := 0.12
+@export var enable_camera_shake := false
+var punch_hit_targets: Array[int] = []
+var punch_hitbox: Area2D
+var punch_collision_shape: CollisionShape2D
+
+var combo_stage := 0
+var combo_queued := false
+var action_state: StringName = &"None"
+var pose_composer: MudPoseComposer
+
+@export var max_stability := 100.0
+var stability := 100.0
+@export var stability_recovery_rate := 25.0
+@export var stability_recovery_cooldown := 0.5
+var stability_cooldown_timer := 0.0
+
+var reaction_state: StringName = &"None"
+var reaction_time := 0.0
+var reaction_duration := 0.0
+var reaction_direction := Vector2.RIGHT
+var reaction_intensity := 1.0
+var reaction_region: StringName = &"UPPER_TORSO"
+var reaction_impact_local := Vector2.ZERO
+var hit_stop_duration := 0.0
+var hit_drag_timer := 0.0
+var hit_drag_ratio := 0.40
+var reaction_push_offset := Vector2.ZERO
+
+func has_reaction() -> bool:
+	return reaction_state != &"None" and reaction_time < reaction_duration
+
+func is_attacking() -> bool:
+	return action_state != &"None"
+
+func attack_animation() -> StringName:
+	if is_armed():
+		if weapons.current.weapon_class == "blade" and combo_stage < weapons.current.attack_animations.size():
+			return StringName(weapons.current.attack_animations[combo_stage])
+		return &"Attack"
+	if combo_stage < punch_animations.size():
+		var punch_name := StringName(punch_animations[combo_stage])
+		if anim_player and anim_player.has_animation(punch_name):
+			return punch_name
+	return &"Attack"
+
+func start_attack(stage: int = 0) -> void:
+	combo_stage = stage
+	combo_queued = false
+	attack_time = 0.0
+	action_state = StringName("Attack%d" % (stage+1))
+	attack_duration = anim_player.get_animation(attack_animation()).length
+	if is_armed():
+		weapons.current.begin_attack(stage)
+	else:
+		punch_hit_targets.clear()
+		if punch_hitbox:
+			punch_hitbox.monitoring = false
+
+func advance_attack(delta: float) -> void:
+	if hit_stop_ticks > 0:
+		hit_stop_ticks -= 1
+		return
+	var rate := 1.0
+	if hit_drag_timer > 0.0:
+		hit_drag_timer = maxf(0.0, hit_drag_timer - delta)
+		rate = 1.0 - hit_drag_ratio
+	attack_time += delta * rate
+	if attack_time < attack_duration: return
+	var max_stages := weapons.current.attack_animations.size() if is_armed() and weapons.current.weapon_class == "blade" else punch_animations.size()
+	if combo_queued and combo_stage + 1 < max_stages:
+		start_attack(combo_stage + 1)
+	else:
+		combo_stage = 0
+		combo_queued = false
+		action_state = &"None"
+		if punch_hitbox:
+			punch_hitbox.monitoring = false
+
+func calculate_punch_reach() -> float:
+	var shoulder: Bone2D = _upper_arm_back_bone if combo_stage == 1 and is_instance_valid(_upper_arm_back_bone) else _upper_arm_front_bone
+	var fist: Bone2D = _hand_back_bone if combo_stage == 1 and is_instance_valid(_hand_back_bone) else _hand_front_bone
+	if not is_instance_valid(shoulder) or not is_instance_valid(fist):
+		return 1.0
+	var dist: float = (fist.global_position - shoulder.global_position).length()
+	return clampf(dist / 28.0, 0.0, 1.0)
+
+func _update_punch_attack(_delta: float) -> void:
+	if not punch_hitbox: return
+	var window := punch_windows[combo_stage] if combo_stage < punch_windows.size() else Vector2(0.08, 0.20)
+	var reach := calculate_punch_reach()
+	var req_reach: float = 0.55 if combo_stage == 2 else 0.80
+	var active := is_attacking() and not is_armed() and attack_time >= window.x and attack_time <= window.y and reach >= req_reach
+	punch_hitbox.monitoring = active
+	
+	var active_bone: Bone2D = _hand_back_bone if combo_stage == 1 and is_instance_valid(_hand_back_bone) else _hand_front_bone
+	if is_instance_valid(active_bone):
+		punch_hitbox.global_position = active_bone.global_position + Vector2(facing * 4.0, 0.0)
+	else:
+		punch_hitbox.global_position = global_position + Vector2(facing * 35.0, -32.0)
+		
+	if not active: return
+	for area in punch_hitbox.get_overlapping_areas():
+		_on_punch_area_entered(area)
+
+func _on_punch_area_entered(area: Area2D) -> void:
+	if not is_attacking() or is_armed(): return
+	var owner_node = area.get_meta("owner_character", null)
+	if owner_node == self: return
+	var id := area.get_instance_id()
+	if punch_hit_targets.has(id): return
+	punch_hit_targets.append(id)
+	var dmg: float = punch_damages[combo_stage] if combo_stage < punch_damages.size() else 8.0
+	var event := HitEvent.new()
+	event.damage = dmg
+	event.direction = Vector2(facing, 0.0)
+	event.attacker_velocity = velocity
+	event.weapon_type = &"unarmed"
+	event.impact_point = punch_hitbox.global_position
+	if combo_stage == 0:
+		event.hit_type = &"LightHit"
+		event.poise_damage = 12.0
+		event.impact_force = 55.0
+		event.hit_region = &"HEAD"
+		event.hit_stop_duration = 0.033
+		event.hit_stop_frames = 1
+		event.target_push_distance = 1.8
+		event.attacker_drag_ratio = 0.35
+		event.camera_shake_strength = 0.0
+	elif combo_stage == 1:
+		event.hit_type = &"LightHit"
+		event.poise_damage = 18.0
+		event.impact_force = 90.0
+		event.hit_region = &"UPPER_TORSO"
+		event.hit_stop_duration = 0.033
+		event.hit_stop_frames = 1
+		event.target_push_distance = 2.5
+		event.attacker_drag_ratio = 0.40
+		event.camera_shake_strength = 0.0
+	else:
+		event.hit_type = &"HeavyHit"
+		event.poise_damage = 35.0
+		event.impact_force = 135.0
+		event.hit_region = &"HEAD"
+		event.hit_stop_duration = 0.066
+		event.hit_stop_frames = 2
+		event.target_push_distance = 4.0
+		event.attacker_drag_ratio = 0.50
+		event.camera_shake_strength = 0.0
+
+	hit_stop_duration = event.hit_stop_duration
+	hit_stop_ticks = event.hit_stop_frames
+	hit_drag_timer = 0.10
+	hit_drag_ratio = event.attacker_drag_ratio
+	impact_accent_offset = Vector2(-facing * 1.0, 0.0)
+
+	if enable_camera_shake:
+		var tree := get_tree()
+		if tree and tree.current_scene and tree.current_scene.has_method("trigger_camera_shake"):
+			tree.current_scene.call("trigger_camera_shake", event.direction, event.camera_shake_strength, 0.08)
+
+	if area.has_method("receive_hit"):
+		area.call("receive_hit", event)
+	elif area.get_parent() and area.get_parent().has_method("receive_hit"):
+		area.get_parent().call("receive_hit", event)
+	if splatter and is_instance_valid(area):
+		splatter.burst(area.global_position, 5)
+
 @onready var visual: Node2D = $Visual
-@onready var rig: MudRig = $Visual/Rig
+@onready var anim_player: AnimationPlayer = $AnimationPlayer
+@onready var skeleton: Skeleton2D = $Visual/Skeleton2D
 @onready var body_renderer: MudBodyRenderer = $Visual/MudBodyRenderer
 @onready var eyes: MudEyeController = $Visual/Eyes
 @onready var equipment: EquipmentManager = $Visual/Equipment
 @onready var weapons: WeaponManager = $Visual/WeaponSlots
+@onready var death_controller: MudDeathController = $DeathController
+@onready var splatter: MudPixelSplatter = $Visual/PixelMudSplatter
+
+var _head_bone: Bone2D
+var _upper_arm_front_bone: Bone2D
+var _forearm_front_bone: Bone2D
+var _hand_front_bone: Bone2D
+var _upper_arm_back_bone: Bone2D
+var _forearm_back_bone: Bone2D
+var _hand_back_bone: Bone2D
+var hit_stop_ticks: int = 0
+var impact_accent_offset: Vector2 = Vector2.ZERO
+
+class RigAdapter extends RefCounted:
+	signal foot_contact(side: StringName)
+	var character: MudCharacter
+	var body_renderer: MudBodyRenderer
+	var debug_draw := false
+	var stretch := 1.0
+	var time := 0.0
+	var gait: MudLocomotion = MudLocomotion.new()
+	var weapon_angle := 0.0
+
+	func _init() -> void:
+		gait.foot_contact.connect(func(side: StringName) -> void:
+			foot_contact.emit(side)
+		)
+
+	var compressions: Dictionary:
+		get: return body_renderer.compressions if body_renderer else {}
+	var angles: Dictionary:
+		get: return body_renderer.angles if body_renderer else {}
+	var segments: Array[MudSegment]:
+		get: return body_renderer.segments if body_renderer else []
+
+	func point(id: StringName) -> Vector2:
+		return body_renderer.point(id) if body_renderer else Vector2.ZERO
+
+	func pose(delta: float, target_state: StringName, motion: Vector2, _attack_time: float, _land_time: float) -> void:
+		time += delta
+		if gait:
+			gait.advance(delta, motion.x, true, 32.0)
+		if character:
+			if character.state != target_state:
+				character.transition(target_state)
+			if character.anim_player:
+				if delta > 0.0:
+					character.anim_player.advance(delta)
+				elif gait:
+					var anim_len := character.anim_player.current_animation_length
+					if anim_len > 0.0:
+						character.anim_player.seek(fmod(gait.phase, 1.0) * anim_len, true)
+
+var rig: RigAdapter
+var _contact_squash_timer := 0.0
+var _flight_stretch_timer := 0.0
 
 func _ready() -> void:
 	health = max_health
 	$Hurtbox.set_meta("owner_character", self)
 	weapons.owner_character = self
 	if weapons.current: weapons.current.set_meta("owner_character", self)
-	rig.pose(0, state, velocity, 0, 0)
+	rig = RigAdapter.new()
+	rig.character = self
+	rig.body_renderer = body_renderer
+	rig.foot_contact.connect(func(side: StringName) -> void:
+		footstep.emit(side)
+		_contact_squash_timer = 2.0 / 60.0
+	)
+	footstep.connect(func(_side: StringName) -> void:
+		_contact_squash_timer = 2.0 / 60.0
+	)
+	if skeleton:
+		_head_bone = skeleton.get_node_or_null("Pelvis/Torso/Head") as Bone2D
+		_upper_arm_front_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmFront") as Bone2D
+		_forearm_front_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmFront/ForearmFront") as Bone2D
+		_hand_front_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmFront/ForearmFront/HandFront") as Bone2D
+		_upper_arm_back_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmBack") as Bone2D
+		_forearm_back_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmBack/ForearmBack") as Bone2D
+		_hand_back_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmBack/ForearmBack/HandBack") as Bone2D
+	punch_hitbox = Area2D.new()
+	punch_hitbox.name = "PunchHitbox"
+	punch_hitbox.collision_layer = 0
+	punch_hitbox.collision_mask = 4
+	punch_hitbox.monitoring = false
+	punch_hitbox.monitorable = false
+	punch_hitbox.set_meta("owner_character", self)
+	punch_collision_shape = CollisionShape2D.new()
+	var punch_box := RectangleShape2D.new()
+	punch_box.size = Vector2(20, 16)
+	punch_collision_shape.shape = punch_box
+	punch_hitbox.add_child(punch_collision_shape)
+	punch_hitbox.area_entered.connect(_on_punch_area_entered)
+	add_child(punch_hitbox)
+	if death_controller:
+		death_controller.character = self
+	if anim_player:
+		anim_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		anim_player.play(&"Idle")
+	pose_composer = MudPoseComposer.new()
+	pose_composer.character = self
+	pose_composer.z_index = 20
+	add_child(pose_composer)
+	pose_composer.evaluate(0.0)
 	_sync_visual(0)
 
 ## Shared input seam: AI / NPC controllers use this without modifying the rig.
 func set_intent(direction: float, jump := false, attack := false) -> void:
+	if state == &"Dead": return
 	move_intent = clampf(direction, -1, 1)
 	jump_requested = jump_requested or jump
 	attack_requested = attack_requested or attack
 
+func die() -> void:
+	if state == &"Dead": return
+	move_intent = 0.0
+	action_state = &"None"
+	combo_stage = 0
+	combo_queued = false
+	if punch_hitbox:
+		punch_hitbox.set_deferred("monitoring", false)
+	punch_hit_targets.clear()
+	jump_squat_left = 0.0
+	landing_left = 0.0
+	air_time = 0.0
+	jump_phase = &"Grounded"
+	pose_composer.base_pose.clear()
+	jump_requested = false
+	attack_requested = false
+	reaction_state = &"None"
+	reaction_time = 0.0
+	reaction_duration = 0.0
+	hit_stop_duration = 0.0
+	transition(&"Dead")
+	if anim_player:
+		anim_player.stop()
+	if death_controller:
+		death_controller.start_death()
+	velocity = Vector2.ZERO
+	var hurtbox: Area2D = get_node_or_null("Hurtbox") as Area2D
+	if hurtbox:
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", false)
+
+func rise() -> void:
+	if state != &"Dead": return
+	health = max_health
+	stability = max_stability
+	reaction_state = &"None"
+	reaction_time = 0.0
+	reaction_duration = 0.0
+	hit_stop_duration = 0.0
+	move_intent = 0.0
+	jump_requested = false
+	attack_requested = false
+	velocity = Vector2.ZERO
+	if weapons:
+		weapons.weapon_dropped = false
+		weapons.weapon_grounded = false
+		weapons.equip(weapons.default_weapon)
+	var hurtbox: Area2D = get_node_or_null("Hurtbox") as Area2D
+	if hurtbox:
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", true)
+	if death_controller:
+		death_controller.start_rise()
+
+func revive(animated: bool = false) -> void:
+	if animated and state == &"Dead":
+		rise()
+		return
+	health = max_health
+	stability = max_stability
+	reaction_state = &"None"
+	reaction_time = 0.0
+	reaction_duration = 0.0
+	hit_stop_duration = 0.0
+	action_state = &"None"
+	combo_stage = 0
+	combo_queued = false
+	if punch_hitbox:
+		punch_hitbox.monitoring = false
+	punch_hit_targets.clear()
+	jump_squat_left = 0.0
+	landing_left = 0.0
+	air_time = 0.0
+	jump_phase = &"Grounded"
+	pose_composer.base_pose.clear()
+	move_intent = 0.0
+	jump_requested = false
+	attack_requested = false
+	velocity = Vector2.ZERO
+	state = &"Idle"
+	if death_controller:
+		death_controller.reset()
+	if skeleton:
+		for bone in skeleton.find_children("*", "Bone2D"):
+			if bone is Bone2D:
+				bone.apply_rest()
+	if body_renderer:
+		body_renderer.death_progress = 0.0
+	if eyes:
+		eyes.sync_death(0.0)
+	if equipment:
+		equipment.sync_death(0.0, true)
+	if weapons:
+		weapons.weapon_dropped = false
+		weapons.weapon_grounded = false
+		weapons.equip(weapons.default_weapon)
+	if anim_player:
+		anim_player.play(&"Idle")
+	var hurtbox: Area2D = get_node_or_null("Hurtbox") as Area2D
+	if hurtbox:
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", true)
+	_sync_visual(0.0)
+
+func is_armed() -> bool:
+	return weapons != null and is_instance_valid(weapons.current)
+
+func is_retreating() -> bool:
+	if not is_attacking() or not is_on_floor():
+		return false
+	if move_intent != 0.0 and facing * move_intent < -0.01:
+		return true
+	if absf(move_intent) <= 0.01 and facing * velocity.x < -5.0:
+		return true
+	return false
+
+func get_state_animation(state_name: StringName) -> StringName:
+	var anim_name := state_name
+	if is_retreating() and state_name in [&"Walk", &"Run"]:
+		anim_name = &"Backstep"
+	if not is_armed():
+		var unarmed_name := StringName(String(anim_name) + "_Unarmed")
+		if anim_player and anim_player.has_animation(unarmed_name):
+			return unarmed_name
+	return anim_name
+
+func sync_weapon_animation() -> void:
+	if state in [&"Idle", &"Walk", &"Run", &"Jump", &"Fall"]:
+		var target_anim := get_state_animation(state)
+		if anim_player and anim_player.current_animation != target_anim:
+			var prev_len := anim_player.current_animation_length
+			var norm_pos := anim_player.current_animation_position / maxf(prev_len, 0.001) if prev_len > 0 else 0.0
+			anim_player.play(target_anim, 0.12)
+			var next_len := anim_player.current_animation_length
+			anim_player.seek(norm_pos * next_len, true)
+
 func transition(next: StringName) -> void:
+	if next == &"Attack":
+		start_attack()
+		return
 	if state == next: return
+	if state == &"Dead" and next != &"Dead": return
 	var previous := state
 	state = next
 	state_changed.emit(previous, state)
+	if anim_player:
+		var target_anim := get_state_animation(next)
+		# Preserve gait phase between Walk and Run so supporting foot is preserved
+		if (previous == &"Walk" or previous == &"Run") and (next == &"Walk" or next == &"Run"):
+			if anim_player.current_animation != target_anim:
+				var prev_len := anim_player.current_animation_length
+				var norm_pos := anim_player.current_animation_position / maxf(prev_len, 0.001) if prev_len > 0 else 0.0
+				anim_player.play(target_anim, 0.10)
+				var next_len := anim_player.current_animation_length
+				anim_player.seek(norm_pos * next_len, true)
+		elif next == &"Idle" and (previous == &"Walk" or previous == &"Run"):
+			# Settle into idle over 4-6 frames (~0.08 - 0.10s)
+			anim_player.play(target_anim, 0.09)
+		elif next == &"Idle" and (previous == &"Fall" or previous == &"Jump"):
+			var land_anim := get_state_animation(&"Land")
+			if anim_player.has_animation(land_anim):
+				anim_player.play(land_anim, 0.04)
+				anim_player.queue(target_anim)
+			else:
+				anim_player.play(target_anim, 0.10)
+		else:
+			match next:
+				&"Idle": anim_player.play(target_anim, 0.15)
+				&"Walk": anim_player.play(target_anim, 0.12)
+				&"Run": anim_player.play(target_anim, 0.12)
+				&"Jump": anim_player.play(target_anim, 0.08)
+				&"Fall": anim_player.play(target_anim, 0.10)
+				&"Dead": pass
 
 func _physics_process(delta: float) -> void:
+	if state == &"Dead":
+		if death_controller:
+			death_controller.update(delta)
+		_sync_visual(delta)
+		return
+
+	if hit_stop_duration > 0.0:
+		hit_stop_duration = maxf(0.0, hit_stop_duration - delta)
+		_sync_visual(delta)
+		return
+
+	if reaction_time < reaction_duration:
+		reaction_time += delta
+		if reaction_time >= reaction_duration:
+			reaction_state = &"None"
+
+	if stability_cooldown_timer > 0.0:
+		stability_cooldown_timer = maxf(0.0, stability_cooldown_timer - delta)
+	elif stability < max_stability:
+		stability = minf(max_stability, stability + stability_recovery_rate * delta)
+
+	pose_composer.restore_base()
+
 	if player_controlled:
 		var input_direction := Input.get_axis("move_left", "move_right")
-		if Input.is_action_pressed("walk"): input_direction *= walk_speed_ratio
+		if not Input.is_action_pressed("sprint"): input_direction *= walk_speed_ratio
 		set_intent(input_direction, Input.is_action_just_pressed("jump"), Input.is_action_just_pressed("attack"))
 		if Input.is_action_just_pressed("equipment"): equipment.toggle()
-		if Input.is_action_just_pressed("weapon_sword"): weapons.equip(weapons.default_weapon)
-		if Input.is_action_just_pressed("weapon_none"): weapons.equip(null)
+		if not is_attacking():
+			if Input.is_action_just_pressed("weapon_sword"):
+				weapons.equip(weapons.default_weapon)
+				sync_weapon_animation()
+			if Input.is_action_just_pressed("weapon_none"):
+				weapons.equip(null)
+				sync_weapon_animation()
 		if Input.is_action_just_pressed("debug_rig"): rig.debug_draw = not rig.debug_draw
 	var grounded := is_on_floor()
-	velocity.x = move_toward(velocity.x, move_intent * move_speed * (0.35 if state == &"Attack" else 1.0), acceleration * delta)
-	if move_intent != 0 and state != &"Attack": facing = signf(move_intent)
+	if grounded and state in [&"Walk",&"Run"] and anim_player.current_animation == get_state_animation(state):
+		grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
+	landing_left = maxf(0.0,landing_left-delta)
+	var atk_mult := 1.0
+	if is_attacking():
+		if not is_armed():
+			var window := punch_windows[combo_stage] if combo_stage < punch_windows.size() else Vector2(0.08, 0.20)
+			atk_mult = 0.85 if (attack_time >= window.x and attack_time <= window.y) else 0.95
+		else:
+			atk_mult = attack_movement_multiplier
+	if reaction_state in [&"HeavyHit", &"Knockdown"]:
+		atk_mult *= 0.35
+	velocity.x = move_toward(velocity.x, move_intent * move_speed * atk_mult, acceleration * delta)
+	if move_intent != 0 and not is_attacking(): facing = signf(move_intent)
 	if not grounded: velocity.y += gravity * delta
-	if jump_requested and grounded: velocity.y = jump_velocity
-	if attack_requested and state != &"Attack" and (grounded or allow_air_attack):
-		attack_time = 0
-		transition(&"Attack")
-		if weapons.current: weapons.current.begin_attack()
+	if jump_requested and grounded and jump_squat_left <= 0:
+		jump_squat_left = jump_squat_duration
+		landing_left = 0.0
+		if state in [&"Walk",&"Run"]:
+			grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
+	if jump_squat_left > 0:
+		jump_squat_left = maxf(0.0,jump_squat_left-delta)
+		if not grounded: jump_squat_left = 0.0
+		elif jump_squat_left == 0: velocity.y = jump_velocity
+	if not grounded or velocity.y < 0: last_air_velocity_y = velocity.y
+	if attack_requested:
+		if not is_attacking() and (grounded or allow_air_attack):
+			start_attack()
+		elif is_attacking():
+			var buffer_start := weapons.current.combo_buffer_start if (is_armed() and weapons.current) else punch_combo_buffer_start
+			if attack_time >= attack_duration * buffer_start:
+				combo_queued = true
 	jump_requested = false
 	attack_requested = false
 	move_and_slide()
 	land_time = maxf(0, land_time - delta)
-	if not grounded and is_on_floor(): land_time = 0.14
-	if state == &"Attack":
-		attack_time += delta
-		if attack_time >= attack_duration: transition(&"Idle")
-	if state != &"Attack":
-		if not is_on_floor(): transition(&"Jump" if velocity.y < 0 else &"Fall")
-		elif absf(velocity.x) <= 5: transition(&"Idle")
-		else: transition(&"Walk" if absf(velocity.x) <= move_speed * 0.6 else &"Run")
-	rig.pose(delta, state, Vector2(velocity.x * facing, velocity.y), attack_time, land_time)
+	_contact_squash_timer = maxf(0.0, _contact_squash_timer - delta)
+	_flight_stretch_timer = maxf(0.0, _flight_stretch_timer - delta)
+	if not grounded and is_on_floor():
+		if air_time >= minimum_landing_air_time and last_air_velocity_y >= soft_landing_speed:
+			var hard := last_air_velocity_y >= hard_landing_speed
+			jump_phase = &"HardLand" if hard else &"SoftLand"
+			landing_animation = StringName("Air/"+String(jump_phase))
+			landing_left = anim_player.get_animation(landing_animation).length
+			landed.emit(last_air_velocity_y,hard)
+		air_time = 0.0
+	elif not is_on_floor(): air_time += delta
+	if not is_on_floor() and velocity.y < 0:
+		_flight_stretch_timer = 2.0 / 60.0
+	if rig and rig.gait:
+		rig.gait.advance(delta, velocity.x, is_on_floor() and absf(velocity.x) > 5, 32.0)
+		if is_on_floor() and state == &"Run" and rig.gait.phase_label() == "Flight":
+			_flight_stretch_timer = 2.0 / 60.0
+	if is_attacking():
+		advance_attack(delta)
+	if not is_on_floor(): transition(&"Jump" if velocity.y < 0 else &"Fall")
+	elif absf(velocity.x) <= 5 and move_intent == 0.0: transition(&"Idle")
+	else: transition(&"Walk" if absf(velocity.x) <= move_speed * 0.6 else &"Run")
+	update_jump_animation()
+	pose_composer.evaluate(delta)
 	_sync_visual(delta)
 
 func _sync_visual(delta: float) -> void:
+	impact_accent_offset = impact_accent_offset.move_toward(Vector2.ZERO, delta * 30.0)
+	reaction_push_offset = reaction_push_offset.move_toward(Vector2.ZERO, delta * 24.0)
 	# Only the visual origin is snapped, never the physics body or FK anchors.
-	visual.position = global_position.round() - global_position
-	visual.scale.x = facing
-	body_renderer.sync(rig)
-	eyes.sync(rig, delta, absf(move_intent))
-	equipment.sync(rig)
-	weapons.sync(rig, attack_time, state == &"Attack")
+	visual.position = (global_position + reaction_push_offset).round() - global_position
+	# Biomechanically stable skeleton: do NOT scale skeletal limb lengths
+	visual.scale = Vector2(facing, 1.0)
+	if state == &"Dead" and death_controller:
+		body_renderer.death_progress = death_controller.death_progress
+		body_renderer.puddle_spread_ratio = death_controller.puddle_spread_ratio
+		body_renderer.limb_retraction_strength = death_controller.limb_retraction_strength
+		body_renderer.torso_squash_ratio = death_controller.torso_squash_ratio
+		body_renderer.sync_skeleton(skeleton, delta)
+		eyes.sync_bone(_head_bone, delta, 0.0)
+		eyes.sync_death(death_controller.death_progress, int(death_controller.eye_death_mode))
+		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
+		equipment.sync_death(death_controller.death_progress, death_controller.embed_equipment)
+		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, false, delta)
+	else:
+		body_renderer.death_progress = 0.0
+		body_renderer.weapon_arm_depth = weapons.blade_depth if is_attacking() and combo_stage == 1 else 1.0
+		if has_reaction():
+			body_renderer.impact_center = reaction_impact_local
+			body_renderer.impact_radius = 8.5
+			var opp_offset := reaction_direction.x * facing * 12.0
+			body_renderer.impact_bulge_center = reaction_impact_local + Vector2(opp_offset, 0.0)
+			body_renderer.impact_bulge_radius = 7.5
+			var progress: float = clampf(reaction_time / maxf(reaction_duration, 0.001), 0.0, 1.0)
+			body_renderer.impact_depth = lerpf(3.2 * reaction_intensity, 0.0, progress)
+			body_renderer.impact_bulge_height = lerpf(1.8 * reaction_intensity, 0.0, progress)
+			body_renderer.impact_ripple_phase += delta * 4.5
+		else:
+			body_renderer.impact_depth = move_toward(body_renderer.impact_depth, 0.0, delta * 20.0)
+			body_renderer.impact_bulge_height = move_toward(body_renderer.impact_bulge_height, 0.0, delta * 20.0)
+		body_renderer.sync_skeleton(skeleton, delta)
+		eyes.sync_bone(_head_bone, delta, absf(move_intent))
+		eyes.sync_death(0.0)
+		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
+		equipment.sync_death(0.0, true)
+		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, is_attacking(), delta)
+		if not is_armed():
+			_update_punch_attack(delta)
 
-func receive_hit(amount: float) -> void:
-	health = maxf(health - amount, 0)
-	damaged.emit(amount)
-	# Full hurt/death states are an intentional post-MVP extension.
+func receive_hit(hit_data: Variant) -> void:
+	if state == &"Dead": return
+	var event: HitEvent
+	if hit_data is HitEvent:
+		event = hit_data
+	elif hit_data is float or hit_data is int:
+		event = HitEvent.from_damage(float(hit_data), Vector2(-facing, 0.0))
+	elif hit_data is Object and "damage" in hit_data:
+		event = HitEvent.from_damage(float(hit_data.damage), Vector2(-facing, 0.0))
+	else:
+		event = HitEvent.new()
+	
+	health = maxf(health - event.damage, 0.0)
+	damaged.emit(event.damage)
+	
+	if health <= 0.0:
+		die()
+		return
+		
+	# Stability / Poise Processing
+	stability = maxf(0.0, stability - event.poise_damage)
+	stability_cooldown_timer = stability_recovery_cooldown
+	var poise_broken: bool = stability <= 0.0
+	
+	# Determine reaction tier
+	var tier: StringName = event.hit_type
+	if tier == &"Knockdown" or event.poise_damage >= 80.0:
+		tier = &"Knockdown"
+	elif poise_broken or tier == &"HeavyHit":
+		tier = &"HeavyHit"
+		# Reset stability after poise break to grant recovery window
+		stability = max_stability * 0.35
+	elif not is_on_floor():
+		tier = &"AirHit"
+	elif tier == &"MicroHit":
+		tier = &"MicroHit"
+	else:
+		tier = &"LightHit"
+		
+	reaction_state = tier
+	reaction_time = 0.0
+	reaction_direction = event.direction
+	reaction_region = event.hit_region
+	reaction_intensity = clampf(event.impact_force / 80.0, 0.5, 2.2)
+	hit_stop_duration = event.hit_stop_duration
+	
+	# Target Instant Push-First linear displacement along attack direction
+	reaction_push_offset = event.direction * event.target_push_distance
+
+	# Local impact position for SDF dent and opposite bulge
+	if event.impact_point != Vector2.ZERO:
+		reaction_impact_local = to_local(event.impact_point)
+	else:
+		match reaction_region:
+			&"HEAD": reaction_impact_local = Vector2(0.0, -42.0)
+			&"LOWER_TORSO", &"LEG": reaction_impact_local = Vector2(0.0, -18.0)
+			_: reaction_impact_local = Vector2(0.0, -32.0)
+			
+	if body_renderer:
+		body_renderer.impact_center = reaction_impact_local
+		body_renderer.impact_radius = 8.5
+		body_renderer.impact_depth = 3.2 * reaction_intensity
+		var opp_offset := event.direction.x * facing * 12.0
+		body_renderer.impact_bulge_center = reaction_impact_local + Vector2(opp_offset, 0.0)
+		body_renderer.impact_bulge_radius = 7.5
+		body_renderer.impact_bulge_height = 1.8 * reaction_intensity
+
+	# Durations
+	match tier:
+		&"MicroHit": reaction_duration = 0.08
+		&"LightHit": reaction_duration = 0.15
+		&"AirHit": reaction_duration = 0.20
+		&"HeavyHit": reaction_duration = 0.35
+		&"Knockdown": reaction_duration = 0.48
+		_: reaction_duration = 0.15
+		
+	# Physical knockback impulse (world physics)
+	var air_mult: float = 1.25 if not is_on_floor() else 1.0
+	velocity += event.direction * (event.impact_force * air_mult)
+	if tier == &"Knockdown":
+		velocity.y = minf(velocity.y, -180.0)
+		
+	# Interrupt action on HeavyHit or Knockdown
+	if tier in [&"HeavyHit", &"Knockdown"]:
+		action_state = &"None"
+		combo_stage = 0
+		combo_queued = false
+		if punch_hitbox:
+			punch_hitbox.monitoring = false

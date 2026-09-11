@@ -2,6 +2,12 @@ extends Node2D
 var hit_count := 0
 var flash := 0.0
 
+var react_offset := Vector2.ZERO
+var react_tilt := 0.0
+var react_time := 0.0
+var react_duration := 0.0
+var react_type := ""
+
 func _ready() -> void:
 	var area := Area2D.new()
 	area.name = "Hurtbox"
@@ -17,15 +23,49 @@ func _ready() -> void:
 	area.add_child(collider)
 	add_child(area)
 
-func receive_hit(_damage: float) -> void:
+func receive_hit(hit_data: Variant) -> void:
+	var damage: float = hit_data.damage if (hit_data is Object and "damage" in hit_data) else float(hit_data)
 	hit_count += 1
 	flash = 0.15
+	if damage <= 7.5:
+		react_type = "jab"
+		react_duration = 0.14
+		react_time = react_duration
+		react_offset = Vector2(2.5, -0.2)
+		react_tilt = 0.04
+	elif damage <= 9.5:
+		react_type = "cross"
+		react_duration = 0.22
+		react_time = react_duration
+		react_offset = Vector2(4.5, -0.5)
+		react_tilt = 0.06
+	else:
+		react_type = "hook"
+		react_duration = 0.25
+		react_time = react_duration
+		react_offset = Vector2(3.0, 0.0)
+		react_tilt = -0.12
 
 func _process(delta: float) -> void:
 	flash = maxf(0, flash - delta)
+	if react_time > 0:
+		react_time = maxf(0, react_time - delta)
+		if react_type == "jab":
+			react_offset = react_offset.move_toward(Vector2.ZERO, 20.0 * delta)
+			react_tilt = move_toward(react_tilt, 0.0, 0.35 * delta)
+		elif react_type == "cross":
+			react_offset = react_offset.move_toward(Vector2.ZERO, 25.0 * delta)
+			react_tilt = move_toward(react_tilt, 0.0, 0.4 * delta)
+		elif react_type == "hook":
+			react_offset = react_offset.move_toward(Vector2.ZERO, 20.0 * delta)
+			react_tilt = move_toward(react_tilt, 0.0, 0.7 * delta)
+	else:
+		react_offset = Vector2.ZERO
+		react_tilt = 0.0
 	queue_redraw()
 
 func _draw() -> void:
+	draw_set_transform(react_offset, react_tilt, Vector2.ONE)
 	var color := Color("f0dc9a") if flash > 0 else Color("826447")
 	draw_rect(Rect2(-3, -57, 6, 57), Color("433e35"))
 	draw_rect(Rect2(-14, -43, 28, 7), Color("554937"))
@@ -36,4 +76,5 @@ func _draw() -> void:
 	draw_circle(Vector2(0, -36), 4, Color("423e34"))
 	draw_circle(Vector2(0, -36), 2, Color("ba7950"))
 	draw_rect(Rect2(-12, -3, 24, 4), Color("534b39"))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 

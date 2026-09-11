@@ -4,12 +4,16 @@
 
 ## 操作
 
+跳跃使用独立 `Air` 动画库：JumpSquat → Takeoff → Rise → Apex → Fall → SoftLand/HardLand → Recovery。起跳预备默认 0.075 秒，顶点速度带为 ±35；落地只在空中转地面时触发，滞空不足 0.08 秒或下落速度不足 140 时跳过，达到 280 时使用重落地。相关阈值暴露在角色 Inspector，恢复时根据当前水平运动返回 Idle/Walk/Run，并保留地面循环相位。
+
+移动与动作分层：`MudCharacter.state` 始终表示 Idle/Walk/Run/Jump/Fall（死亡除外），`action_state` 独立表示 None/Attack1/Attack2/Attack3。`MudPoseComposer` 先推进基础 AnimationPlayer，再按上半身骨骼遮罩采样 Blade 动画；腿部与骨盆位置不受攻击轨道影响。收招权重淡出到当前移动姿势，空中基础姿势由垂直速度驱动。`attack_movement_multiplier` 独立控制攻击时水平移速，默认 1。F1 可查看骨骼归属颜色、移动/动作状态、基础相位、攻击进度、落地状态与垂直速度。
+
 | 操作 | 输入 |
 | --- | --- |
-| 移动 | A / D 或左右方向键 |
-| 慢走 | 按住 Shift + 移动 |
+| 步行 | A / D 或左右方向键 |
+| 疾跑 | 按住 Shift + 移动，松开 Shift 恢复步行 |
 | 跳跃 | Space |
-| 挥剑 | J / 鼠标左键 |
+| 刀剑三连击 | J / 鼠标左键；每段起手后再按一次缓存下一段，第三段后收招 |
 | 头盔与护腕显隐 | E |
 | 装备 Sword / 卸下武器 | 1 / 2 |
 | Anchor 与辅助点可视化 | F1 |
@@ -17,6 +21,8 @@
 | 玩家复位 | R |
 
 走近右侧木桩挥剑，`HITS` 显示实际 Area2D 命中次数。攻击预备、有效和恢复阶段分离，同一目标每次挥剑只结算一次。空手动作仍可播放，但没有武器伤害。
+
+刀剑类动画位于角色 AnimationPlayer 的 `Blade` 库：`Attack_1` 起手下斩（0.62 秒）、`Attack_2` 横斩（0.44 秒）、`Attack_3` 收尾上挑（0.76 秒）。每段包含预备、挥击、跟随和恢复；单次输入只出一段，后续输入在动作 15% 之后缓存。Sword 的 Inspector 中 `weapon_class = blade` 标记刀剑类别，`attack_animations` 与 `attack_windows` 分别配置动画和命中窗口。横斩使用 BACK/BODY/FRONT 纵深表现与独立的水平矩形判定，生效时间为 0.16–0.25 秒。`trail_width` 控制两端收尖的剑光宽度；剑光只作视觉显示。
 
 ## 已实现的范围
 
@@ -67,6 +73,14 @@ MudCharacter (CharacterBody2D / mud_character.gd)
 髋部不再固定压至腿长的 82%。`support_height()` 根据脚部目标与支撑腿可达长度调整骨盆高度；`walk_support_extension / run_support_extension` 控制承重腿伸展，`run_contact_compression` 只在接触期提供小幅缓冲。腾空同时抬起根部与两脚，回收腿先屈后伸，在落脚前展开小腿。步行脚尖离地角独立减小，避免持续踮脚蹲行。
 
 弹簧惯性仅接收速度变化，不再持续按行进速度向后拉扯胸部与头部。匀速时骨骼回到姿态目标；软体阻尼仍负责起步、制动和跳落时的短暂跟随。
+
+## 承重、蹬伸与质量滞后
+
+当前步态在参考姿态上增加明确承重阶段：Walk 为 Contact → Down → Passing → Up；Run 为接触压缩 → 蹬伸 → 双脚腾空 → 再接触。`walk_down / run_down / acceptance_peak / acceptance_end` 控制承重包络，`drive_push` 控制骨盆蹬伸前送。下降只在承重阶段出现，随后支撑腿重新展开，不能再用“支撑腿全程近直”来约束动作。
+
+默认 Walk 的 Contact→Down 实测约下降 2.06 逻辑像素（2 倍显示时约 4.12 像素），Passing 抬脚目标约 8 逻辑像素。Run 使用非对称足部轨迹，落点在骨盆前约 5.76 逻辑像素，后向蹬伸更长；两只脚底同时明显离地的区间约 0.1 秒。上述数值对应默认体型和速度。
+
+`arm()` 独立输出上臂、肘部、手腕时序，肘部读取延迟的肩部角度，手腕再延迟；跑步肘角限制 70°–110°。胸与头通过 `chest_delay / head_delay` 的时间历史逐级跟随骨盆，再叠加限幅阻尼修正，保留短暂惯性并避免持续后拖。攻击层仍可覆盖手臂姿态，装备与武器仍跟随独立插槽。
 
 ## 像素化与遮挡
 

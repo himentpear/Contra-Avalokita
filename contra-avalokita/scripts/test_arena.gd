@@ -13,7 +13,7 @@ func _enter_tree() -> void:
 	bind("move_left", [KEY_A, KEY_LEFT])
 	bind("move_right", [KEY_D, KEY_RIGHT])
 	bind("jump", [KEY_SPACE])
-	bind("walk", [KEY_SHIFT])
+	bind("sprint", [KEY_SHIFT])
 	bind("attack", [KEY_J])
 	bind("equipment", [KEY_E])
 	bind("weapon_sword", [KEY_1])
@@ -21,6 +21,7 @@ func _enter_tree() -> void:
 	bind("debug_rig", [KEY_F1])
 	bind("crowd", [KEY_T])
 	bind("reset", [KEY_R])
+	bind("kill", [KEY_K])
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	InputMap.action_add_event("attack", click)
@@ -83,13 +84,47 @@ func cycle_crowd() -> void:
 		npc.equipment.toggle()
 		crowd.append(npc)
 
+@export var camera_shake_enabled := false
+var camera_shake_offset := Vector2.ZERO
+var camera_shake_timer := 0.0
+var camera_shake_duration := 0.0
+var camera_shake_dir := Vector2.RIGHT
+var camera_shake_amp := 0.0
+
+func trigger_camera_shake(dir: Vector2, amp: float, duration: float = 0.08) -> void:
+	if not camera_shake_enabled:
+		camera_shake_offset = Vector2.ZERO
+		position = Vector2.ZERO
+		return
+	camera_shake_dir = dir.normalized() if dir.length_squared() > 0.01 else Vector2.RIGHT
+	camera_shake_amp = amp
+	camera_shake_duration = maxf(duration, 0.001)
+	camera_shake_timer = camera_shake_duration
+	camera_shake_offset = (camera_shake_dir * amp).round()
+	position = camera_shake_offset
+
 func _process(delta: float) -> void:
 	elapsed += delta
 	frame += 1
+	if camera_shake_enabled and camera_shake_timer > 0.0:
+		camera_shake_timer = maxf(0.0, camera_shake_timer - delta)
+		var p: float = camera_shake_timer / camera_shake_duration
+		var offset_val: float = cos((camera_shake_duration - camera_shake_timer) * 55.0) * camera_shake_amp * p
+		camera_shake_offset = (camera_shake_dir * offset_val).round()
+	else:
+		camera_shake_offset = Vector2.ZERO
+	position = camera_shake_offset
+
+	if not is_instance_valid(player): return
 	if Input.is_action_just_pressed("crowd"): cycle_crowd()
+	if Input.is_action_just_pressed("kill"):
+		player.die()
+	if player.state == &"Dead" and (Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("attack")):
+		player.rise()
 	if Input.is_action_just_pressed("reset"):
 		player.position = Vector2(285, 280)
 		player.velocity = Vector2.ZERO
+		player.revive()
 	for i in crowd.size():
 		var npc := crowd[i]
 		if crowd_mode > 0:
@@ -129,8 +164,13 @@ func _draw() -> void:
 	label_at(Vector2(389, 135), "03 / STRIKE TARGET", 9, Color("829582"))
 	label_at(Vector2(453, 173), "LIVE TELEMETRY", 10, Color("c3d29a"))
 	var weapon_name := player.weapons.current.weapon_name if player.weapons.current else "None"
+	if player.rig.debug_draw:
+		var gait_phase := player.anim_player.current_animation_position / maxf(player.anim_player.current_animation_length,.001)
+		var action_phase := player.attack_time / maxf(player.attack_duration,.001) if player.is_attacking() else 0.0
+		label_at(Vector2(18,91),"MOVE %s  ACTION %s  GAIT %.2f  ATTACK %.2f" % [player.state,player.action_state,gait_phase,action_phase],10)
+		label_at(Vector2(18,105),"FLOOR %s  VY %.1f   GREEN: BASE  PINK: ACTION  GOLD: PELVIS" % [str(player.is_on_floor()),player.velocity.y],9)
 	var lines: Array[String] = ["STATE   " + String(player.state), "VEL     %5.1f / %5.1f" % [player.velocity.x, player.velocity.y], "ELBOW   %3.0f deg" % player.rig.angles.get("ArmFront", 0), "KNEE    %3.0f deg" % player.rig.angles.get("LegFront", 0), "COMP    %.2f" % player.rig.compressions.get("ArmFront", 0), "REACH   %.3f" % player.rig.stretch, "WEAPON  " + weapon_name, "HITS    %02d" % dummy.hit_count]
 	for i in lines.size(): label_at(Vector2(453, 189 + i * 11), lines[i], 9)
 	draw_rect(Rect2(0, 320, 640, 40), Color("0c161d"))
-	label_at(Vector2(20, 335), "A D  RUN   SHIFT  WALK   SPACE  JUMP   J / LMB  ATTACK   E  ARMOR", 10, Color("d1d9b7"))
-	label_at(Vector2(20, 350), "1  SWORD     2  UNARMED     F1  JOINTS     R  RESET     T  CROWD", 9)
+	label_at(Vector2(20, 335), "A D  WALK   HOLD SHIFT  RUN   SPACE  JUMP   J / LMB  ATTACK   E  ARMOR", 10, Color("d1d9b7"))
+	label_at(Vector2(20, 350), "1  SWORD   2  UNARMED   F1  JOINTS   K  DIE   SPACE  RISE   R  RESET   T  CROWD", 9)

@@ -22,11 +22,13 @@ func run() -> void:
 	check(p.is_on_floor() and p.state == &"Idle", "Stable capsule lands and idles")
 	p.player_controlled = true
 	Input.action_press("move_right")
-	Input.action_press("walk")
 	await ticks(20)
-	check(p.state == &"Walk" and absf(p.velocity.x - p.move_speed * p.walk_speed_ratio) < 0.1, "Walk modifier selects reduced speed and Walk state")
+	check(p.state == &"Walk" and absf(p.velocity.x - p.move_speed * p.walk_speed_ratio) < 0.1, "Default movement selects Walk")
+	Input.action_press("sprint")
+	await ticks(12)
+	check(p.state == &"Run", "Holding Shift selects Run")
 	Input.action_release("move_right")
-	Input.action_release("walk")
+	Input.action_release("sprint")
 	p.player_controlled = false
 	var start_x := p.position.x
 	p.set_intent(1)
@@ -36,7 +38,7 @@ func run() -> void:
 	await ticks(8)
 	check(p.facing == -1 and p.visual.scale.x == -1, "Facing mirrors rig, equipment and weapon")
 	p.set_intent(0, true)
-	await ticks(4)
+	await ticks(9)
 	check(p.state == &"Jump" and p.velocity.y < 0, "Jump leaves floor")
 	await ticks(65)
 	check(p.is_on_floor(), "Jump returns to stable collision")
@@ -48,7 +50,7 @@ func run() -> void:
 	var initial_hits: int = arena.dummy.hit_count
 	p.set_intent(0, false, true)
 	await ticks(2)
-	check(p.state == &"Attack", "Attack enters timed state")
+	check(p.is_attacking() and p.state == &"Idle", "Attack overlays independent movement state")
 	check(not p.weapons.current.active, "Windup has no damage")
 	await ticks(7)
 	check(p.rig.compressions["ArmFront"] > 0.3, "Windup folds elbow and activates soft joint compression")

@@ -10,6 +10,9 @@ uniform vec2 bounds_origin = vec2(-80.0, -104.0);
 uniform vec4 mud_color : source_color = vec4(0.42, 0.49, 0.27, 1.0);
 uniform float edge_width : hint_range(0.5, 2.0) = 1.0;
 uniform float noise_strength : hint_range(0.0, 0.05) = 0.025;
+uniform vec4 impact_params = vec4(0.0, 0.0, 0.0, 0.0);
+uniform vec4 impact_bulge = vec4(0.0, 0.0, 0.0, 0.0);
+uniform float impact_ripple_phase = 0.0;
 
 float capsule(vec2 p, vec4 ab, vec2 radii) {
 	vec2 axis = ab.zw - ab.xy;
@@ -36,6 +39,28 @@ void fragment() {
 		// Front surfaces win overlaps; union still has one continuous silhouette.
 		if (s < 0.0 && properties[i].w >= owner_depth) {
 			owner_depth = properties[i].w;
+		}
+	}
+	if (impact_params.w > 0.001) {
+		float dist_to_impact = length(p - impact_params.xy);
+		if (dist_to_impact < impact_params.z) {
+			float dent = smoothstep(impact_params.z, 0.0, dist_to_impact) * impact_params.w;
+			d += dent;
+		}
+	}
+	if (impact_bulge.w > 0.001) {
+		float dist_to_bulge = length(p - impact_bulge.xy);
+		if (dist_to_bulge < impact_bulge.z) {
+			float bulge = smoothstep(impact_bulge.z, 0.0, dist_to_bulge) * impact_bulge.w;
+			d -= bulge;
+		}
+	}
+	if (impact_params.w > 0.001) {
+		vec2 mid = (impact_params.xy + impact_bulge.xy) * 0.5;
+		float dist_mid = length(p - mid);
+		if (dist_mid < impact_params.z * 1.6) {
+			float ripple = sin(dist_mid * 0.70 - impact_ripple_phase * 6.283) * exp(-dist_mid * 0.15) * (impact_params.w * 0.25);
+			d += ripple;
 		}
 	}
 	if (d > 0.0) { discard; }

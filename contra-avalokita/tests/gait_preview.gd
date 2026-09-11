@@ -26,6 +26,7 @@ func run() -> void:
 	caption(stage, "DRIVE > FLIGHT > RECOVERY", Vector2(358, 308), 12)
 	caption(stage, "Opposed shoulders / pelvis  |  delayed elbows / wrists  |  foot IK", Vector2(43, 338), 11)
 	var actors: Array[MudCharacter] = []
+	var phase_labels: Array[Label] = []
 	for col in 2:
 		var line := ColorRect.new()
 		line.position = Vector2(24 + col * 320, 287)
@@ -40,16 +41,26 @@ func run() -> void:
 		actor.player_controlled = false
 		holder.add_child(actor)
 		actor.set_physics_process(false)
+		actor.anim_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		var initial_anim: StringName = &"Walk" if col == 0 else &"Run"
+		actor.state = initial_anim
+		actor.anim_player.play(initial_anim, 0.0)
 		actor.equipment.toggle()
 		actor.weapons.equip(null)
 		actors.append(actor)
+		var phase_text := Label.new()
+		phase_text.position = Vector2(113 + col * 320, 96)
+		phase_text.add_theme_font_size_override("font_size", 12)
+		phase_text.modulate = Color("aabd7d")
+		stage.add_child(phase_text)
+		phase_labels.append(phase_text)
 	for frame in 150:
 		for col in 2:
 			var actor := actors[col]
 			actor.rig.pose(1.0 / 30.0, &"Walk" if col == 0 else &"Run", Vector2(45 if col == 0 else 105, 0), 0, 0)
 			actor._sync_visual(1.0 / 30.0)
+			phase_labels[col].text = actor.rig.gait.phase_label().to_upper()
 		await process_frame
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png("res://artifacts/gait_frames/%03d.png" % frame)
 	quit()
-
