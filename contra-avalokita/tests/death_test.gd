@@ -24,6 +24,7 @@ func run() -> void:
 	check(p.is_on_floor() and p.state == &"Idle", "Player starts idle on floor")
 	check(p.death_controller != null, "DeathController is attached to player")
 	check(p.splatter != null, "PixelMudSplatter is attached to player")
+	check(p.death_ascension != null, "SDF-sourced ascension particles are attached to player")
 
 	# 1. Non-lethal damage does not trigger death
 	p.receive_hit(20.0)
@@ -54,6 +55,7 @@ func run() -> void:
 	check(dc.current_phase >= MudDeathController.DeathPhase.COLLAPSE, "Phase 3: Transition into COLLAPSE")
 	check(dc.impact_triggered, "Impact triggered at collapse")
 	check(p.splatter.active and p.splatter.droplets.size() > 0, "Pixel mud splatter burst active with crisp droplets")
+	check(p.death_ascension.active and p.death_ascension.particles.size() > 0, "Death peels rising pixels from SDF body segments")
 	check(dc.weapon_dropped and p.weapons.weapon_dropped, "Weapon drops from character hands")
 
 	# 6. Settle phase & Ground puddle expansion

@@ -7,6 +7,8 @@
 [ext_resource type="Script" uid="uid://8ajlurpifbhx" path="res://scripts/weapon_manager.gd" id="5_ldqmi"]
 [ext_resource type="Script" uid="uid://b6puxsuxcvhlw" path="res://scripts/mud_pixel_splatter.gd" id="6_lpyrd"]
 [ext_resource type="Script" uid="uid://bnocja0d1sjnh" path="res://scripts/mud_death_controller.gd" id="7_ovnsc"]
+[ext_resource type="Script" path="res://scripts/mud_pixel_ascension.gd" id="8_ascend"]
+[ext_resource type="AnimationLibrary" path="res://resources/wall_animation_library.tres" id="9_wall_anims"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ccx8a"]
 height = 74.0
@@ -6208,6 +6210,7 @@ libraries/ = SubResource("AnimationLibrary_pcne2")
 libraries/Air = SubResource("AirLibrary")
 libraries/Blade = SubResource("BladeLibrary")
 libraries/Punch = SubResource("PunchLibrary")
+libraries/Wall = ExtResource("9_wall_anims")
 
 [node name="Visual" type="Node2D" parent="." unique_id=1034548773]
 z_index = 10
@@ -6351,6 +6354,10 @@ script = ExtResource("5_ldqmi")
 
 [node name="PixelMudSplatter" type="Node2D" parent="Visual" unique_id=606854930]
 script = ExtResource("6_lpyrd")
+
+[node name="DeathAscension" type="Node2D" parent="Visual"]
+z_index = 8
+script = ExtResource("8_ascend")
 
 [node name="DeathController" type="Node" parent="." unique_id=481259382]
 script = ExtResource("7_ovnsc")

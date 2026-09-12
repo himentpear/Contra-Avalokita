@@ -28,6 +28,7 @@ var impact_ripple_phase := 0.0
 
 @export_group("Death Collapse")
 @export var death_progress := 0.0
+@export var death_dissolve := 0.0
 @export var torso_squash_ratio := 0.20
 @export var puddle_spread_ratio := 2.4
 @export var limb_retraction_strength := 0.85
@@ -316,6 +317,7 @@ func _upload_segments() -> void:
 	shader_material.set_shader_parameter("mud_color", mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
 	shader_material.set_shader_parameter("impact_params", Vector4(impact_center.x, impact_center.y, impact_radius, impact_depth))
 	shader_material.set_shader_parameter("impact_bulge", Vector4(impact_bulge_center.x, impact_bulge_center.y, impact_bulge_radius, impact_bulge_height))
 	shader_material.set_shader_parameter("impact_ripple_phase", impact_ripple_phase)
@@ -335,6 +337,7 @@ func sync(rig: MudRig) -> void:
 	shader_material.set_shader_parameter("mud_color", mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
 	shader_material.set_shader_parameter("impact_params", Vector4(impact_center.x, impact_center.y, impact_radius, impact_depth))
 	shader_material.set_shader_parameter("impact_bulge", Vector4(impact_bulge_center.x, impact_bulge_center.y, impact_bulge_radius, impact_bulge_height))
 	shader_material.set_shader_parameter("impact_ripple_phase", impact_ripple_phase)

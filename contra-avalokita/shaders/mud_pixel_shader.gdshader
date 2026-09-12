@@ -14,6 +14,7 @@ uniform float noise_strength : hint_range(0.0, 0.05) = 0.025;
 uniform vec4 impact_params = vec4(0.0, 0.0, 0.0, 0.0);
 uniform vec4 impact_bulge = vec4(0.0, 0.0, 0.0, 0.0);
 uniform float impact_ripple_phase = 0.0;
+uniform float death_dissolve : hint_range(0.0, 1.0) = 0.0;
 
 float capsule(vec2 p, vec4 ab, vec2 radii) {
 	vec2 axis = ab.zw - ab.xy;
@@ -68,6 +69,13 @@ void fragment() {
 		}
 	}
 	if (d > 0.0) { discard; }
+	// Peel stable, integer-sized islands from the upper body while preserving
+	// the residue at floor level. Matching CPU particles use these SDF capsules.
+	if (death_dissolve > 0.001 && p.y < -5.0) {
+		float dissolve_noise = fract(sin(dot(floor(p * 0.5), vec2(41.37, 19.73))) * 951.1357);
+		float height_lead = clamp((-p.y - 5.0) / 72.0, 0.0, 1.0) * 0.18;
+		if (dissolve_noise < clamp(death_dissolve + height_lead, 0.0, 1.0)) { discard; }
+	}
 	int visible_depth = owner_depth < -0.5 ? -1 : (owner_depth > 0.5 ? 1 : 0);
 	if (depth_pass != 2 && visible_depth != depth_pass) { discard; }
 	surface = 0.60 + dot(gradient, vec2(-0.25, -0.35));

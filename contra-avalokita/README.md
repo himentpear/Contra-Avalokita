@@ -12,6 +12,8 @@
 
 跳跃使用独立 `Air` 动画库：JumpSquat → Takeoff → Rise → Apex → Fall → SoftLand/HardLand → Recovery。起跳预备默认 0.075 秒，顶点速度带为 ±35；落地只在空中转地面时触发，滞空不足 0.08 秒或下落速度不足 140 时跳过，达到 280 时使用重落地。相关阈值暴露在角色 Inspector，恢复时根据当前水平运动返回 Idle/Walk/Run，并保留地面循环相位。
 
+墙面动作作为空中子状态运行：角色在空中持续朝墙输入时进入 `WallHang`，主手与高位脚通过两段 IK 锁定实际碰撞墙面，并由低位脚建立三点支撑；默认悬停 0.24 秒后转入 `WallSlide`，手脚锚点比身体更慢地下移并以间歇摩擦限制落速。扒墙或滑墙期间按 Space 依次进入 `WallPush → WallRelease`：先用约 0.075 秒向墙预压缩，再以水平 185 / 垂直 238 的速度蹬离，并保留 0.14 秒后仰余势和 0.18 秒防重复吸墙窗口。速度、时长与冷却均可在角色 Inspector 的 Wall Movement 分组调整。
+
 移动与动作分层：`MudCharacter.state` 始终表示 Idle/Walk/Run/Jump/Fall（死亡除外），`action_state` 独立表示 None/Attack1/Attack2/Attack3。`MudPoseComposer` 先推进基础 AnimationPlayer，再按上半身骨骼遮罩采样 Blade 动画；腿部与骨盆位置不受攻击轨道影响。收招权重淡出到当前移动姿势，空中基础姿势由垂直速度驱动。`attack_movement_multiplier` 独立控制攻击时水平移速，默认 1。F1 可查看骨骼归属颜色、移动/动作状态、基础相位、攻击进度、落地状态与垂直速度。
 
 | 操作 | 输入 |
@@ -19,6 +21,8 @@
 | 步行 | A / D 或左右方向键 |
 | 疾跑 | 按住 Shift + 移动，松开 Shift 恢复步行 |
 | 跳跃 | Space |
+| 扒墙 / 滑墙 | 空中持续按住朝向墙面的 A / D；短暂悬停后自动滑墙 |
+| 蹬墙跳 | 扒墙或滑墙时按 Space |
 | 刀剑三连击 | J / 鼠标左键；每段起手后再按一次缓存下一段，第三段后收招 |
 | 头盔与护腕显隐 | E |
 | 装备 Sword / 卸下武器 | 1 / 2 |
@@ -32,7 +36,7 @@
 
 ## 已实现的范围
 
-- Idle、Walk、Run、Jump（包含 Fall 过渡）、Attack；轻微落地压缩。
+- Idle、Walk、Run、Jump、WallHang、WallSlide、WallPush、WallRelease、Attack、Death；墙面动作包含约束式扒墙、摩擦下滑、预压蹬墙和离墙余势。
 - 一把独立 Sword，HeadSlot、ForearmSlot、MainHandSlot。
 - 浮点 FK Anchor、四肢辅助 Pre/Post 控制点、夹角压缩、限幅阻尼弹簧。
 - 24 个可复用胶囊段组成整体 SDF，smooth union 保持连续轮廓。
@@ -41,7 +45,7 @@
 - 固定胶囊角色碰撞，独立 Hurtbox，独立武器 Hitbox。
 - `set_intent()` 允许玩家、敌人、NPC 共用角色。测试中的 NPC 就是同一场景。
 
-MVP 使用程序化状态与 FK 动画，不放置未连接的 AnimationPlayer / AnimationTree。Attack_2、Heavy_Attack、Hurt、Death、双手 IK、换枪等尚未实现；扩展参数/节点只是接口，不代表已实现对应动作。
+MVP 使用程序化状态与 FK 动画，不放置未连接的 AnimationPlayer / AnimationTree。死亡动作已实现参考 GIF 校准的受击定格、失去支撑、侧向倒地与 SDF 像素飞升；Heavy_Attack、独立 Hurt 动画、双手 IK、换枪等仍未实现，扩展参数/节点只是接口，不代表已实现对应动作。
 
 ## 节点与职责
 
@@ -54,12 +58,14 @@ MudCharacter (CharacterBody2D / mud_character.gd)
 │   ├── MudBodyRenderer    单个 ColorRect + ShaderMaterial
 │   ├── Rig                运行时创建命名 Marker2D
 │   ├── Eyes               独立锐利眼睛
+│   ├── DeathAscension     从身体 SDF 胶囊采样的像素飞升粒子
 │   ├── Equipment
 │   │   ├── HeadSlot
 │   │   └── ForearmSlot
 │   └── WeaponSlots
 │       └── MainHandSlot
 │           └── Sword     Sprite2D / Hitbox / Grip / Effect 等
+├── DeathController       死亡姿势、阶段时序、武器脱手与消散触发
 └── Hurtbox               固定 Area2D
 ```
 
@@ -113,8 +119,13 @@ MudCharacter (CharacterBody2D / mud_character.gd)
 Godot_v4.7.1-stable_win64_console.exe --headless --path . --editor --import --quit
 Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/smoke_test.gd
 Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/gait_test.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path . --script res://tests/wall_movement_test.gd
 Godot_v4.7.1-stable_win64_console.exe --path . --script res://tests/visual_test.gd
 ```
+
+墙面动作的交互测试场景为 `scenes/wall_movement_test.tscn`：A/D 移动，Space 跳跃和蹬墙，R 复位。`wall_movement_test.gd` 自动检查扒墙进入条件、朝向、垂直悬停、滑墙限速、蹬墙方向和防重抓冷却；`wall_movement_preview.gd` 输出四阶段动作对照图。
+
+墙面姿势可直接在 Godot 动画编辑器中调整：打开 `scenes/mud_character.tscn`，选中 `AnimationPlayer`，再从动画列表选择 `Wall/Hang`、`Wall/Slide`、`Wall/Push` 或 `Wall/Release`。骨盆、躯干、头部和四肢关键帧保存在 `resources/wall_animation_library.tres`；靠墙腿的关键帧同时充当 IK 膝盖 pole/hint，手脚接触点仍由运行时墙面约束校正。需要恢复初始墙面动画时可运行 `tools/generate_wall_animation_library.gd`。
 
 `smoke_test.gd` 覆盖移动/起落、朝向、预备阶段禁用伤害、命中去重及下次挥剑重置、装备与身体拓扑解耦、深浅关节压缩、30/60 Hz 弹簧一致性和 30 人运行。`visual_test.gd` 使用真实 GPU，导出 `artifacts/` 下四种动作截图和 30 人截图，并打印 180 帧采样的中位及 P95 帧间隔；不要用 headless 执行此视觉测试。
 
