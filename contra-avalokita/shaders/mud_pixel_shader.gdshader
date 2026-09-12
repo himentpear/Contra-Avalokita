@@ -1,5 +1,6 @@
 shader_type canvas_item;
 render_mode unshaded;
+uniform int depth_pass = 2; // 2 = unsplit; -1/0/1 = rear/body/front surfaces.
 
 const int MAX_SEGMENTS = 40;
 uniform vec4 endpoints[MAX_SEGMENTS];
@@ -23,7 +24,7 @@ float capsule(vec2 p, vec4 ab, vec2 radii) {
 void fragment() {
 	vec2 p = UV * bounds_size + bounds_origin;
 	float d = 1000.0;
-	float owner_depth = -1.0;
+	float owner_depth = -2.0;
 	float surface = 0.0;
 	vec2 gradient = vec2(0.0);
 	for (int i = 0; i < MAX_SEGMENTS; i++) {
@@ -40,6 +41,9 @@ void fragment() {
 		if (s < 0.0 && properties[i].w >= owner_depth) {
 			owner_depth = properties[i].w;
 		}
+	}
+	if (owner_depth < -1.5) {
+		owner_depth = 0.0;
 	}
 	if (impact_params.w > 0.001) {
 		float dist_to_impact = length(p - impact_params.xy);
@@ -64,6 +68,8 @@ void fragment() {
 		}
 	}
 	if (d > 0.0) { discard; }
+	int visible_depth = owner_depth < -0.5 ? -1 : (owner_depth > 0.5 ? 1 : 0);
+	if (depth_pass != 2 && visible_depth != depth_pass) { discard; }
 	surface = 0.60 + dot(gradient, vec2(-0.25, -0.35));
 	float noise = fract(sin(dot(floor(p), vec2(12.9898, 78.233))) * 43758.5453);
 	float light = surface + (noise - 0.5) * noise_strength;

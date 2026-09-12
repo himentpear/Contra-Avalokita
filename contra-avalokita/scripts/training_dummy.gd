@@ -17,15 +17,16 @@ func _ready() -> void:
 	area.set_meta("owner_character", self)
 	var collider := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
-	shape.size = Vector2(20, 50)
+	shape.size = Vector2(24, 260)
 	collider.shape = shape
-	collider.position.y = -30
+	collider.position.y = 50
 	area.add_child(collider)
 	add_child(area)
 
 func receive_hit(hit_data: Variant) -> void:
 	var damage: float = hit_data.damage if (hit_data is Object and "damage" in hit_data) else float(hit_data)
 	hit_count += 1
+	preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,damage,Vector2(0,-63))
 	flash = 0.15
 	if damage <= 7.5:
 		react_type = "jab"
@@ -77,4 +78,3 @@ func _draw() -> void:
 	draw_circle(Vector2(0, -36), 2, Color("ba7950"))
 	draw_rect(Rect2(-12, -3, 24, 4), Color("534b39"))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-

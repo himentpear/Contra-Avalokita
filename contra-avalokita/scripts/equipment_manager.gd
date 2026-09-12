@@ -2,17 +2,22 @@ class_name EquipmentManager
 extends Node2D
 @export var head_piece: PackedScene = preload("res://scenes/equipment/helmet.tscn")
 @export var forearm_piece: PackedScene = preload("res://scenes/equipment/bracer.tscn")
+@export var left_forearm_piece: PackedScene = preload("res://scenes/equipment/bracer.tscn")
 var slots: Dictionary = {}
 var equipped := true
 
 func _ready() -> void:
-	for id in [&"HeadSlot", &"ForearmSlot"]:
+	for id in [&"HeadSlot", &"RightForearmSlot", &"LeftForearmSlot"]:
 		var marker := Marker2D.new()
 		marker.name = id
 		add_child(marker)
 		slots[id] = marker
+		if id != &"HeadSlot": marker.set_meta("anatomical_hand",&"Right" if id == &"RightForearmSlot" else &"Left")
+	# Preserve the legacy API: ForearmSlot always means the anatomical right arm.
+	slots[&"ForearmSlot"] = slots[&"RightForearmSlot"]
 	equip(&"HeadSlot", head_piece)
 	equip(&"ForearmSlot", forearm_piece)
+	equip(&"LeftForearmSlot",left_forearm_piece)
 
 func equip(slot: StringName, scene: PackedScene) -> void:
 	assert(slots.has(slot))
@@ -20,6 +25,20 @@ func equip(slot: StringName, scene: PackedScene) -> void:
 		slots[slot].remove_child(child)
 		child.queue_free()
 	if scene: slots[slot].add_child(scene.instantiate())
+	for child in slots[slot].get_children():
+		if child is CanvasItem: child.z_index = 0
+
+func sync_handedness(left_forearm: Bone2D, left_hand: Bone2D, right_depth: float, left_depth: float) -> void:
+	var slot: Marker2D = slots[&"LeftForearmSlot"]
+	if is_instance_valid(left_forearm) and is_instance_valid(left_hand):
+		var elbow := to_local(left_forearm.global_position)
+		var hand := to_local(left_hand.global_position)
+		slot.position = elbow.lerp(hand,.65)
+		slot.rotation = (hand-elbow).angle()-PI/2
+	slots[&"RightForearmSlot"].z_index = -5 if right_depth < -.5 else (5 if right_depth > .5 else 1)
+	slot.z_index = -5 if left_depth < -.5 else (5 if left_depth > .5 else 1)
+	slots[&"HeadSlot"].z_index = 10
+	slot.visible = slots[&"RightForearmSlot"].visible
 
 func toggle() -> void:
 	equipped = not equipped
@@ -50,7 +69,7 @@ func sync(rig: MudRig) -> void:
 func sync_death(death_progress: float, embed: bool) -> void:
 	if not slots.has(&"HeadSlot"): return
 	if death_progress <= 0.0:
-		visible = true
+		visible = equipped
 		if slots.has(&"ForearmSlot"):
 			slots[&"ForearmSlot"].visible = true
 		return
@@ -67,4 +86,3 @@ func sync_death(death_progress: float, embed: bool) -> void:
 		if slots.has(&"ForearmSlot"):
 			slots[&"ForearmSlot"].position.y = lerpf(slots[&"ForearmSlot"].position.y, 2.0, p)
 			slots[&"ForearmSlot"].visible = death_progress < 0.60
-

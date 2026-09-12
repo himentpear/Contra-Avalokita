@@ -1,5 +1,6 @@
 class_name MudCharacter
 extends CharacterBody2D
+@export var blade_footwork: Resource = preload("res://resources/blade_footwork.tres")
 const HitEvent = preload("res://scripts/hit_event.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
@@ -40,6 +41,11 @@ func update_jump_animation() -> void:
 	elif clip == &"" and state in [&"Idle",&"Walk",&"Run"] and (anim_player.current_animation != get_state_animation(state) or not anim_player.is_playing()):
 		anim_player.play(get_state_animation(state),0.09)
 		if state in [&"Walk",&"Run"]: anim_player.seek(grounded_resume_phase*anim_player.current_animation_length,true)
+@export var score_profile: EnemyScoreProfile
+@export var score_credit_enabled := false
+@export var score_combat_power := 1.0
+var score_life_id := 0
+var score_attack_serial := 0
 @export var player_controlled := true
 @export var move_speed := 105.0
 @export_range(0.1, 0.9) var walk_speed_ratio := 0.43
@@ -93,8 +99,14 @@ var reaction_push_offset := Vector2.ZERO
 func has_reaction() -> bool:
 	return reaction_state != &"None" and reaction_time < reaction_duration
 
+var block_requested := false
+@export var guard_movement_multiplier := 0.45
+
+func is_blocking() -> bool:
+	return block_requested and state != &"Dead" and not is_attacking() and reaction_state not in [&"HeavyHit", &"Knockdown"]
+
 func is_attacking() -> bool:
-	return action_state != &"None"
+	return action_state.begins_with("Attack")
 
 func attack_animation() -> StringName:
 	if is_armed():
@@ -108,6 +120,7 @@ func attack_animation() -> StringName:
 	return &"Attack"
 
 func start_attack(stage: int = 0) -> void:
+	score_attack_serial += 1
 	combo_stage = stage
 	combo_queued = false
 	attack_time = 0.0
@@ -175,6 +188,9 @@ func _on_punch_area_entered(area: Area2D) -> void:
 	punch_hit_targets.append(id)
 	var dmg: float = punch_damages[combo_stage] if combo_stage < punch_damages.size() else 8.0
 	var event := HitEvent.new()
+	event.attacker = self
+	event.attack_name = attack_animation()
+	event.attack_token = score_attack_serial
 	event.damage = dmg
 	event.direction = Vector2(facing, 0.0)
 	event.attacker_velocity = velocity
@@ -246,6 +262,12 @@ var _hand_front_bone: Bone2D
 var _upper_arm_back_bone: Bone2D
 var _forearm_back_bone: Bone2D
 var _hand_back_bone: Bone2D
+var _thigh_front_bone: Bone2D
+var _shin_front_bone: Bone2D
+var _foot_front_bone: Bone2D
+var _thigh_back_bone: Bone2D
+var _shin_back_bone: Bone2D
+var _foot_back_bone: Bone2D
 var hit_stop_ticks: int = 0
 var impact_accent_offset: Vector2 = Vector2.ZERO
 
@@ -316,6 +338,16 @@ func _ready() -> void:
 		_upper_arm_back_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmBack") as Bone2D
 		_forearm_back_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmBack/ForearmBack") as Bone2D
 		_hand_back_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmBack/ForearmBack/HandBack") as Bone2D
+		_thigh_front_bone = skeleton.get_node_or_null("Pelvis/ThighFront") as Bone2D
+		if _thigh_front_bone:
+			_shin_front_bone = _thigh_front_bone.get_node_or_null("ShinFront") as Bone2D
+			if _shin_front_bone:
+				_foot_front_bone = _shin_front_bone.get_node_or_null("FootFront") as Bone2D
+		_thigh_back_bone = skeleton.get_node_or_null("Pelvis/ThighBack") as Bone2D
+		if _thigh_back_bone:
+			_shin_back_bone = _thigh_back_bone.get_node_or_null("ShinBack") as Bone2D
+			if _shin_back_bone:
+				_foot_back_bone = _shin_back_bone.get_node_or_null("FootBack") as Bone2D
 	punch_hitbox = Area2D.new()
 	punch_hitbox.name = "PunchHitbox"
 	punch_hitbox.collision_layer = 0
@@ -337,21 +369,24 @@ func _ready() -> void:
 		anim_player.play(&"Idle")
 	pose_composer = MudPoseComposer.new()
 	pose_composer.character = self
+	pose_composer.blade_footwork = blade_footwork
 	pose_composer.z_index = 20
 	add_child(pose_composer)
 	pose_composer.evaluate(0.0)
 	_sync_visual(0)
 
 ## Shared input seam: AI / NPC controllers use this without modifying the rig.
-func set_intent(direction: float, jump := false, attack := false) -> void:
+func set_intent(direction: float, jump := false, attack := false, block := false) -> void:
 	if state == &"Dead": return
 	move_intent = clampf(direction, -1, 1)
 	jump_requested = jump_requested or jump
 	attack_requested = attack_requested or attack
+	block_requested = block
 
 func die() -> void:
 	if state == &"Dead": return
 	move_intent = 0.0
+	block_requested = false
 	action_state = &"None"
 	combo_stage = 0
 	combo_queued = false
@@ -381,6 +416,7 @@ func die() -> void:
 		hurtbox.set_deferred("monitorable", false)
 
 func rise() -> void:
+	score_life_id += 1
 	if state != &"Dead": return
 	health = max_health
 	stability = max_stability
@@ -404,6 +440,7 @@ func rise() -> void:
 		death_controller.start_rise()
 
 func revive(animated: bool = false) -> void:
+	score_life_id += 1
 	if animated and state == &"Dead":
 		rise()
 		return
@@ -524,6 +561,7 @@ func transition(next: StringName) -> void:
 				&"Dead": pass
 
 func _physics_process(delta: float) -> void:
+	if not is_node_ready(): return
 	if state == &"Dead":
 		if death_controller:
 			death_controller.update(delta)
@@ -545,12 +583,14 @@ func _physics_process(delta: float) -> void:
 	elif stability < max_stability:
 		stability = minf(max_stability, stability + stability_recovery_rate * delta)
 
-	pose_composer.restore_base()
+	if is_instance_valid(pose_composer):
+		pose_composer.restore_base()
 
 	if player_controlled:
 		var input_direction := Input.get_axis("move_left", "move_right")
 		if not Input.is_action_pressed("sprint"): input_direction *= walk_speed_ratio
-		set_intent(input_direction, Input.is_action_just_pressed("jump"), Input.is_action_just_pressed("attack"))
+		var block_pressed := Input.is_action_pressed("block") if InputMap.has_action("block") else false
+		set_intent(input_direction, Input.is_action_just_pressed("jump"), Input.is_action_just_pressed("attack"), block_pressed)
 		if Input.is_action_just_pressed("equipment"): equipment.toggle()
 		if not is_attacking():
 			if Input.is_action_just_pressed("weapon_sword"):
@@ -560,6 +600,13 @@ func _physics_process(delta: float) -> void:
 				weapons.equip(null)
 				sync_weapon_animation()
 		if Input.is_action_just_pressed("debug_rig"): rig.debug_draw = not rig.debug_draw
+	
+	if not is_attacking():
+		if is_blocking():
+			action_state = &"Block"
+		elif action_state == &"Block":
+			action_state = &"None"
+
 	var grounded := is_on_floor()
 	if grounded and state in [&"Walk",&"Run"] and anim_player.current_animation == get_state_animation(state):
 		grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
@@ -571,10 +618,12 @@ func _physics_process(delta: float) -> void:
 			atk_mult = 0.85 if (attack_time >= window.x and attack_time <= window.y) else 0.95
 		else:
 			atk_mult = attack_movement_multiplier
+	elif is_blocking():
+		atk_mult = guard_movement_multiplier
 	if reaction_state in [&"HeavyHit", &"Knockdown"]:
 		atk_mult *= 0.35
 	velocity.x = move_toward(velocity.x, move_intent * move_speed * atk_mult, acceleration * delta)
-	if move_intent != 0 and not is_attacking(): facing = signf(move_intent)
+	if move_intent != 0 and not is_attacking() and not is_blocking(): facing = signf(move_intent)
 	if not grounded: velocity.y += gravity * delta
 	if jump_requested and grounded and jump_squat_left <= 0:
 		jump_squat_left = jump_squat_duration
@@ -620,16 +669,29 @@ func _physics_process(delta: float) -> void:
 	elif absf(velocity.x) <= 5 and move_intent == 0.0: transition(&"Idle")
 	else: transition(&"Walk" if absf(velocity.x) <= move_speed * 0.6 else &"Run")
 	update_jump_animation()
-	pose_composer.evaluate(delta)
+	if is_instance_valid(pose_composer):
+		pose_composer.evaluate(delta)
 	_sync_visual(delta)
 
 func _sync_visual(delta: float) -> void:
+	if not is_instance_valid(visual) or not is_instance_valid(body_renderer): return
 	impact_accent_offset = impact_accent_offset.move_toward(Vector2.ZERO, delta * 30.0)
 	reaction_push_offset = reaction_push_offset.move_toward(Vector2.ZERO, delta * 24.0)
 	# Only the visual origin is snapped, never the physics body or FK anchors.
 	visual.position = (global_position + reaction_push_offset).round() - global_position
 	# Biomechanically stable skeleton: do NOT scale skeletal limb lengths
 	visual.scale = Vector2(facing, 1.0)
+	# Legacy Front bones are anatomical RIGHT; Back bones are anatomical LEFT.
+	# Mirroring changes visual depth, never which hand owns the sword/accessory.
+	var right_depth := facing
+	if is_armed() and is_attacking():
+		right_depth = weapons.blade_depth if combo_stage == 1 else (-1.0 if attack_time < .18 else 1.0)
+	elif is_armed() and is_blocking(): right_depth = 1.0
+	body_renderer.facing_depth = facing
+	body_renderer.weapon_arm_depth = right_depth
+	body_renderer.offhand_arm_depth = -facing
+	if is_instance_valid(weapons):
+		weapons.hand_depth = right_depth
 	if state == &"Dead" and death_controller:
 		body_renderer.death_progress = death_controller.death_progress
 		body_renderer.puddle_spread_ratio = death_controller.puddle_spread_ratio
@@ -643,7 +705,6 @@ func _sync_visual(delta: float) -> void:
 		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, false, delta)
 	else:
 		body_renderer.death_progress = 0.0
-		body_renderer.weapon_arm_depth = weapons.blade_depth if is_attacking() and combo_stage == 1 else 1.0
 		if has_reaction():
 			body_renderer.impact_center = reaction_impact_local
 			body_renderer.impact_radius = 8.5
@@ -665,6 +726,12 @@ func _sync_visual(delta: float) -> void:
 		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, is_attacking(), delta)
 		if not is_armed():
 			_update_punch_attack(delta)
+	if is_instance_valid(equipment):
+		equipment.sync_handedness(_forearm_back_bone,_hand_back_bone,right_depth,-facing)
+func _get_kill_score() -> Node:
+	if is_inside_tree() and get_tree() and get_tree().root:
+		return get_tree().root.get_node_or_null("KillScore")
+	return null
 
 func receive_hit(hit_data: Variant) -> void:
 	if state == &"Dead": return
@@ -678,8 +745,57 @@ func receive_hit(hit_data: Variant) -> void:
 	else:
 		event = HitEvent.new()
 	
+	# Frontal Block Check
+	var is_frontal: bool = (event.direction.x * facing) <= 0.1
+	if is_blocking() and is_frontal:
+		var block_dmg_mult := 0.15 if is_armed() else 0.35
+		var block_poise_mult := 0.30 if is_armed() else 0.50
+		var actual_dmg := event.damage * block_dmg_mult
+		health = maxf(health - actual_dmg, 0.0)
+		damaged.emit(actual_dmg)
+		var ks := _get_kill_score()
+		if ks: ks.record_hit(self,event,actual_dmg)
+		preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,actual_dmg)
+		if health <= 0.0:
+			die()
+			return
+		stability = maxf(0.0, stability - event.poise_damage * block_poise_mult)
+		stability_cooldown_timer = stability_recovery_cooldown
+		if stability <= 0.0:
+			# Guard Broken! Heavy stagger
+			reaction_state = &"HeavyHit"
+			if event.hit_type not in [&"HeavyHit", &"Knockdown"] and ks: ks.note_heavy_hit(self)
+			reaction_time = 0.0
+			reaction_duration = 0.45
+			reaction_direction = event.direction
+			reaction_intensity = 1.8
+			reaction_push_offset = event.direction * 3.5
+			stability = max_stability * 0.25
+			block_requested = false
+			action_state = &"None"
+		else:
+			reaction_state = &"BlockHit"
+			reaction_time = 0.0
+			reaction_duration = 0.20
+			reaction_direction = event.direction
+			reaction_intensity = 1.0
+			# "手臂可以后退，脚不要跟着滑。脚是锚。"
+			reaction_push_offset = Vector2.ZERO
+			hit_stop_duration = 0.033
+			if is_armed():
+				if weapons and weapons.current:
+					weapons.current.impact_flash_point = global_position + Vector2(facing * 20.0, -23.0)
+					weapons.current.impact_flash_timer = 0.05
+					weapons.current.queue_redraw()
+			elif splatter:
+				splatter.burst(global_position + Vector2(facing * 8.0, -32.0), 3)
+		return
+
 	health = maxf(health - event.damage, 0.0)
 	damaged.emit(event.damage)
+	var ks := _get_kill_score()
+	if ks: ks.record_hit(self,event,event.damage)
+	preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,event.damage)
 	
 	if health <= 0.0:
 		die()
@@ -705,6 +821,8 @@ func receive_hit(hit_data: Variant) -> void:
 	else:
 		tier = &"LightHit"
 		
+	if tier in [&"HeavyHit", &"Knockdown"] and event.hit_type not in [&"HeavyHit", &"Knockdown"]:
+		if ks: ks.note_heavy_hit(self)
 	reaction_state = tier
 	reaction_time = 0.0
 	reaction_direction = event.direction

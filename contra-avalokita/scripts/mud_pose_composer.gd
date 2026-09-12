@@ -9,6 +9,12 @@ extends Node2D
 var character: MudCharacter
 var base_pose: Dictionary = {}
 var weight := 0.0
+var block_weight := 0.0
+@export var blade_footwork: Resource = preload("res://scripts/mud_blade_footwork.gd").new()
+var lower_body_weight := 0.0
+var footwork_lead := "Front"
+var last_action_time := -1.0
+var last_action_stage := -1
 
 func restore_base() -> void:
 	for bone in base_pose:
@@ -27,17 +33,109 @@ func evaluate(delta: float) -> void:
 	for bone in character.skeleton.find_children("*","Bone2D"):
 		base_pose[bone] = bone.transform
 	weight = 0.0
+	lower_body_weight = 0.0
 	character.weapons.blade_projection = 1.0
 	character.weapons.blade_depth = 0.0
+
+	if character.is_blocking():
+		block_weight = minf(1.0, block_weight + delta / 0.06)
+	else:
+		block_weight = maxf(0.0, block_weight - delta / 0.06)
+
 	if character.is_attacking():
 		apply_action()
+	elif block_weight > 0.001:
+		apply_block(block_weight)
+
 	if character.has_reaction():
 		apply_reaction(delta)
 	queue_redraw()
 
+func apply_block(w: float) -> void:
+	var pelvis := character.skeleton.get_node_or_null("Pelvis") as Bone2D
+	var torso := character.skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
+	var head := character.skeleton.get_node_or_null("Pelvis/Torso/Head") as Bone2D
+	var upper_arm_f := character._upper_arm_front_bone
+	var forearm_f := character._forearm_front_bone
+	var hand_f := character._hand_front_bone
+	var upper_arm_b := character._upper_arm_back_bone
+	var forearm_b := character._forearm_back_bone
+	var hand_b := character._hand_back_bone
+	
+	if not torso or not is_instance_valid(upper_arm_f) or not is_instance_valid(forearm_f):
+		return
+		
+	if character.is_armed():
+		# Armed Sword Guard (架住: 后脚撑地, 髋下沉, 前膝微屈, 胸略后仰, 剑挡在身前)
+		torso.rotation = lerp_angle(torso.rotation, deg_to_rad(-3.0), w)
+		torso.position = torso.position.lerp(Vector2(-0.5, -21.8), w)
+		if head:
+			head.position = head.position.lerp(Vector2(0.0, -13.0), w)
+			head.rotation = lerp_angle(head.rotation, deg_to_rad(3.0), w)
+		upper_arm_f.rotation = lerp_angle(upper_arm_f.rotation, -1.32, w)
+		forearm_f.rotation = lerp_angle(forearm_f.rotation, -0.58, w)
+		if is_instance_valid(hand_f): hand_f.rotation = lerp_angle(hand_f.rotation, 0.0, w)
+		if is_instance_valid(upper_arm_b): upper_arm_b.rotation = lerp_angle(upper_arm_b.rotation, -1.10, w)
+		if is_instance_valid(forearm_b): forearm_b.rotation = lerp_angle(forearm_b.rotation, -1.40, w)
+		if is_instance_valid(hand_b): hand_b.rotation = lerp_angle(hand_b.rotation, 0.10, w)
+	else:
+		# Unarmed High Shell / Helmet Guard (缩住: 髋下沉6~8px, 前胸微倾, 下巴缩进, 双臂高位斜面护头)
+		torso.rotation = lerp_angle(torso.rotation, deg_to_rad(5.0), w)
+		torso.position = torso.position.lerp(Vector2(0.8, -21.4), w)
+		if head:
+			head.position = head.position.lerp(Vector2(0.2, -12.2), w)
+			head.rotation = lerp_angle(head.rotation, deg_to_rad(-10.0), w)
+		upper_arm_f.rotation = lerp_angle(upper_arm_f.rotation, -1.95, w)
+		forearm_f.rotation = lerp_angle(forearm_f.rotation, -1.90, w)
+		if is_instance_valid(hand_f): hand_f.rotation = lerp_angle(hand_f.rotation, 0.30, w)
+		if is_instance_valid(upper_arm_b): upper_arm_b.rotation = lerp_angle(upper_arm_b.rotation, -1.75, w)
+		if is_instance_valid(forearm_b): forearm_b.rotation = lerp_angle(forearm_b.rotation, -2.25, w)
+		if is_instance_valid(hand_b): hand_b.rotation = lerp_angle(hand_b.rotation, 0.20, w)
+
+	# Lower Body: Horse Stance (扎开马步)
+	if is_instance_valid(pelvis) and character.is_on_floor():
+		if character.state == &"Idle":
+			var tf := character._thigh_front_bone
+			var sf := character._shin_front_bone
+			var ff := character._foot_front_bone
+			var tb := character._thigh_back_bone
+			var sb := character._shin_back_bone
+			var fb := character._foot_back_bone
+			
+			if character.is_armed():
+				# Armed stance: Pelvis sunk 4~6 px, front knee 10°~15°, rear knee 6°~10°
+				pelvis.position.y = lerpf(pelvis.position.y, -30.5, w)
+				pelvis.rotation = lerp_angle(pelvis.rotation, 0.0, w)
+				if is_instance_valid(tf): tf.rotation = lerp_angle(tf.rotation, deg_to_rad(-22.0), w)
+				if is_instance_valid(sf): sf.rotation = lerp_angle(sf.rotation, deg_to_rad(24.0), w)
+				if is_instance_valid(ff): ff.rotation = lerp_angle(ff.rotation, -deg_to_rad(2.0), w)
+				if is_instance_valid(tb): tb.rotation = lerp_angle(tb.rotation, deg_to_rad(6.0), w)
+				if is_instance_valid(sb): sb.rotation = lerp_angle(sb.rotation, deg_to_rad(18.0), w)
+				if is_instance_valid(fb): fb.rotation = lerp_angle(fb.rotation, -deg_to_rad(24.0), w)
+			else:
+				# Unarmed stance: Deeper crouch (6~8 px down), front knee 15°~20°, rear knee 10°~15°
+				pelvis.position.y = lerpf(pelvis.position.y, -28.5, w)
+				pelvis.rotation = lerp_angle(pelvis.rotation, 0.0, w)
+				if is_instance_valid(tf): tf.rotation = lerp_angle(tf.rotation, deg_to_rad(-28.0), w)
+				if is_instance_valid(sf): sf.rotation = lerp_angle(sf.rotation, deg_to_rad(30.0), w)
+				if is_instance_valid(ff): ff.rotation = lerp_angle(ff.rotation, -deg_to_rad(2.0), w)
+				if is_instance_valid(tb): tb.rotation = lerp_angle(tb.rotation, deg_to_rad(4.0), w)
+				if is_instance_valid(sb): sb.rotation = lerp_angle(sb.rotation, deg_to_rad(24.0), w)
+				if is_instance_valid(fb): fb.rotation = lerp_angle(fb.rotation, -deg_to_rad(28.0), w)
+		else:
+			# Guard Walk: sink pelvis slightly to maintain low defensive posture during locomotion
+			pelvis.position.y = lerpf(pelvis.position.y, pelvis.position.y + 2.5, w)
+
 func apply_action() -> void:
 	var clip := character.anim_player.get_animation(character.attack_animation())
 	var t := character.attack_time
+	var sample_time := t
+	# A short visual impact hold leaves physics, gait and damage timing running.
+	if character.is_armed() and character.combo_stage == 2:
+		var hit_time := clip.length*.54
+		var hold_end: float = hit_time+blade_footwork.heavy_hold_seconds
+		if t >= hit_time and t < hold_end: sample_time = hit_time
+		elif t >= hold_end: sample_time = lerpf(hit_time,clip.length,(t-hold_end)/maxf(clip.length-hold_end,.001))
 	weight = smoothstep(0.0,attack_blend_in,t) * (1.0-smoothstep(clip.length*recovery_start,clip.length,t))
 	var pelvis := character.skeleton.get_node("Pelvis") as Bone2D
 	var is_unarmed_stationary: bool = not character.is_armed() and character.state == &"Idle" and character.is_on_floor()
@@ -52,7 +150,7 @@ func apply_action() -> void:
 		if target.size() != 2: continue
 		var node := character.get_node_or_null(NodePath(target[0]))
 		var property := target[1]
-		var value = clip.value_track_interpolate(track,t)
+		var value = clip.value_track_interpolate(track,sample_time)
 		if node == pelvis:
 			if property == "rotation":
 				if is_unarmed_stationary:
@@ -89,6 +187,54 @@ func apply_action() -> void:
 			leg.global_transform = legs[leg]
 			if active_damping > 0.0:
 				leg.rotation = lerpf(leg.rotation, 0.0, active_damping)
+	if character.is_armed() and character.weapons.current.weapon_class == "blade":
+		apply_blade_footwork(clip.length)
+
+func apply_blade_footwork(duration: float) -> void:
+	lower_body_weight = blade_footwork.influence(character.state) if character.is_on_floor() else 0.0
+	if lower_body_weight <= 0: return
+	var pelvis := character.skeleton.get_node("Pelvis") as Bone2D
+	var feet: Dictionary = {}
+	var rolls: Dictionary = {}
+	for side in ["Front","Back"]:
+		var foot := pelvis.get_node("Thigh%s/Shin%s/Foot%s" % [side,side,side]) as Bone2D
+		feet[side] = character.visual.to_local(foot.global_position)
+		rolls[side] = foot.global_rotation-character.visual.global_rotation
+	if character.combo_stage != last_action_stage or character.attack_time < last_action_time:
+		footwork_lead = "Front" if feet["Front"].x >= feet["Back"].x else "Back"
+	last_action_time = character.attack_time
+	last_action_stage = character.combo_stage
+	var offsets: Dictionary = blade_footwork.sample(character.combo_stage,character.attack_time/maxf(duration,.001))
+	pelvis.position += offsets.pelvis*lower_body_weight
+	for side in feet:
+		feet[side] += (offsets.front if side == footwork_lead else offsets.back)*lower_body_weight
+		if side != footwork_lead:
+			var heel: float = offsets.heel*lower_body_weight
+			rolls[side] += heel
+			feet[side].y -= sin(heel)*4.2
+	# Lower the pelvis only as far as needed to keep the rear leg reachable.
+	for side in feet:
+		var thigh := pelvis.get_node("Thigh"+side) as Bone2D
+		var shin := thigh.get_node("Shin"+side) as Bone2D
+		var foot := shin.get_node("Foot"+side) as Bone2D
+		var hip := character.visual.to_local(thigh.global_position)
+		var reach := (shin.position.length()+foot.position.length())*.997
+		var dx: float = feet[side].x-hip.x
+		pelvis.position.y += maxf(0.0,feet[side].y-sqrt(maxf(1.0,reach*reach-dx*dx))-hip.y)
+	for side in feet:
+		var thigh := pelvis.get_node("Thigh"+side) as Bone2D
+		var shin := thigh.get_node("Shin"+side) as Bone2D
+		var foot := shin.get_node("Foot"+side) as Bone2D
+		var hip := character.visual.to_local(thigh.global_position)
+		var delta: Vector2 = feet[side]-hip
+		var a := shin.position.length()
+		var b := foot.position.length()
+		var d := clampf(delta.length(),absf(a-b)+.01,a+b-.01)
+		var bend := PI-acos(clampf((a*a+b*b-d*d)/(2*a*b),-1,1))
+		var direction := atan2(-delta.x,delta.y)-acos(clampf((a*a+d*d-b*b)/(2*a*d),-1,1))
+		thigh.rotation = direction-(pelvis.global_rotation-character.visual.global_rotation)
+		shin.rotation = bend
+		foot.rotation = rolls[side]-direction-bend
 
 func apply_reaction(_delta: float) -> void:
 	if not character or not character.has_reaction(): return
@@ -130,6 +276,10 @@ func apply_reaction(_delta: float) -> void:
 	var tier: StringName = character.reaction_state
 	var region: StringName = character.reaction_region
 	
+	if tier == &"BlockHit":
+		_apply_block_hit_shockwave(p, local_dir)
+		return
+		
 	var tier_scale := 1.0
 	match tier:
 		&"MicroHit": tier_scale = 0.35
@@ -163,6 +313,82 @@ func apply_reaction(_delta: float) -> void:
 	if tier in [&"HeavyHit", &"Knockdown"]:
 		torso.rotation += local_dir.x * 0.18 * w_rot
 		pelvis.position.y += 2.0 * w_rot
+
+func _apply_block_hit_shockwave(p: float, local_dir: Vector2) -> void:
+	# Kinetic Impact Wave:
+	# Frame 0: Contact
+	# Frame 1: Sword deflecting backward 4°~7° / Forearms compressing inward 2~3px
+	# Frame 2: Hands displace backward 2~3px, Torso pitches back 2°
+	# Frame 3: Pelvis shifts back 1px, Front knee flexes deeper (eats momentum)
+	# Frame 4-6: Rebound smoothly to guard_idle
+	# "手臂可以后退，脚不要跟着滑。脚是锚。"
+	
+	# Sub-phase curves:
+	# 1. Arm/Weapon peak early (frames 1-2, p ~ 0.0 to 0.50)
+	var w_arm: float = sin(clampf(p / 0.50, 0.0, 1.0) * PI) * exp(-p * 1.5)
+	# 2. Torso/Shoulder peak middle (frames 2-3, p ~ 0.04 to 0.65)
+	var w_torso: float = sin(clampf((p - 0.04) / 0.60, 0.0, 1.0) * PI) * exp(-(p - 0.04) * 1.5) if p >= 0.04 else 0.0
+	# 3. Pelvis/Knees peak later (frames 3-4, p ~ 0.12 to 0.85)
+	var w_pelvis: float = sin(clampf((p - 0.12) / 0.70, 0.0, 1.0) * PI) * exp(-(p - 0.12) * 1.2) if p >= 0.12 else 0.0
+
+	var pelvis := character.skeleton.get_node_or_null("Pelvis") as Bone2D
+	var torso := character.skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
+	var head := character.skeleton.get_node_or_null("Pelvis/Torso/Head") as Bone2D
+	var hf := character._hand_front_bone
+	var hb := character._hand_back_bone
+	var faf := character._forearm_front_bone
+	var fab := character._forearm_back_bone
+	var tf := character._thigh_front_bone
+	var sf := character._shin_front_bone
+	var ff := character._foot_front_bone
+	var tb := character._thigh_back_bone
+	var sb := character._shin_back_bone
+	
+	var push_x: float = local_dir.x # e.g. -1.0 for frontal incoming strike
+	
+	# 1. Arms shock
+	if character.is_armed():
+		if is_instance_valid(hf): hf.position.x += push_x * 2.5 * w_arm
+		if is_instance_valid(hb): hb.position.x += push_x * 2.0 * w_arm
+	else:
+		if is_instance_valid(faf): faf.rotation += push_x * deg_to_rad(5.0) * w_arm
+		if is_instance_valid(fab): fab.rotation += push_x * deg_to_rad(4.0) * w_arm
+		if is_instance_valid(hf): hf.position.x += push_x * 2.2 * w_arm
+		if is_instance_valid(hb): hb.position.x += push_x * 1.8 * w_arm
+		
+	# 2. Torso & Head shock
+	if is_instance_valid(torso):
+		torso.position.x += push_x * 2.0 * w_torso
+		torso.rotation += push_x * deg_to_rad(2.0) * w_torso
+	if is_instance_valid(head):
+		head.position.y += 0.8 * w_torso
+		head.rotation += push_x * deg_to_rad(2.5) * w_torso
+		
+	# 3. Pelvis & Knees absorption (Feet stay firmly grounded!)
+	if is_instance_valid(pelvis):
+		pelvis.position.x += push_x * 1.0 * w_pelvis
+	if is_instance_valid(sf):
+		sf.rotation += deg_to_rad(6.0) * w_pelvis
+	if is_instance_valid(tf):
+		tf.rotation -= deg_to_rad(4.0) * w_pelvis
+	if is_instance_valid(ff):
+		ff.rotation -= deg_to_rad(2.0) * w_pelvis
+		
+	# Directional Additive Recoil:
+	# Overhead / Downward strike (local_dir.y > 0.3)
+	if local_dir.y > 0.3:
+		var w_down: float = local_dir.y * w_torso
+		if is_instance_valid(pelvis): pelvis.position.y += 2.0 * w_down
+		if is_instance_valid(sf): sf.rotation += deg_to_rad(8.0) * w_down
+		if is_instance_valid(sb): sb.rotation += deg_to_rad(6.0) * w_down
+		if is_instance_valid(hf): hf.position.y += 2.0 * w_down
+		if is_instance_valid(hb): hb.position.y += 1.5 * w_down
+	# Low / Uppercut strike (local_dir.y < -0.3)
+	elif local_dir.y < -0.3:
+		var w_up: float = -local_dir.y * w_torso
+		if is_instance_valid(torso): torso.rotation += deg_to_rad(4.0) * w_up
+		if is_instance_valid(head): head.rotation += deg_to_rad(6.0) * w_up
+		if is_instance_valid(tf): tf.rotation += deg_to_rad(4.0) * w_up
 
 func _draw() -> void:
 	if not is_instance_valid(character) or not character.rig or not character.rig.debug_draw: return

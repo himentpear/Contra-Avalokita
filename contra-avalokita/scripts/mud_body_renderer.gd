@@ -13,6 +13,10 @@ const MAX_SEGMENTS := 40
 @export var leg_radius := 5.0
 @export var auxiliary_distance := 3.2
 var weapon_arm_depth := 1.0
+var offhand_arm_depth := -1.0
+var facing_depth := 1.0
+var depth_materials: Array[ShaderMaterial] = []
+var shared_uniforms: Array[StringName] = []
 
 var impact_center := Vector2.ZERO
 var impact_radius := 0.0
@@ -67,6 +71,26 @@ func _ready() -> void:
 	add_child(surface)
 	shader_material.set_shader_parameter("bounds_origin", render_bounds.position)
 	shader_material.set_shader_parameter("bounds_size", render_bounds.size)
+	shader_material.set_shader_parameter("depth_pass",0)
+	for uniform in shader_material.shader.get_shader_uniform_list():
+		if uniform.name != "depth_pass": shared_uniforms.append(StringName(uniform.name))
+	for depth in [-1,1]:
+		var layer := ColorRect.new()
+		layer.name = "RearSurface" if depth < 0 else "FrontSurface"
+		layer.position = render_bounds.position
+		layer.size = render_bounds.size
+		layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.z_index = -6 if depth < 0 else 4
+		var material := shader_material.duplicate() as ShaderMaterial
+		material.set_shader_parameter("depth_pass",depth)
+		layer.material = material
+		add_child(layer)
+		depth_materials.append(material)
+
+func sync_depth_materials() -> void:
+	for material in depth_materials:
+		for uniform in shared_uniforms:
+			material.set_shader_parameter(uniform,shader_material.get_shader_parameter(uniform))
 
 func cache_bones(skeleton: Skeleton2D) -> void:
 	if not skeleton: return
@@ -244,10 +268,10 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	auxiliary_points[&"Neck"] = torso_pos.lerp(head_pos, 0.5)
 	
 	# 1. Back leg (depth -1.0)
-	_solve_leg("LegBack", _bone_thigh_back, _bone_shin_back, _bone_foot_back, -1.0)
+	_solve_leg("LegBack", _bone_thigh_back, _bone_shin_back, _bone_foot_back, -facing_depth)
 	
 	# 2. Back arm (depth -1.0)
-	_solve_arm("ArmBack", _bone_upper_arm_back, _bone_forearm_back, _bone_hand_back, -1.0)
+	_solve_arm("ArmBack", _bone_upper_arm_back, _bone_forearm_back, _bone_hand_back, offhand_arm_depth)
 	
 	# 3. Torso and Head (depth 0.0)
 	var torso_r := body_radius
@@ -261,7 +285,7 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	add_segment(head_pos + Vector2(0, -1), head_pos + Vector2(0, 1), h_r, h_r, 0.0)
 	
 	# 4. Front leg (depth 1.0)
-	_solve_leg("LegFront", _bone_thigh_front, _bone_shin_front, _bone_foot_front, 1.0)
+	_solve_leg("LegFront", _bone_thigh_front, _bone_shin_front, _bone_foot_front, facing_depth)
 	
 	# 5. Front arm (depth 1.0)
 	_solve_arm("ArmFront", _bone_upper_arm_front, _bone_forearm_front, _bone_hand_front, weapon_arm_depth)
@@ -278,6 +302,7 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 		add_segment(Vector2(-spread_x * 0.3, -3.0), Vector2(spread_x * 0.4, -3.0), puddle_h * 0.9, puddle_h * 0.8, 0.0)
 	
 	_upload_segments()
+	sync_depth_materials()
 
 func _upload_segments() -> void:
 	var count := mini(segment_cursor, MAX_SEGMENTS)
@@ -297,6 +322,8 @@ func _upload_segments() -> void:
 
 func sync(rig: MudRig) -> void:
 	if not rig: return
+	# Legacy preview callers upload below; mirror those uniforms before drawing too.
+	call_deferred("sync_depth_materials")
 	assert(rig.segments.size() <= MAX_SEGMENTS, "Increase shader and CPU capacity together.")
 	for i in rig.segments.size():
 		var s := rig.segments[i]

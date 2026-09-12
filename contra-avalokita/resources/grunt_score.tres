@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="EnemyScoreProfile" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/enemy_score_profile.gd" id="1"]
+[resource]
+script = ExtResource("1")
+enemy_kind = &"grunt"
+region_id = &"arena"
+base_score = 100

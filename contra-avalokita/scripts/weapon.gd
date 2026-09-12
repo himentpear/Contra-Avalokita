@@ -5,7 +5,7 @@ signal struck(target: Area2D, damage: float)
 @export var weapon_name := "Sword"
 @export_enum("blade", "other") var weapon_class := "blade"
 @export var attack_animations := PackedStringArray(["Blade/Attack_1", "Blade/Attack_2", "Blade/Attack_3"])
-@export var attack_windows: Array[Vector2] = [Vector2(.20,.34), Vector2(.16,.25), Vector2(.28,.44)]
+@export var attack_windows: Array[Vector2] = [Vector2(.20,.28), Vector2(.16,.25), Vector2(.28,.44)]
 @export_range(0.0, 1.0) var combo_buffer_start := 0.15
 @export var trail_color := Color(0.88,0.97,1.0,0.85)
 @export var trail_lifetime := 0.09
@@ -90,7 +90,7 @@ func _process(delta: float) -> void:
 	impact_flash_timer = maxf(0.0, impact_flash_timer - delta)
 	queue_redraw()
 
-func _draw() -> void:
+func _draw_trail() -> void:
 	if trail_points.size() < 2: return
 	var left := PackedVector2Array()
 	var right := PackedVector2Array()
@@ -111,13 +111,15 @@ func _draw() -> void:
 	if left.size() >= 3 and not Geometry2D.triangulate_polygon(left).is_empty():
 		draw_colored_polygon(left,color)
 
+func _draw() -> void:
+	_draw_trail()
 	if impact_flash_timer > 0.0:
 		var fp := to_local(impact_flash_point)
 		var flash_alpha := clampf(impact_flash_timer / 0.033, 0.0, 1.0)
 		var flash_col := Color(1.0, 1.0, 1.0, flash_alpha)
-		draw_line(fp + Vector2(-6, 0), fp + Vector2(6, 0), flash_col, 2.0)
-		draw_line(fp + Vector2(0, -6), fp + Vector2(0, 6), flash_col, 2.0)
-		draw_rect(Rect2(fp - Vector2(1.5, 1.5), Vector2(3, 3)), flash_col)
+		draw_set_transform(fp,0,Vector2.ONE*.5)
+		preload("res://scripts/six_realm_glyphs.gd").draw_symbol(self,posmod(roundi(damage),6),flash_col,2.0)
+		draw_set_transform(Vector2.ZERO)
 
 func _on_area_entered(area: Area2D) -> void:
 	if not active or area.get_meta("owner_character", null) == get_meta("owner_character", null): return
@@ -133,6 +135,10 @@ func _on_area_entered(area: Area2D) -> void:
 		if "velocity" in actor: actor_vel = actor.velocity
 	var dir := Vector2(f, -0.15).normalized()
 	var event := HitEvent.new()
+	event.attacker = actor
+	if is_instance_valid(actor):
+		event.attack_name = actor.attack_animation()
+		event.attack_token = actor.score_attack_serial
 	event.damage = damage
 	event.direction = dir
 	event.attacker_velocity = actor_vel

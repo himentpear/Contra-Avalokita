@@ -1,6 +1,11 @@
 class_name HitEvent
 extends RefCounted
 
+var attacker: Node
+var attack_name: StringName = &""
+var attack_token := 0
+var score_tags: Array[StringName] = []
+
 var damage: float = 10.0
 var direction: Vector2 = Vector2.RIGHT
 var impact_point: Vector2 = Vector2.ZERO
