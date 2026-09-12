@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/sdf_modifier.gd" id="1_u7p1n"]
+[ext_resource type="Script" path="res://scripts/sdf_morph_profile.gd" id="2_hm6ep"]
+
+[sub_resource type="Resource" id="Resource_x87hc"]
+script = ExtResource("1_u7p1n")
+id = &"SwollenForearm"
+shape = 1
+anchor = &"ArmFrontJoint"
+anchor_b = &"ArmFrontEnd"
+radius = 5.2
+radius_end = 4.8
+softness = 1.5
+depth = 1.0
+
+[resource]
+script = ExtResource("2_hm6ep")
+id = &"SwollenArm"
+modifiers = Array[ExtResource("1_u7p1n")]([SubResource("Resource_x87hc")])

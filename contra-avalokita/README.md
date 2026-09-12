@@ -81,6 +81,7 @@ Mud Body
 * [x] 装备挂点
 * [x] SDF 程序化泥身
 * [x] SDF 受击反馈
+* [x] SDF Morph System（ADD / SUBTRACT / 骨骼锚点）
 * [x] 死亡坍塌与像素飞升
 * [x] 六道数字伤害显示
 * [x] 击杀评分
@@ -88,7 +89,6 @@ Mud Body
 
 ### In Progress / Planned
 
-* [ ] SDF Morph System
 * [ ] Armor Renderer
 * [ ] Roguelite Run Manager
 * [ ] Karma / 六道系统
@@ -355,12 +355,13 @@ Head Equipment  10
 
 # Visual Architecture
 
-角色视觉系统遵循四层职责：
+角色视觉系统遵循五层职责：
 
 | Layer         | Responsibility |
 | ------------- | -------------- |
-| **SDF Body**  | 肉身、软体形变、生物异化   |
-| **Equipment** | 装甲、面具、护腕、硬质结构  |
+| **Base Anatomy** | Skeleton2D 驱动的基础泥浆肉身 |
+| **Morph** | 生物增生、诅咒形态与身体缺损 |
+| **Armor** | 装甲、面具、护腕、硬质结构  |
 | **Weapon**    | 武器与独立 Hitbox   |
 | **VFX**       | 技能、粒子、光效、异象    |
 
@@ -410,7 +411,7 @@ Hell
 → 身体裂口与高温材质
 ```
 
-计划中的 SDF Morph 系统：
+当前 SDF Morph 系统：
 
 ```text
 Base Body
@@ -425,6 +426,8 @@ Final Body
 ```
 
 使一局游戏的 Build 最终能够直接表现为角色轮廓变化。
+
+Morph 使用独立于基础人体的 16 项缓存数组，可按骨骼锚点动态跟随并在运行时叠加或移除 Profile。实现与资源说明见 [`docs/renderer/sdf-morph.md`](docs/renderer/sdf-morph.md)。
 
 ---
 

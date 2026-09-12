@@ -316,7 +316,7 @@ func _on_tactical_hud_draw() -> void:
 	tactical_overlay.draw_rect(Rect2(0, 324, 640, 36), Color(0.04, 0.07, 0.09, 0.92))
 	tactical_overlay.draw_line(Vector2(0, 324), Vector2(640, 324), Color("293a3b"), 1.0)
 	tactical_overlay.draw_string(font, Vector2(18, 339), "A D  WALK    HOLD SHIFT  RUN    SPACE  JUMP    J / LMB  ATTACK    L  BLOCK    E  ARMOR", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("d1d9b7"))
-	tactical_overlay.draw_string(font, Vector2(18, 353), "1  SWORD    2  UNARMED    F1  JOINTS    F5  DETAILS    K  DIE    SPACE  RISE    R  RESET    T  CROWD", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
+	tactical_overlay.draw_string(font, Vector2(18, 353), "1  SWORD    2  UNARMED    F1  JOINTS + MORPHS    F5  DETAILS    K  DIE    SPACE  RISE    R  RESET    T  CROWD", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
 
 	# F5 Details Panel Menu Modal
 	if details_menu_open:

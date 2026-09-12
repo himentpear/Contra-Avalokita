@@ -769,7 +769,9 @@ func _physics_process(delta: float) -> void:
 			if Input.is_action_just_pressed("weapon_none"):
 				weapons.equip(null)
 				sync_weapon_animation()
-		if Input.is_action_just_pressed("debug_rig"): rig.debug_draw = not rig.debug_draw
+		if Input.is_action_just_pressed("debug_rig"):
+			rig.debug_draw = not rig.debug_draw
+			body_renderer.modifier_debug_draw = rig.debug_draw
 	
 	if not is_attacking():
 		if is_blocking():
@@ -849,6 +851,8 @@ func _physics_process(delta: float) -> void:
 
 func _sync_visual(delta: float) -> void:
 	if not is_instance_valid(visual) or not is_instance_valid(body_renderer): return
+	if rig:
+		body_renderer.modifier_debug_draw = rig.debug_draw
 	impact_accent_offset = impact_accent_offset.move_toward(Vector2.ZERO, delta * 30.0)
 	reaction_push_offset = reaction_push_offset.move_toward(Vector2.ZERO, delta * 24.0)
 	# Only the visual origin is snapped, never the physics body or FK anchors.

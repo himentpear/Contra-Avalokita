@@ -28,4 +28,5 @@ func _draw() -> void:
 		if source:
 			var operation_name := "ADD" if is_add else "SUBTRACT"
 			var text := "%s  %s  %s  r=%.1f" % [source.id, source.anchor, operation_name, source.radius]
-			draw_string(font, center_a + Vector2(4.0, -4.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 7, color)
+			var label_position: Vector2 = renderer.render_bounds.position + Vector2(2.0, 9.0 + i * 9.0)
+			draw_string(font, label_position, text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 7, color)

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/sdf_modifier.gd" id="1_oriw7"]
+[ext_resource type="Script" path="res://scripts/sdf_morph_profile.gd" id="2_jy1j6"]
+
+[sub_resource type="Resource" id="Resource_bdl0i"]
+script = ExtResource("1_oriw7")
+id = &"OpenAbdomen"
+operation = 1
+anchor = &"Abdomen"
+local_offset = Vector2(0, -5)
+radius = 6.0
+softness = 1.1
+
+[resource]
+script = ExtResource("2_jy1j6")
+id = &"HungryGhost"
+modifiers = Array[ExtResource("1_oriw7")]([SubResource("Resource_bdl0i")])

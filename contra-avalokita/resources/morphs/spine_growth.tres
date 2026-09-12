@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/sdf_modifier.gd" id="1_jjrxa"]
+[ext_resource type="Script" path="res://scripts/sdf_morph_profile.gd" id="2_a37up"]
+
+[sub_resource type="Resource" id="Resource_tp42o"]
+script = ExtResource("1_jjrxa")
+id = &"SpinePelvis"
+anchor = &"Pelvis"
+local_offset = Vector2(0, -8)
+radius = 2.6
+softness = 0.8
+depth = -1.0
+
+[sub_resource type="Resource" id="Resource_0kmca"]
+script = ExtResource("1_jjrxa")
+id = &"SpineAbdomen"
+anchor = &"Abdomen"
+local_offset = Vector2(0, -8.5)
+radius = 2.8
+softness = 0.8
+depth = -1.0
+
+[sub_resource type="Resource" id="Resource_3q3ym"]
+script = ExtResource("1_jjrxa")
+id = &"SpineChest"
+local_offset = Vector2(0, -8.5)
+radius = 2.7
+softness = 0.8
+depth = -1.0
+
+[sub_resource type="Resource" id="Resource_yhr0h"]
+script = ExtResource("1_jjrxa")
+id = &"SpineNeck"
+anchor = &"Neck"
+local_offset = Vector2(0, -7)
+radius = 2.2
+softness = 0.7
+depth = -1.0
+
+[resource]
+script = ExtResource("2_a37up")
+id = &"SpineGrowth"
+modifiers = Array[ExtResource("1_jjrxa")]([SubResource("Resource_tp42o"), SubResource("Resource_0kmca"), SubResource("Resource_3q3ym"), SubResource("Resource_yhr0h")])
