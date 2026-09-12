@@ -1,54 +1,37 @@
 # Contra-Avalokita: The Dead Decibel
 
-**《反观世音：绝响》**
+<div align="center">
 
-> 科幻禅派 2D 动作 RPG / Roguelite
-> A sci-fi Buddhist-inspired 2D action RPG built with Godot.
+# 反观世音：绝响
 
-《反观世音：绝响》是一款以废土、轮回、意识与机械宗教为核心意象的 2D 横版动作游戏。
+**Sci-Fi Buddhist Action RPG / Roguelite · Godot 4.7**
 
-项目目前处于 **核心角色控制、战斗与程序化渲染系统原型阶段**。现阶段开发重点不是关卡内容量，而是建立可持续扩展的角色运动、SDF 肉身渲染、战斗、装备以及 Roguelite 构筑基础。
+一款围绕 **轮回、意识、机械宗教与可塑肉身** 构建的 2D 横版动作游戏。
 
----
+<br>
 
-## Current Status
+<img src="artifacts/blade_attacks.gif" width="760" alt="Contra-Avalokita Blade Combat">
 
-> **Development Stage: Prototype / Core Systems**
+<br>
 
-目前已完成或正在工作的核心模块包括：
+*Procedural Mud Body · Layered Animation · SDF Rendering · Roguelite Morphing*
 
-* 2D 横版角色基础移动
-* Idle / Walk / Run / Jump / Fall
-* 扒墙、滑墙与蹬墙跳
-* Skeleton2D 骨骼驱动角色
-* FK / IK 混合姿态控制
-* 上下半身动画分层
-* 刀剑三段攻击
-* 武器 Hitbox / Hurtbox
-* 格挡与受击反馈
-* 前后肢体动态纵深
-* 装备挂点系统
-* 程序化 SDF 泥身 Renderer
-* SDF 受击凹陷、膨胀与波纹
-* SDF 死亡坍塌与像素飞升
-* 六道数字伤害显示
-* 击杀评分系统
-* 多角色压力测试
-
-目前仓库中的测试场景主要用于验证角色、战斗、Renderer 与动画系统，并不代表最终游戏关卡。
+</div>
 
 ---
 
-## Core Concept
+## Overview
 
-游戏中的角色并非传统 Sprite Sheet 人物。
+《反观世音：绝响》是一款正在开发中的 **科幻禅派 2D 动作 RPG / Roguelite**。
 
-基础角色由：
+游戏中的人物并非传统逐帧 Sprite 角色。
+
+角色由 Skeleton2D 驱动骨骼姿态，再根据骨骼控制点实时生成 SDF 肉身：
 
 ```text
 Skeleton2D
     ↓
-Bone Pose
+Bone Pose / IK / FK
     ↓
 SDF Capsules
     ↓
@@ -59,63 +42,172 @@ Pixel Shader
 Mud Body
 ```
 
-实时生成身体轮廓。
+因此角色身体能够在动画过程中自然发生：
 
-骨骼决定动作，SDF 重新生成肉身。
-
-这使角色能够在保持统一动画系统的同时发生：
-
-* 肢体压缩
+* 关节压缩
+* 软体滞后
+* 受击凹陷
 * 身体膨胀
-* 受击变形
-* 肉身缺损
-* 程序化死亡
-* Roguelite 形态异化
+* 缺损与异化
+* 死亡坍塌
+* 像素飞升
 
-普通武器与硬质装甲不会并入肉身 SDF，而作为独立视觉层进行渲染。
-
----
-
-## Character Rendering
-
-当前角色视觉结构：
-
-```text
-Rear Mud
-Rear Equipment
-Rear Weapon
-
-Body
-
-Front Mud
-Front Equipment
-Front Weapon
-
-Head Equipment
-Eyes
-VFX
-```
-
-Mud Body 使用多层 SDF Render Pass，使前后肢体、武器和装备可以在 2D 环境中产生稳定的空间遮挡关系。
-
-角色最终视觉由四类内容组成：
-
-```text
-SDF Body     肉身
-Equipment    装甲 / 饰品
-Weapon       武器
-VFX          粒子 / 技能 / 异象
-```
-
-未来 Roguelite Morph 系统将在这一结构上继续扩展。
+后续 Roguelite 系统将在此基础上允许 Build 直接改变角色的肉身形态。
 
 ---
 
-## Combat
+## Development Status
 
-当前近战系统以刀剑为第一套验证武器。
+> **Current Stage: Core Gameplay Prototype**
 
-已实现：
+目前开发重点是建立可以长期扩展的：
+
+**Character → Combat → Renderer → Roguelite → Content Pipeline**
+
+而非大量生产关卡内容。
+
+### Implemented
+
+* [x] Idle / Walk / Run
+* [x] Jump / Fall / Landing
+* [x] Wall Hang / Wall Slide / Wall Jump
+* [x] Skeleton2D 角色 Rig
+* [x] FK / IK 姿态系统
+* [x] 上下半身动画分层
+* [x] 刀剑三段攻击
+* [x] Weapon Hitbox / Character Hurtbox
+* [x] 格挡
+* [x] 前后肢体动态深度
+* [x] 装备挂点
+* [x] SDF 程序化泥身
+* [x] SDF 受击反馈
+* [x] 死亡坍塌与像素飞升
+* [x] 六道数字伤害显示
+* [x] 击杀评分
+* [x] 多角色压力测试
+
+### In Progress / Planned
+
+* [ ] SDF Morph System
+* [ ] Armor Renderer
+* [ ] Roguelite Run Manager
+* [ ] Karma / 六道系统
+* [ ] Content Registry
+* [ ] 正式 Boot Flow
+* [ ] Main Menu / HUD
+* [ ] Save System
+* [ ] Developer Console
+* [ ] DLC Content Interface
+* [ ] Mod SDK
+* [ ] 正式敌人与 Boss
+* [ ] 第一套正式关卡
+
+---
+
+# Character System
+
+## Procedural Animation
+
+角色动作并非简单播放完整动画。
+
+当前系统将：
+
+```text
+Locomotion
++
+Upper Body Action
++
+IK Correction
++
+Procedural Footwork
++
+Soft-body Follow
+```
+
+组合为最终姿势。
+
+<div align="center">
+
+<img src="artifacts/blade_footwork_layers.gif" width="720" alt="Blade Footwork Layering">
+
+**移动姿态与攻击动作分层**
+
+</div>
+
+刀剑攻击不会完全覆盖当前移动状态。
+
+例如角色正在奔跑时发动攻击：
+
+```text
+Run Legs
+    +
+Blade Upper Body
+    +
+Attack Footwork Offset
+    ↓
+Final Pose
+```
+
+因此角色能够在：
+
+* Walk
+* Run
+* Jump
+* Fall
+
+期间执行攻击，而不会突然切换到完全静止的攻击动画。
+
+---
+
+## Movement
+
+当前移动系统包括：
+
+```text
+Idle
+Walk
+Run
+
+JumpSquat
+Takeoff
+Rise
+Apex
+Fall
+Landing
+
+WallHang
+WallSlide
+WallPush
+WallRelease
+```
+
+步态包含：
+
+* 支撑腿与摆动腿切换
+* 骨盆承重
+* 脚跟着地
+* 脚尖离地
+* 肩胯反向运动
+* 手臂惯性
+* 起步与制动质量滞后
+
+角色骨架同时作为 SDF Renderer 的实时形体输入。
+
+---
+
+# Combat
+
+当前第一套完整验证武器为刀剑。
+
+<div align="center">
+
+<img src="artifacts/blade_attacks.gif" width="720" alt="Blade Attack Combo">
+
+**Blade Combo Prototype**
+
+</div>
+
+基础连段：
 
 ```text
 Attack 1
@@ -125,87 +217,251 @@ Attack 2
 Attack 3
 ```
 
-每次攻击包含：
+每次攻击内部进一步划分：
 
 ```text
 Anticipation
+      ↓
 Active
+      ↓
 Follow-through
+      ↓
 Recovery
 ```
 
-攻击动作与移动动画分层处理，因此角色能够在：
+攻击输入允许缓存下一段 Combo。
 
-* 行走
-* 奔跑
-* 跳跃
-* 下落
+Hitbox 与视觉剑光相互独立：
 
-过程中继续执行上半身攻击动作。
+```text
+Weapon Hitbox
+=
+实际伤害
 
-武器伤害由独立 Hitbox 结算，剑光和视觉 Trail 不参与实际伤害判定。
-
----
-
-## Controls
-
-当前测试场景默认操作：
-
-| Action              | Input          |
-| ------------------- | -------------- |
-| Move                | `A / D` 或方向键   |
-| Run                 | `Shift + Move` |
-| Jump                | `Space`        |
-| Wall Hang / Slide   | 空中持续朝墙输入       |
-| Wall Jump           | 扒墙状态下 `Space`  |
-| Attack              | `J` / 鼠标左键     |
-| Toggle Equipment    | `E`            |
-| Equip Sword         | `1`            |
-| Unequip Weapon      | `2`            |
-| Debug Visualization | `F1`           |
-| Crowd Test          | `T`            |
-| Reset Player        | `R`            |
-
-测试输入会随开发阶段调整，不视为最终键位设计。
+Trail / Slash VFX
+=
+视觉反馈
+```
 
 ---
 
-## Tech Stack
+## Blocking
 
-### Engine
+<div align="center">
 
-* **Godot 4.7.x**
-* GDScript
-* 2D Renderer
-* Compatibility / OpenGL-compatible rendering path
-* Pixel-snapped 640 × 360 reference viewport
+<img src="artifacts/block_preview.gif" width="640" alt="Blocking Animation">
 
-### Character Technology
+**Block Prototype**
 
-* CharacterBody2D
-* Skeleton2D / Bone2D
-* FK / analytic IK
-* AnimationPlayer
-* Procedural locomotion
-* Signed Distance Field rendering
-* Runtime ShaderMaterial
-* Layered 2D depth rendering
+</div>
 
-项目目前不依赖第三方 Godot 插件。
+格挡目前拥有独立姿势和伤害反馈接口。
+
+未来将继续扩展：
+
+```text
+Block
+Perfect Block
+Parry
+Guard Break
+Counter
+```
 
 ---
 
-## Quick Start
+# SDF Character Renderer
 
-### Requirements
+角色肉身由实时 Signed Distance Field 构成。
 
-推荐使用：
+基础流程：
+
+```text
+Bone Anchors
+      ↓
+Capsule Segments
+      ↓
+Smooth Union
+      ↓
+Depth Classification
+      ↓
+Pixel Shading
+```
+
+基础人体目前由约 24 个可复用胶囊段组成。
+
+Renderer 最大容量当前为：
+
+```text
+MAX_SEGMENTS = 40
+```
+
+---
+
+## Body Deformation
+
+Renderer 可以根据动作与状态修改身体形体：
+
+```text
+Joint Compression
+Foot Squash
+
+Impact Dent
+Impact Bulge
+Impact Ripple
+
+Death Collapse
+Death Dissolve
+```
+
+这意味着受击不是简单播放一个 Sprite Flash。
+
+冲击能够实际改变角色 SDF 的局部轮廓。
+
+---
+
+## Render Layers
+
+角色使用多个 SDF Pass 处理前后肢体关系：
+
+```text
+Rear Mud        -6
+Rear Equipment  -5
+Rear Weapon     -4
+
+Body             0
+
+Front Mud        4
+Front Equipment  5
+Front Weapon     6
+
+Head Equipment  10
+```
+
+因此：
+
+```text
+远侧手
+    ↓
+身体
+    ↓
+近侧手
+```
+
+能够产生稳定的 2D 空间遮挡。
+
+武器、护腕等装备也可以正确穿插在角色身体前后。
+
+---
+
+# Visual Architecture
+
+角色视觉系统遵循四层职责：
+
+| Layer         | Responsibility |
+| ------------- | -------------- |
+| **SDF Body**  | 肉身、软体形变、生物异化   |
+| **Equipment** | 装甲、面具、护腕、硬质结构  |
+| **Weapon**    | 武器与独立 Hitbox   |
+| **VFX**       | 技能、粒子、光效、异象    |
+
+原则：
+
+```text
+SDF
+=
+肉
+
+Sprite
+=
+甲
+
+Shader
+=
+材质
+
+VFX
+=
+异象
+```
+
+普通硬质装甲不会被并入身体 SDF。
+
+---
+
+# Roguelite Direction
+
+未来肉鸽系统不会只修改角色数值。
+
+Build 可以进一步修改角色自身的视觉形态。
+
+例如：
+
+```text
+Hungry Ghost
+→ 腹部 SDF 缺损
+
+Asura
+→ 肩部与手臂增生
+
+Deva
+→ 头部 / 背部光学结构
+
+Hell
+→ 身体裂口与高温材质
+```
+
+计划中的 SDF Morph 系统：
+
+```text
+Base Body
+    ↓
+ADD Morph
+    ↓
+SUBTRACT Morph
+    ↓
+Material State
+    ↓
+Final Body
+```
+
+使一局游戏的 Build 最终能够直接表现为角色轮廓变化。
+
+---
+
+# Controls
+
+当前测试场景：
+
+| Action            | Input                |
+| ----------------- | -------------------- |
+| Move              | `A / D` / Arrow Keys |
+| Run               | `Shift + Move`       |
+| Jump              | `Space`              |
+| Wall Hang / Slide | 空中持续朝墙移动             |
+| Wall Jump         | 墙面状态下 `Space`        |
+| Attack            | `J` / Mouse Left     |
+| Toggle Equipment  | `E`                  |
+| Equip Sword       | `1`                  |
+| Unequip Weapon    | `2`                  |
+| Debug View        | `F1`                 |
+| Crowd Test        | `T`                  |
+| Reset             | `R`                  |
+
+这些输入属于开发测试配置，并非最终玩家键位。
+
+---
+
+# Quick Start
+
+## Requirements
+
+推荐：
 
 ```text
 Godot 4.7.x
 ```
 
-Clone：
+Clone repository：
 
 ```bash
 git clone https://github.com/himentpear/Contra-Avalokita.git
@@ -217,42 +473,124 @@ git clone https://github.com/himentpear/Contra-Avalokita.git
 contra-avalokita/project.godot
 ```
 
-当前开发阶段可以直接运行：
+当前主要测试场景：
 
 ```text
 scenes/test_arena.tscn
 ```
 
-或者使用项目默认 Main Scene。
+可以直接运行 Main Scene 或单独运行测试场景。
 
 ---
 
-## Project Structure
+# Tech Stack
 
-当前工程正在逐步从原型目录迁移为更明确的游戏工程结构。
+### Engine
 
-主要目录：
+* Godot 4.7
+* GDScript
+* 2D Canvas Renderer
+* Compatibility Rendering
+* Runtime ShaderMaterial
+
+### Character
+
+* CharacterBody2D
+* Skeleton2D
+* Bone2D
+* FK
+* Analytic IK
+* AnimationPlayer
+* Procedural Locomotion
+
+### Rendering
+
+* Signed Distance Field
+* Smooth Union Capsules
+* Multi-pass Depth Rendering
+* Pixel Quantized Lighting
+* Dynamic SDF Deformation
+
+### Reference Resolution
+
+```text
+640 × 360
+```
+
+使用 integer scaling 与 pixel snapping。
+
+---
+
+# Current Project Structure
+
+当前原型工程主要组织为：
 
 ```text
 contra-avalokita/
 │
-├── assets/             # 美术、字体与公共资源
-├── scenes/             # Godot Scene
-├── scripts/            # Gameplay / Runtime scripts
-├── shaders/            # SDF 与视觉 Shader
-├── resources/          # Animation / Theme / Resource
-├── docs/               # 技术与设计文档
+├── assets/
+│   ├── backgrounds/
+│   ├── fonts/
+│   └── equipment/
+│
+├── scenes/
+│   ├── equipment/
+│   ├── weapons/
+│   ├── mud_character.tscn
+│   └── test_arena.tscn
+│
+├── scripts/
+│
+├── shaders/
+│
+├── resources/
+│
+├── docs/
+│
+├── artifacts/
 │
 ├── project.godot
 └── README.md
 ```
 
-随着项目进入正式内容开发阶段，系统将逐步拆分为：
+`artifacts/` 当前主要保存开发阶段的动画预览、测试截图和参考结果。
+
+其中被 README 使用的 GIF 应视为长期项目展示资产。
+
+后续建议迁移至：
 
 ```text
-bootstrap/              游戏启动与内容挂载
+docs/media/
+```
 
-core/                   应用生命周期、存档、事件、内容注册
+例如：
+
+```text
+docs/media/blade_attacks.gif
+docs/media/blade_footwork_layers.gif
+docs/media/block_preview.gif
+```
+
+其余临时截图、关键帧序列和测试导出物无需长期进入仓库。
+
+---
+
+# Target Architecture
+
+项目后续计划逐步迁移为：
+
+```text
+bootstrap/
+│
+├── boot.tscn
+└── package_loader.gd
+
+core/
+├── app/
+├── content/
+├── events/
+├── save/
+└── debug/
 
 gameplay/
 ├── character/
@@ -266,8 +604,9 @@ content/
 └── shared/
 
 ui/
+├── main_menu/
 ├── hud/
-├── menu/
+├── inventory/
 ├── content_browser/
 └── console/
 
@@ -280,243 +619,173 @@ tools/
 docs/
 ```
 
-原则：
+核心原则：
 
 > **Gameplay 定义规则，Content 定义游戏里有什么。**
 
-具体武器、角色、敌人和关卡不应成为 Gameplay Core 的硬编码依赖。
-
 ---
 
-## Architecture
+# Content Architecture
 
-目标运行结构：
+未来所有正式游戏内容将使用稳定 Content ID，而不是将资源路径作为身份。
 
-```text
-Boot
- │
- ▼
-Core
- │
- ├───────────────┐
- ▼               ▼
-Gameplay         UI
- │
- ▼
-Content Registry
- │
- ├── Base Game
- ├── DLC
- └── Mods
-```
-
-所有游戏内容未来统一使用命名空间 ID，例如：
+例如：
 
 ```text
 base:sword
 base:mudborn
+base:hungry_ghost
 
 dlc01:vajra_blade
 
 example_mod:red_sword
 ```
 
-Gameplay 系统只通过 Content Registry 获取内容，而不直接依赖具体 DLC 或 MOD。
+运行时：
+
+```text
+Gameplay
+    ↓
+ContentRegistry
+    ↓
+┌─────────┬────────┬────────┐
+│         │        │        │
+Base     DLC      MOD     Patch
+```
+
+Core Gameplay 不直接依赖具体 DLC 或 MOD。
 
 ---
 
-## Planned Systems
+# DLC
 
-以下系统属于规划或架构预留阶段，不代表当前版本已经完成。
-
-### Roguelite
-
-计划包含：
-
-* Run Seed
-* 随机事件
-* 武器与装备构筑
-* SDF Morph
-* 六道 / 业力系统
-* Build Synergy
-* 隐藏角色
-* Boss 路线
-* 多结局
-
-### DLC
-
-官方扩展内容计划采用独立 Content Pack：
+官方扩展内容计划作为独立 Content Pack 挂载。
 
 ```text
-Base Game
+Core Game
++
+Base Content
 +
 Official DLC
 ```
 
-Core Gameplay 不直接依赖具体 DLC。
+DLC 可注册：
 
-DLC 可以注册：
-
-* 角色
-* 武器
+* Character
+* Weapon
+* Item
 * Morph
-* 敌人
+* Enemy
 * Boss
-* 关卡
-* 剧情
-* UI 内容
+* Encounter
+* Level
+* Dialogue
+* UI Content
 
-### Modding
+核心代码中不应存在：
 
-计划提供两类 MOD：
+```text
+if DLC_01_INSTALLED:
+```
 
-**Data Mod**
+而应通过 Content Registry 动态发现内容。
+
+---
+
+# Modding
+
+计划支持两类 MOD。
+
+## Data Mods
+
+允许：
 
 ```text
 JSON
 Texture
 Audio
-Level Data
 Item Data
+Enemy Data
 Dialogue
+Level Data
 Morph Profile
 ```
 
-**Scripted Mod**
+不执行自定义 GDScript。
+
+---
+
+## Scripted Mods
+
+高级 MOD 可以通过独立 PCK 提供：
 
 ```text
-Godot PCK
 Scene
 Resource
 Shader
 GDScript
 ```
 
-MOD 内容将在独立命名空间运行，避免直接修改 Core Gameplay。
+Scripted MOD 将明确标记其包含可执行代码。
 
-### Developer Console
-
-计划提供运行时开发者控制台与 Command Registry，例如：
+MOD 内容使用独立命名空间：
 
 ```text
-spawn
-give
-damage
-god
-
-run.seed
-loot.spawn
-
-sdf.show
-sdf.morph
-sdf.clear
-
-content.list
-content.info
-
-mod.list
-
-perf.fps
-perf.entities
-perf.sdf
+mod_id:item_id
 ```
 
-Console 与自动化测试计划共用同一套 Command API。
+避免污染官方内容 ID。
 
 ---
 
-## Development Guidelines
+# Developer Console
 
-### Runtime Assets
-
-正式游戏会加载的资源放入对应：
+计划加入游戏内开发控制台：
 
 ```text
-assets/
-resources/
-scenes/
-content/
+`
 ```
 
-开发过程截图、GIF 和临时导出结果不要作为 Runtime Asset。
-
-建议使用：
+或：
 
 ```text
-tests/reference/
-docs/images/
+F10
 ```
 
-保存真正需要长期保留的参考资料。
+示例：
+
+```text
+> spawn base:enemy_asura
+
+> give base:sword
+
+> sdf.morph base:hungry_ghost
+
+> run.seed 114514
+
+> content.list
+
+> perf.sdf
+```
+
+命令由统一 `CommandRegistry` 管理。
+
+未来自动化测试也可以复用同一 Command API。
 
 ---
 
-### Character Responsibilities
+# Documentation
 
-角色系统尽量保持职责分离：
+README 只维护：
 
-```text
-Movement
-Animation
-Rig
-Renderer
-Equipment
-Weapon
-Combat
-VFX
-```
+* 项目介绍
+* 当前状态
+* 游戏 GIF
+* 快速运行
+* 核心架构
+* 开发入口
 
-不要将视觉逻辑、物理移动和攻击结算全部堆入单一角色脚本。
-
----
-
-### Rendering Responsibilities
-
-```text
-SDF
-=
-肉身 / 形变 / 生物异化
-
-Sprite
-=
-装甲 / 武器 / 硬质装备
-
-Shader
-=
-材质 / 色阶 / 局部状态
-
-VFX
-=
-技能 / 粒子 / 异象
-```
-
-不要使用 SDF 代替所有美术层。
-
----
-
-### Content IDs
-
-正式游戏内容不应通过绝对资源路径成为存档 ID。
-
-避免：
-
-```text
-res://weapons/sword.tscn
-```
-
-推荐：
-
-```text
-base:sword
-```
-
-以确保未来 DLC、MOD 与存档迁移能够共存。
-
----
-
-## Documentation
-
-随着系统稳定，README 中的具体实现细节会逐步迁移至：
+详细技术记录放置在：
 
 ```text
 docs/
@@ -528,21 +797,23 @@ docs/
 └── modding/
 ```
 
-README 只维护：
+例如：
 
-* 项目定位
-* 当前状态
-* 快速运行
-* 核心架构
-* 开发入口
+```text
+docs/animation/locomotion.md
+docs/animation/blade-combat.md
 
-具体动画参数、Shader 数学、IK 阈值和技术实验不应长期堆积在仓库首页。
+docs/renderer/sdf-character.md
+docs/renderer/depth-layering.md
+
+docs/architecture/content-system.md
+```
+
+避免把大量动画参数和实现实验长期堆积在仓库首页。
 
 ---
 
-## Roadmap
-
-近期开发重点：
+# Roadmap
 
 ```text
 Character Core
@@ -555,48 +826,67 @@ Roguelite Runtime
       ↓
 Content Pipeline
       ↓
-World / Level
+World / Levels
       ↓
-Game Loop
+Complete Game Loop
 ```
 
-当前优先级：
+当前优先：
 
-* [x] 基础移动
-* [x] 程序化角色 Renderer
-* [x] 刀剑基础战斗
-* [x] 墙面移动
-* [x] 基础装备挂点
-* [x] 死亡视觉
-* [ ] SDF Morph System
-* [ ] Armor Renderer
-* [ ] Roguelite Run Manager
-* [ ] Content Registry
-* [ ] 正式 Boot Flow
-* [ ] Main Menu / HUD
-* [ ] 基础敌人体系
-* [ ] 第一套正式关卡
-* [ ] Save System
-* [ ] Developer Console
-* [ ] DLC Content Interface
-* [ ] Mod SDK
+```text
+SDF Morph
+Armor Renderer
+Roguelite Runtime
+Content Registry
+Boot Flow
+UI
+Enemy Framework
+Level Pipeline
+Save System
+```
 
 ---
 
-## Repository Status
+# Repository Status
 
-本项目目前仍处于主动开发阶段。
+> **Active Development**
 
-API、节点结构、Resource 格式和游戏规则均可能发生较大变化。
+项目仍处于早期核心系统开发阶段。
 
-现阶段仓库的首要目标是验证核心玩法与技术架构，而非提供稳定的公共开发 API。
+以下内容可能随开发发生较大变化：
+
+* API
+* Scene Tree
+* Resource Schema
+* Animation Data
+* Content Format
+* Gameplay Rules
+* Save Format
+
+当前仓库目标首先是验证游戏的核心技术与玩法结构，而不是提供稳定公共 API。
 
 ---
 
-## License
+# License
 
-项目代码、美术、音频及其他内容的最终授权方式尚待确定。
+项目最终许可证尚未确定。
 
-在正式许可证发布前，请勿默认本仓库内容属于可自由再分发、商用或二次发布的开源资产。
+在正式许可证发布之前，请勿默认仓库中的：
 
+* 源代码
+* 美术
+* 动画
+* 音频
+* 世界观内容
 
+可以自由再分发或商业使用。
+
+---
+
+<div align="center">
+
+### Contra-Avalokita: The Dead Decibel
+
+**肉身可塑，业不可逃。**
+
+</div>
