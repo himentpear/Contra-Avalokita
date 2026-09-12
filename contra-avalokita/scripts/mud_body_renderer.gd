@@ -1,6 +1,10 @@
 class_name MudBodyRenderer
 extends Node2D
+const SdfModifier = preload("res://scripts/sdf_modifier.gd")
+const SdfMorphProfile = preload("res://scripts/sdf_morph_profile.gd")
+const MudModifierDebugOverlay = preload("res://scripts/mud_modifier_debug_overlay.gd")
 const MAX_SEGMENTS := 40
+const MAX_MODIFIERS := 16
 @export var mud_color := Color("737f45")
 @export_range(0.1, 4.0) var fusion_softness := 1.8
 @export var render_bounds := Rect2(-80, -104, 160, 128)
@@ -12,6 +16,16 @@ const MAX_SEGMENTS := 40
 @export var arm_radius := 3.7
 @export var leg_radius := 5.0
 @export var auxiliary_distance := 3.2
+@export_group("SDF Morph")
+@export var morph_profiles: Array[SdfMorphProfile] = []
+@export var modifier_debug_draw := false:
+	set(value):
+		if modifier_debug_draw == value:
+			return
+		modifier_debug_draw = value
+		if is_instance_valid(_modifier_debug_overlay):
+			_modifier_debug_overlay.visible = value
+			_modifier_debug_overlay.queue_redraw()
 var weapon_arm_depth := 1.0
 var offhand_arm_depth := -1.0
 var facing_depth := 1.0
@@ -36,11 +50,28 @@ var impact_ripple_phase := 0.0
 var shader_material: ShaderMaterial
 var endpoints := PackedVector4Array()
 var properties := PackedVector4Array()
+var modifier_a := PackedVector4Array()
+var modifier_b := PackedVector4Array()
+var modifier_meta := PackedVector4Array()
+var modifier_anchor_points := PackedVector2Array()
+var packed_modifier_sources: Array[SdfModifier] = []
+var resolved_modifier_count := 0
 var segments: Array[MudSegment] = []
 var segment_cursor := 0
 var compressions: Dictionary = {}
 var angles: Dictionary = {}
 var auxiliary_points: Dictionary = {}
+var auxiliary_directions: Dictionary = {}
+
+var _active_modifiers: Array[SdfModifier] = []
+var _morph_cache_dirty := true
+var _effective_head_multiplier := 1.0
+var _effective_body_multiplier := 1.0
+var _effective_arm_multiplier := 1.0
+var _effective_leg_multiplier := 1.0
+var _effective_mud_color := Color("737f45")
+var _has_mud_color_override := false
+var _modifier_debug_overlay: MudModifierDebugOverlay
 
 var _bones_cached := false
 var _bone_pelvis: Bone2D
@@ -62,6 +93,11 @@ var _bone_foot_back: Bone2D
 func _ready() -> void:
 	endpoints.resize(MAX_SEGMENTS)
 	properties.resize(MAX_SEGMENTS)
+	modifier_a.resize(MAX_MODIFIERS)
+	modifier_b.resize(MAX_MODIFIERS)
+	modifier_meta.resize(MAX_MODIFIERS)
+	modifier_anchor_points.resize(MAX_MODIFIERS)
+	packed_modifier_sources.resize(MAX_MODIFIERS)
 	var surface := ColorRect.new()
 	surface.position = render_bounds.position
 	surface.size = render_bounds.size
@@ -87,6 +123,82 @@ func _ready() -> void:
 		layer.material = material
 		add_child(layer)
 		depth_materials.append(material)
+	_modifier_debug_overlay = MudModifierDebugOverlay.new()
+	_modifier_debug_overlay.name = "ModifierDebugOverlay"
+	_modifier_debug_overlay.renderer = self
+	_modifier_debug_overlay.z_index = 20
+	_modifier_debug_overlay.visible = modifier_debug_draw
+	add_child(_modifier_debug_overlay)
+	for profile in morph_profiles:
+		_watch_morph_resource(profile)
+	_morph_cache_dirty = true
+
+func apply_morph_profile(profile: SdfMorphProfile) -> void:
+	if not profile or morph_profiles.has(profile):
+		return
+	morph_profiles.append(profile)
+	_watch_morph_resource(profile)
+	_morph_cache_dirty = true
+
+func remove_morph_profile(profile: SdfMorphProfile) -> void:
+	if not profile or not morph_profiles.has(profile):
+		return
+	morph_profiles.erase(profile)
+	_morph_cache_dirty = true
+
+func clear_morph_profiles() -> void:
+	if morph_profiles.is_empty():
+		return
+	morph_profiles.clear()
+	_morph_cache_dirty = true
+
+func active_morph_profile_count() -> int:
+	return morph_profiles.size()
+
+func active_modifier_count() -> int:
+	_rebuild_morph_cache_if_needed()
+	return mini(_active_modifiers.size(), MAX_MODIFIERS)
+
+func _watch_morph_resource(profile: SdfMorphProfile) -> void:
+	if not profile:
+		return
+	var changed_callback := Callable(self, "_mark_morph_cache_dirty")
+	if not profile.changed.is_connected(changed_callback):
+		profile.changed.connect(changed_callback)
+	for modifier in profile.modifiers:
+		if modifier and not modifier.changed.is_connected(changed_callback):
+			modifier.changed.connect(changed_callback)
+
+func _mark_morph_cache_dirty() -> void:
+	_morph_cache_dirty = true
+
+func _rebuild_morph_cache_if_needed() -> void:
+	if not _morph_cache_dirty:
+		return
+	_active_modifiers.clear()
+	_effective_head_multiplier = 1.0
+	_effective_body_multiplier = 1.0
+	_effective_arm_multiplier = 1.0
+	_effective_leg_multiplier = 1.0
+	_effective_mud_color = mud_color
+	_has_mud_color_override = false
+	for profile in morph_profiles:
+		if not profile:
+			continue
+		_watch_morph_resource(profile)
+		_effective_head_multiplier *= profile.head_radius_multiplier
+		_effective_body_multiplier *= profile.body_radius_multiplier
+		_effective_arm_multiplier *= profile.arm_radius_multiplier
+		_effective_leg_multiplier *= profile.leg_radius_multiplier
+		if profile.mud_color_override_enabled:
+			_effective_mud_color = profile.mud_color
+			_has_mud_color_override = true
+		for modifier in profile.modifiers:
+			if modifier:
+				_active_modifiers.append(modifier)
+	if _active_modifiers.size() > MAX_MODIFIERS:
+		push_warning("SDF morph stack contains %d modifiers; only the first %d are rendered." % [_active_modifiers.size(), MAX_MODIFIERS])
+	_morph_cache_dirty = false
 
 func sync_depth_materials() -> void:
 	for material in depth_materials:
@@ -172,8 +284,15 @@ func _solve_arm(id: String, upper_bone: Bone2D, fore_bone: Bone2D, hand_bone: Bo
 	auxiliary_points[StringName(id + "Pre")] = pre
 	auxiliary_points[StringName(id + "Post")] = post
 	auxiliary_points[StringName(id + "End")] = end
+	var joint_direction := (u + v).normalized()
+	if joint_direction.length_squared() < 0.001: joint_direction = u
+	auxiliary_directions[StringName(id + "Start")] = u
+	auxiliary_directions[StringName(id + "Pre")] = u
+	auxiliary_directions[StringName(id + "Joint")] = joint_direction
+	auxiliary_directions[StringName(id + "Post")] = v
+	auxiliary_directions[StringName(id + "End")] = v
 	
-	var r := arm_radius * (0.88 if depth < 0 else 1.0)
+	var r := arm_radius * _effective_arm_multiplier * (0.88 if depth < 0 else 1.0)
 	if death_progress > 0.0:
 		r *= lerpf(1.0, 0.4, death_progress)
 	var jr := r * (1.0 - compression * 0.14)
@@ -218,8 +337,15 @@ func _solve_leg(id: String, thigh_bone: Bone2D, shin_bone: Bone2D, foot_bone: Bo
 	auxiliary_points[StringName(id + "Pre")] = pre
 	auxiliary_points[StringName(id + "Post")] = post
 	auxiliary_points[StringName(id + "End")] = end
+	var joint_direction := (u + v).normalized()
+	if joint_direction.length_squared() < 0.001: joint_direction = u
+	auxiliary_directions[StringName(id + "Start")] = u
+	auxiliary_directions[StringName(id + "Pre")] = u
+	auxiliary_directions[StringName(id + "Joint")] = joint_direction
+	auxiliary_directions[StringName(id + "Post")] = v
+	auxiliary_directions[StringName(id + "End")] = v
 	
-	var r := leg_radius * (0.88 if depth < 0 else 1.0)
+	var r := leg_radius * _effective_leg_multiplier * (0.88 if depth < 0 else 1.0)
 	if death_progress > 0.0:
 		r *= lerpf(1.0, 0.4, death_progress)
 	# Knee volume: soft joint compression expands outer knee silhouette
@@ -242,10 +368,13 @@ func _solve_leg(id: String, thigh_bone: Bone2D, shin_bone: Bone2D, foot_bone: Bo
 	auxiliary_points[StringName(id + "Heel")] = heel
 	auxiliary_points[StringName(id + "Foot")] = ball
 	auxiliary_points[StringName(id + "Toe")] = toe
+	auxiliary_directions[StringName(id + "Heel")] = axis
+	auxiliary_directions[StringName(id + "Foot")] = axis
+	auxiliary_directions[StringName(id + "Toe")] = axis
 	
 	# Foot squash: sole expands horizontally and flattens on ground contact
 	var foot_contact_weight := clampf(1.0 - absf(foot_rot) * 1.6, 0.0, 1.0)
-	var sole_radius := (2.8 + foot_contact_weight * 0.45) * (lerpf(1.0, 0.3, death_progress) if death_progress > 0.0 else 1.0)
+	var sole_radius := (2.8 + foot_contact_weight * 0.45) * _effective_leg_multiplier * (lerpf(1.0, 0.3, death_progress) if death_progress > 0.0 else 1.0)
 	add_segment(heel, ball, sole_radius, sole_radius, depth)
 	add_segment(ball, toe, sole_radius, maxf(1.8, sole_radius - 0.35), depth)
 
@@ -253,6 +382,7 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	if not _bones_cached or not _bone_pelvis:
 		cache_bones(skeleton)
 	if not _bone_pelvis or not _bone_torso or not _bone_head: return
+	_rebuild_morph_cache_if_needed()
 	
 	segment_cursor = 0
 	
@@ -267,6 +397,10 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	auxiliary_points[&"Head"] = head_pos
 	auxiliary_points[&"Chest"] = torso_pos
 	auxiliary_points[&"Neck"] = torso_pos.lerp(head_pos, 0.5)
+	var body_direction := (head_pos - pelvis_pos).normalized()
+	if body_direction.length_squared() < 0.001: body_direction = Vector2.UP
+	for central_anchor in [&"Pelvis", &"Torso", &"Abdomen", &"Head", &"Chest", &"Neck"]:
+		auxiliary_directions[central_anchor] = body_direction
 	
 	# 1. Back leg (depth -1.0)
 	_solve_leg("LegBack", _bone_thigh_back, _bone_shin_back, _bone_foot_back, -facing_depth)
@@ -275,14 +409,14 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	_solve_arm("ArmBack", _bone_upper_arm_back, _bone_forearm_back, _bone_hand_back, offhand_arm_depth)
 	
 	# 3. Torso and Head (depth 0.0)
-	var torso_r := body_radius
-	var h_r := head_radius
+	var torso_r := body_radius * _effective_body_multiplier
+	var h_r := head_radius * _effective_head_multiplier
 	if death_progress > 0.0:
-		torso_r = lerpf(body_radius, body_radius * 1.3, death_progress)
-		h_r = lerpf(head_radius, head_radius * 0.7, death_progress)
+		torso_r = lerpf(body_radius * _effective_body_multiplier, body_radius * _effective_body_multiplier * 1.3, death_progress)
+		h_r = lerpf(head_radius * _effective_head_multiplier, head_radius * _effective_head_multiplier * 0.7, death_progress)
 	add_segment(pelvis_pos, abdomen_pos, torso_r, torso_r * 0.86, 0.0)
 	add_segment(abdomen_pos, torso_pos, torso_r * 0.86, torso_r, 0.0)
-	add_segment(torso_pos, head_pos, 4.0, 4.0, 0.0)
+	add_segment(torso_pos, head_pos, 4.0 * _effective_body_multiplier, 4.0 * _effective_body_multiplier, 0.0)
 	add_segment(head_pos + Vector2(0, -1), head_pos + Vector2(0, 1), h_r, h_r, 0.0)
 	
 	# 4. Front leg (depth 1.0)
@@ -297,13 +431,60 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 		p_puddle = ease(p_puddle, 0.5)
 		var max_spread := 28.0 * puddle_spread_ratio / 2.4
 		var spread_x := lerpf(4.0, max_spread, p_puddle)
-		var puddle_h := lerpf(5.0, 3.2, p_puddle)
+		var puddle_h := lerpf(5.0, 3.2, p_puddle) * _effective_body_multiplier
 		add_segment(Vector2(-spread_x, -2.0), Vector2(spread_x, -2.0), puddle_h, puddle_h * 0.95, 0.0)
 		add_segment(Vector2(-spread_x * 0.75, -2.5), Vector2(spread_x * 0.65, -2.5), puddle_h * 0.85, puddle_h * 0.75, 0.0)
 		add_segment(Vector2(-spread_x * 0.3, -3.0), Vector2(spread_x * 0.4, -3.0), puddle_h * 0.9, puddle_h * 0.8, 0.0)
 	
 	_upload_segments()
 	sync_depth_materials()
+
+func _anchor_direction(anchor: StringName) -> Vector2:
+	if auxiliary_directions.has(anchor):
+		var direction: Vector2 = auxiliary_directions[anchor]
+		if direction.length_squared() > 0.001:
+			return direction.normalized()
+	return Vector2.RIGHT
+
+func _resolve_modifiers() -> void:
+	_rebuild_morph_cache_if_needed()
+	resolved_modifier_count = 0
+	for modifier in _active_modifiers:
+		if resolved_modifier_count >= MAX_MODIFIERS:
+			break
+		if not modifier or not modifier.enabled or not auxiliary_points.has(modifier.anchor):
+			continue
+		var anchor_position: Vector2 = auxiliary_points[modifier.anchor] as Vector2
+		var anchor_direction := _anchor_direction(modifier.anchor)
+		var start: Vector2 = anchor_position + modifier.local_offset.rotated(anchor_direction.angle())
+		var finish: Vector2 = start
+		if modifier.shape == SdfModifier.Shape.CAPSULE:
+			if modifier.anchor_b != &"" and auxiliary_points.has(modifier.anchor_b):
+				var end_direction := _anchor_direction(modifier.anchor_b)
+				var end_anchor_position: Vector2 = auxiliary_points[modifier.anchor_b] as Vector2
+				finish = end_anchor_position + modifier.end_local_offset.rotated(end_direction.angle())
+				if absf(modifier.rotation) > 0.0001:
+					finish = start + (finish - start).rotated(modifier.rotation)
+			else:
+				finish = start + Vector2.RIGHT.rotated(anchor_direction.angle() + modifier.rotation) * modifier.length
+		var packed_depth := clampf(roundf(modifier.depth), -1.0, 1.0)
+		modifier_a[resolved_modifier_count] = Vector4(start.x, start.y, modifier.radius, modifier.softness)
+		modifier_b[resolved_modifier_count] = Vector4(finish.x, finish.y, modifier.radius_end, packed_depth)
+		modifier_meta[resolved_modifier_count] = Vector4(float(modifier.operation), float(modifier.shape), packed_depth, 1.0)
+		modifier_anchor_points[resolved_modifier_count] = anchor_position
+		packed_modifier_sources[resolved_modifier_count] = modifier
+		resolved_modifier_count += 1
+	if is_instance_valid(_modifier_debug_overlay):
+		_modifier_debug_overlay.visible = modifier_debug_draw
+		if modifier_debug_draw:
+			_modifier_debug_overlay.queue_redraw()
+
+func _upload_modifiers() -> void:
+	_resolve_modifiers()
+	shader_material.set_shader_parameter("modifier_count", resolved_modifier_count)
+	shader_material.set_shader_parameter("modifier_a", modifier_a)
+	shader_material.set_shader_parameter("modifier_b", modifier_b)
+	shader_material.set_shader_parameter("modifier_meta", modifier_meta)
 
 func _upload_segments() -> void:
 	var count := mini(segment_cursor, MAX_SEGMENTS)
@@ -314,7 +495,8 @@ func _upload_segments() -> void:
 	shader_material.set_shader_parameter("segment_count", count)
 	shader_material.set_shader_parameter("endpoints", endpoints)
 	shader_material.set_shader_parameter("properties", properties)
-	shader_material.set_shader_parameter("mud_color", mud_color)
+	_upload_modifiers()
+	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
@@ -334,7 +516,9 @@ func sync(rig: MudRig) -> void:
 	shader_material.set_shader_parameter("segment_count", rig.segments.size())
 	shader_material.set_shader_parameter("endpoints", endpoints)
 	shader_material.set_shader_parameter("properties", properties)
-	shader_material.set_shader_parameter("mud_color", mud_color)
+	_rebuild_morph_cache_if_needed()
+	_upload_modifiers()
+	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)

@@ -6,6 +6,11 @@ const int MAX_SEGMENTS = 40;
 uniform vec4 endpoints[MAX_SEGMENTS];
 uniform vec4 properties[MAX_SEGMENTS]; // radius a, radius b, fusion width, depth
 uniform int segment_count = 0;
+const int MAX_MODIFIERS = 16;
+uniform vec4 modifier_a[MAX_MODIFIERS]; // start xy, radius, softness
+uniform vec4 modifier_b[MAX_MODIFIERS]; // end xy, end radius, depth
+uniform vec4 modifier_meta[MAX_MODIFIERS]; // operation, shape, depth, enabled
+uniform int modifier_count = 0;
 uniform vec2 bounds_size = vec2(160.0, 128.0);
 uniform vec2 bounds_origin = vec2(-80.0, -104.0);
 uniform vec4 mud_color : source_color = vec4(0.42, 0.49, 0.27, 1.0);
@@ -20,6 +25,30 @@ float capsule(vec2 p, vec4 ab, vec2 radii) {
 	vec2 axis = ab.zw - ab.xy;
 	float h = clamp(dot(p - ab.xy, axis) / max(dot(axis, axis), 0.001), 0.0, 1.0);
 	return length(p - ab.xy - axis * h) - mix(radii.x, radii.y, h);
+}
+
+float modifier_sdf(vec2 p, vec4 data_a, vec4 data_b, int shape) {
+	if (shape == 0) {
+		return length(p - data_a.xy) - data_a.z;
+	}
+	return capsule(p, vec4(data_a.xy, data_b.xy), vec2(data_a.z, data_b.z));
+}
+
+vec2 modifier_gradient(vec2 p, vec4 data_a, vec4 data_b, int shape) {
+	vec2 center = data_a.xy;
+	if (shape != 0) {
+		vec2 axis = data_b.xy - data_a.xy;
+		float t = clamp(dot(p - data_a.xy, axis) / max(dot(axis, axis), 0.001), 0.0, 1.0);
+		center = mix(data_a.xy, data_b.xy, t);
+	}
+	vec2 radial = p - center;
+	return radial / max(length(radial), 0.001);
+}
+
+float smooth_subtract(float body, float cutter, float softness) {
+	float k = max(softness, 0.001);
+	float h = clamp(0.5 + 0.5 * (body + cutter) / k, 0.0, 1.0);
+	return mix(-cutter, body, h) + k * h * (1.0 - h);
 }
 
 void fragment() {
@@ -43,8 +72,38 @@ void fragment() {
 			owner_depth = properties[i].w;
 		}
 	}
+	// Biological growth is unioned after the base anatomy so it inherits the
+	// same lighting, noise, wet highlights and outline.
+	for (int i = 0; i < MAX_MODIFIERS; i++) {
+		if (i >= modifier_count) { break; }
+		if (modifier_meta[i].w < 0.5 || int(round(modifier_meta[i].x)) != 0) { continue; }
+		int shape = int(round(modifier_meta[i].y));
+		float m = modifier_sdf(p, modifier_a[i], modifier_b[i], shape);
+		float k = max(modifier_a[i].w, 0.01);
+		float h = clamp(0.5 + 0.5 * (m - d) / k, 0.0, 1.0);
+		vec2 m_gradient = modifier_gradient(p, modifier_a[i], modifier_b[i], shape);
+		gradient = mix(m_gradient, gradient, h);
+		d = mix(m, d, h) - k * h * (1.0 - h);
+		if (m < 0.0 && modifier_meta[i].z >= owner_depth) {
+			owner_depth = modifier_meta[i].z;
+		}
+	}
 	if (owner_depth < -1.5) {
 		owner_depth = 0.0;
+	}
+	// Cutters operate only on the surface depth they own. This keeps a rear
+	// mutation from punching through a front arm or equipment silhouette.
+	for (int i = 0; i < MAX_MODIFIERS; i++) {
+		if (i >= modifier_count) { break; }
+		if (modifier_meta[i].w < 0.5 || int(round(modifier_meta[i].x)) != 1) { continue; }
+		if (abs(owner_depth - modifier_meta[i].z) > 0.25) { continue; }
+		int shape = int(round(modifier_meta[i].y));
+		float cutter = modifier_sdf(p, modifier_a[i], modifier_b[i], shape);
+		float previous_d = d;
+		d = smooth_subtract(d, cutter, modifier_a[i].w);
+		if (-cutter > previous_d) {
+			gradient = -modifier_gradient(p, modifier_a[i], modifier_b[i], shape);
+		}
 	}
 	if (impact_params.w > 0.001) {
 		float dist_to_impact = length(p - impact_params.xy);
