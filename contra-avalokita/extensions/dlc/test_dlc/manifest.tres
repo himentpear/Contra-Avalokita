@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContentManifest" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/content/content_manifest.gd" id="1"]
+[ext_resource type="Resource" path="res://extensions/dlc/test_dlc/red_sword_definition.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"test_dlc"
+display_name = "Architecture Test DLC"
+version = "0.1.0"
+content_type = "dlc"
+dependencies = PackedStringArray("base@>=0.2.0")
+minimum_game_version = "0.2.0"
+definitions = Array[Resource]([ExtResource("2")])

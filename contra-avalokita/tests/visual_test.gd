@@ -12,7 +12,7 @@ func capture(id: String) -> void:
 	root.get_texture().get_image().save_png("res://artifacts/" + id + ".png")
 
 func run() -> void:
-	var arena := load("res://scenes/test_arena.tscn").instantiate() as Node2D
+	var arena := load("res://tests/character/test_arena.tscn").instantiate() as Node2D
 	root.add_child(arena)
 	var p: MudCharacter = arena.player
 	p.player_controlled = false

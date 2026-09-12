@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="PackedScene" path="res://content/base/equipment/helmet/helmet.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"base:helmet"
+content_type = &"equipment"
+display_name = "Helmet"
+tags = Array[StringName]([&"armor", &"head"])
+resource = ExtResource("2")
+

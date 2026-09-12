@@ -26,4 +26,3 @@ enum Shape {
 @export_range(0.0, 8.0, 0.05) var softness := 1.0
 @export_range(-1.0, 1.0, 1.0) var depth := 0.0
 @export var enabled := true
-

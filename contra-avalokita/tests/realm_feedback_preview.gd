@@ -29,7 +29,7 @@ func run() -> void:
 	title.text = "SIX REALMS / BASE SIX\nWHITE-LINE COMBAT NUMERALS"
 	title.position = Vector2(24,20)
 	root.add_child(title)
-	var feedback := preload("res://scripts/realm_hit_feedback.gd").new()
+	var feedback := preload("res://gameplay/combat/hit/realm_hit_feedback.gd").new()
 	root.add_child(feedback)
 	feedback.add_number(Vector2(180,255),10)
 	feedback.add_number(Vector2(440,255),36)

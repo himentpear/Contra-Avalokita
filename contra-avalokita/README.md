@@ -10,7 +10,7 @@
 
 <br>
 
-<img src="artifacts/blade_attacks.gif" width="760" alt="Contra-Avalokita Blade Combat">
+<img src="docs/media/blade_attacks.gif" width="760" alt="Contra-Avalokita Blade Combat">
 
 <br>
 
@@ -128,7 +128,7 @@ Soft-body Follow
 
 <div align="center">
 
-<img src="artifacts/blade_footwork_layers.gif" width="720" alt="Blade Footwork Layering">
+<img src="docs/media/blade_footwork_layers.gif" width="720" alt="Blade Footwork Layering">
 
 **移动姿态与攻击动作分层**
 
@@ -201,7 +201,7 @@ WallRelease
 
 <div align="center">
 
-<img src="artifacts/blade_attacks.gif" width="720" alt="Blade Attack Combo">
+<img src="docs/media/blade_attacks.gif" width="720" alt="Blade Attack Combo">
 
 **Blade Combo Prototype**
 
@@ -249,7 +249,7 @@ Trail / Slash VFX
 
 <div align="center">
 
-<img src="artifacts/block_preview.gif" width="640" alt="Blocking Animation">
+<img src="docs/media/block_preview.gif" width="640" alt="Blocking Animation">
 
 **Block Prototype**
 
@@ -479,7 +479,7 @@ contra-avalokita/project.godot
 当前主要测试场景：
 
 ```text
-scenes/test_arena.tscn
+tests/character/test_arena.tscn
 ```
 
 可以直接运行 Main Scene 或单独运行测试场景。

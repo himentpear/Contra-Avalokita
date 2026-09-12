@@ -18,7 +18,7 @@ Modifier 不修改 Bone2D、AnimationPlayer、IK、碰撞体或装备节点。�
 ## Runtime API
 
 ```gdscript
-var profile := preload("res://resources/morphs/hungry_ghost.tres")
+var profile := preload("res://content/base/morphs/hungry_ghost.tres")
 character.body_renderer.apply_morph_profile(profile)
 character.body_renderer.remove_morph_profile(profile)
 character.body_renderer.clear_morph_profiles()
@@ -59,4 +59,3 @@ character.body_renderer.clear_morph_profiles()
 godot --headless --path . --script res://tests/sdf_morph_test.gd
 godot --path . --script res://tests/sdf_morph_preview.gd
 ```
-

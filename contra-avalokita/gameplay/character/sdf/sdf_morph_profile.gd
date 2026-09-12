@@ -3,7 +3,7 @@ extends Resource
 ## Stackable roguelike body mutation data. Armor and weapons are intentionally
 ## absent: profiles only change the living mud SDF.
 
-const SdfModifier = preload("res://scripts/sdf_modifier.gd")
+const SdfModifier = preload("res://gameplay/character/sdf/sdf_modifier.gd")
 
 @export var id: StringName = &"Morph"
 @export var modifiers: Array[SdfModifier] = []

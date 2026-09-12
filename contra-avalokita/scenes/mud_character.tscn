@@ -7,8 +7,8 @@
 [ext_resource type="Script" uid="uid://8ajlurpifbhx" path="res://scripts/weapon_manager.gd" id="5_ldqmi"]
 [ext_resource type="Script" uid="uid://b6puxsuxcvhlw" path="res://scripts/mud_pixel_splatter.gd" id="6_lpyrd"]
 [ext_resource type="Script" uid="uid://bnocja0d1sjnh" path="res://scripts/mud_death_controller.gd" id="7_ovnsc"]
-[ext_resource type="Script" path="res://scripts/mud_pixel_ascension.gd" id="8_ascend"]
-[ext_resource type="AnimationLibrary" path="res://resources/wall_animation_library.tres" id="9_wall_anims"]
+[ext_resource type="Script" uid="uid://dwbnsywpwp26d" path="res://scripts/mud_pixel_ascension.gd" id="8_ascend"]
+[ext_resource type="AnimationLibrary" uid="uid://bcnoyjn27kfyg" path="res://resources/wall_animation_library.tres" id="9_wall_anims"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ccx8a"]
 height = 74.0
@@ -6218,68 +6218,74 @@ z_index = 10
 [node name="Skeleton2D" type="Skeleton2D" parent="Visual" unique_id=1990802760]
 
 [node name="Pelvis" type="Bone2D" parent="Visual/Skeleton2D" unique_id=1973984882]
-position = Vector2(0, -33)
-rotation = 0.061807428
-scale = Vector2(0.9999998, 0.9999998)
+position = Vector2(-3, -33)
+rotation = -0.06981317
+scale = Vector2(0.99999976, 0.99999976)
 rest = Transform2D(1, 0, 0, 1, 0, -33)
 auto_calculate_length_and_angle = false
 length = 14.0
-bone_angle = -1.5707959
+bone_angle = -1.5707958
 
 [node name="Torso" type="Bone2D" parent="Visual/Skeleton2D/Pelvis" unique_id=174085948]
-position = Vector2(0, -22)
+position = Vector2(4, -21)
+rotation = 0.17453294
+scale = Vector2(0.99999994, 0.99999994)
 rest = Transform2D(1, 0, 0, 1, 0, -22)
 auto_calculate_length_and_angle = false
 length = 14.0
-bone_angle = -1.5707959
+bone_angle = -1.5707958
 
 [node name="Head" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/Torso" unique_id=488289402]
 position = Vector2(0, -14)
+rotation = -0.13962635
+scale = Vector2(0.99999994, 0.99999994)
 rest = Transform2D(1, 0, 0, 1, 0, -14)
 auto_calculate_length_and_angle = false
 length = 8.0
-bone_angle = -1.5707959
+bone_angle = -1.5707958
 
 [node name="UpperArmFront" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/Torso" unique_id=875555658]
-position = Vector2(4, 0)
-rotation = 0.05
+position = Vector2(4, -2)
+rotation = -0.4212086
+scale = Vector2(0.99999994, 0.99999994)
 rest = Transform2D(1, 0, 0, 1, 4, 0)
 auto_calculate_length_and_angle = false
 length = 12.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="ForearmFront" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/Torso/UpperArmFront" unique_id=1057858242]
 position = Vector2(0, 12)
-rotation = 0.08
+rotation = -2.7032661
 scale = Vector2(0.9999999, 0.9999999)
 rest = Transform2D(1, 0, 0, 1, 0, 12)
 auto_calculate_length_and_angle = false
 length = 12.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="HandFront" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/Torso/UpperArmFront/ForearmFront" unique_id=620498772]
 position = Vector2(0, 12)
 rest = Transform2D(1, 0, 0, 1, 0, 12)
 auto_calculate_length_and_angle = false
 length = 4.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="UpperArmBack" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/Torso" unique_id=1324558810]
 position = Vector2(-4, 0)
-rotation = -0.05
+rotation = -1.5936332
+scale = Vector2(0.99999994, 0.99999994)
 rest = Transform2D(1, 0, 0, 1, -4, 0)
 auto_calculate_length_and_angle = false
 length = 12.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="ForearmBack" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/Torso/UpperArmBack" unique_id=170630739]
 position = Vector2(0, 12)
-rotation = 0.08
-scale = Vector2(0.9999999, 0.9999999)
+rotation = -1.9464693
+scale = Vector2(0.9999998, 0.9999998)
 rest = Transform2D(1, 0, 0, 1, 0, 12)
 auto_calculate_length_and_angle = false
 length = 12.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="HandBack" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/Torso/UpperArmBack/ForearmBack" unique_id=640337889]
 position = Vector2(0, 12)
@@ -6287,28 +6293,29 @@ rotation = -0.15
 rest = Transform2D(1, 0, 0, 1, 0, 12)
 auto_calculate_length_and_angle = false
 length = 4.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="ThighFront" type="Bone2D" parent="Visual/Skeleton2D/Pelvis" unique_id=1291677612]
 position = Vector2(2, 0)
+rotation = 0.2819035
 scale = Vector2(0.9999999, 0.9999999)
 rest = Transform2D(1, 0, 0, 1, 2, 0)
 auto_calculate_length_and_angle = false
 length = 16.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="ShinFront" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/ThighFront" unique_id=12974287]
 position = Vector2(0, 16)
-rotation = 0.049999997
+rotation = -2.3660302
 scale = Vector2(0.9999999, 0.9999999)
 rest = Transform2D(1, 0, 0, 1, 0, 16)
 auto_calculate_length_and_angle = false
 length = 16.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="FootFront" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/ThighFront/ShinFront" unique_id=986742663]
 position = Vector2(0, 16)
-rotation = -0.0918163
+rotation = 2.1539404
 rest = Transform2D(1, 0, 0, 1, 0, 16)
 auto_calculate_length_and_angle = false
 length = 6.0
@@ -6316,28 +6323,43 @@ bone_angle = 0.0
 
 [node name="ThighBack" type="Bone2D" parent="Visual/Skeleton2D/Pelvis" unique_id=1075356886]
 position = Vector2(-2, 0)
+rotation = 0.15414545
 scale = Vector2(0.9999999, 0.9999999)
 rest = Transform2D(1, 0, 0, 1, -2, 0)
 auto_calculate_length_and_angle = false
 length = 16.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="ShinBack" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/ThighBack" unique_id=1566095892]
 position = Vector2(0, 16)
-rotation = 0.049999997
-scale = Vector2(0.99999994, 0.99999994)
+rotation = -0.92436385
+scale = Vector2(0.9999999, 0.9999999)
 rest = Transform2D(1, 0, 0, 1, 0, 16)
 auto_calculate_length_and_angle = false
 length = 16.0
-bone_angle = 1.5707959
+bone_angle = 1.5707958
 
 [node name="FootBack" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/ThighBack/ShinBack" unique_id=544105418]
 position = Vector2(0, 16)
-rotation = -0.52040684
+rotation = 0.36215454
 rest = Transform2D(1, 0, 0, 1, 0, 16)
 auto_calculate_length_and_angle = false
 length = 6.0
 bone_angle = 0.0
+
+[node name="SpineLower" type="Bone2D" parent="Visual/Skeleton2D/Pelvis" unique_id=71283451]
+position = Vector2(0, -7.33)
+rest = Transform2D(1, 0, 0, 1, 0, -7.33)
+auto_calculate_length_and_angle = false
+length = 7.0
+bone_angle = -1.5707958
+
+[node name="SpineUpper" type="Bone2D" parent="Visual/Skeleton2D/Pelvis/SpineLower" unique_id=71283452]
+position = Vector2(0, -7.33)
+rest = Transform2D(1, 0, 0, 1, 0, -7.33)
+auto_calculate_length_and_angle = false
+length = 7.0
+bone_angle = -1.5707958
 
 [node name="MudBodyRenderer" type="Node2D" parent="Visual" unique_id=1110512731]
 script = ExtResource("2_i42qa")
@@ -6355,7 +6377,7 @@ script = ExtResource("5_ldqmi")
 [node name="PixelMudSplatter" type="Node2D" parent="Visual" unique_id=606854930]
 script = ExtResource("6_lpyrd")
 
-[node name="DeathAscension" type="Node2D" parent="Visual"]
+[node name="DeathAscension" type="Node2D" parent="Visual" unique_id=573009766]
 z_index = 8
 script = ExtResource("8_ascend")
 

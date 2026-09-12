@@ -3,11 +3,11 @@ extends SceneTree
 
 const SAMPLES := [
 	{"label": "BASE", "profile": ""},
-	{"label": "SWOLLEN ARM", "profile": "res://resources/morphs/swollen_arm.tres"},
-	{"label": "HUNGRY GHOST", "profile": "res://resources/morphs/hungry_ghost.tres"},
-	{"label": "ASURA SHOULDER", "profile": "res://resources/morphs/asura_shoulder.tres"},
-	{"label": "HOLLOW FACE", "profile": "res://resources/morphs/hollow_face.tres"},
-	{"label": "SPINE GROWTH", "profile": "res://resources/morphs/spine_growth.tres"},
+	{"label": "SWOLLEN ARM", "profile": "res://content/base/morphs/swollen_arm.tres"},
+	{"label": "HUNGRY GHOST", "profile": "res://content/base/morphs/hungry_ghost.tres"},
+	{"label": "ASURA SHOULDER", "profile": "res://content/base/morphs/asura_shoulder.tres"},
+	{"label": "HOLLOW FACE", "profile": "res://content/base/morphs/hollow_face.tres"},
+	{"label": "SPINE GROWTH", "profile": "res://content/base/morphs/spine_growth.tres"},
 ]
 
 func _initialize() -> void:

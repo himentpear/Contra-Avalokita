@@ -58,6 +58,8 @@ func generate() -> void:
 			animation.track_set_path(track, NodePath(track_definition.path))
 			animation.track_set_interpolation_type(track, Animation.INTERPOLATION_LINEAR)
 
+		actor.pose_composer.wall_composer.reset()
+		var prev_time := 0.0
 		for key_time in definition.times:
 			actor.pose_composer.restore_base()
 			actor.anim_player.play(definition.base, 0.0)
@@ -66,7 +68,9 @@ func generate() -> void:
 			actor.wall_action = definition.action
 			actor.wall_action_time = key_time
 			actor.wall_slide_scrape_offset = sin(key_time * 21.0) if definition.action == &"WallSlide" else 0.0
-			actor.pose_composer.evaluate(0.0)
+			var step_delta: float = key_time - prev_time if key_time > prev_time else 0.016
+			actor.pose_composer.evaluate(step_delta)
+			prev_time = key_time
 			for track_index in TRACKS.size():
 				var track_definition: Dictionary = TRACKS[track_index]
 				var bone := actor.get_node(NodePath(track_definition.node))

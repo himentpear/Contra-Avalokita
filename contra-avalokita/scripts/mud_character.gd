@@ -33,6 +33,9 @@ var grounded_resume_phase := 0.0
 @export var wall_push_duration := 0.075
 @export var wall_release_duration := 0.14
 @export var wall_regrab_cooldown := 0.18
+@export_group("Wall IK")
+@export var wall_max_foot_lag := 7.0
+@export var wall_min_foot_below_hip := 5.0
 @export_group("")
 var wall_action: StringName = &"None"
 var wall_side := 0.0
@@ -43,6 +46,9 @@ var wall_surface_x := INF
 var wall_hand_anchor_y := 0.0
 var wall_foot_anchor_y := 0.0
 var wall_slide_scrape_offset := 0.0
+## Knee branch sign locked at hang entry. +1=outward (away from wall), -1=inward, 0=unset.
+var wall_front_knee_sign := 0.0
+var wall_back_knee_sign := 0.0
 
 func is_wall_attached() -> bool:
 	return wall_action in [&"WallHang", &"WallSlide"]
@@ -57,6 +63,10 @@ func _set_wall_action(next: StringName) -> void:
 	wall_action = next
 	wall_action_time = 0.0
 	wall_action_changed.emit(previous, wall_action)
+	# Clear locked knee branch when leaving wall entirely
+	if next == &"None" or next == &"WallRelease":
+		wall_front_knee_sign = 0.0
+		wall_back_knee_sign = 0.0
 
 func _contact_wall_side() -> float:
 	if not is_on_wall():
@@ -97,7 +107,10 @@ func _enter_wall_hang(side: float) -> void:
 	action_state = &"None"
 	combo_stage = 0
 	combo_queued = false
+	if is_instance_valid(pose_composer) and pose_composer.wall_composer:
+		pose_composer.wall_composer.reset()
 	_set_wall_action(&"WallHang")
+
 
 func _update_wall_before_move(delta: float) -> void:
 	wall_regrab_left = maxf(0.0, wall_regrab_left - delta)
@@ -148,8 +161,9 @@ func _update_wall_before_move(delta: float) -> void:
 		var friction_scale := 0.28 if scrape_cycle < 0.16 else lerpf(0.78, 1.0, scrape_cycle)
 		velocity.y = minf(velocity.y, wall_slide_speed * friction_scale)
 		wall_hand_anchor_y += velocity.y * delta * 0.24
-		wall_foot_anchor_y += velocity.y * delta * 0.52
+		wall_hand_anchor_y = maxf(wall_hand_anchor_y, global_position.y - 58.0)
 		wall_slide_scrape_offset = sin(wall_action_time * 21.0) * 1.0
+
 
 func _update_wall_after_move() -> void:
 	if is_on_floor():
@@ -427,6 +441,8 @@ var _foot_front_bone: Bone2D
 var _thigh_back_bone: Bone2D
 var _shin_back_bone: Bone2D
 var _foot_back_bone: Bone2D
+var _spine_lower_bone: Bone2D
+var _spine_upper_bone: Bone2D
 var hit_stop_ticks: int = 0
 var impact_accent_offset: Vector2 = Vector2.ZERO
 
@@ -507,6 +523,22 @@ func _ready() -> void:
 			_shin_back_bone = _thigh_back_bone.get_node_or_null("ShinBack") as Bone2D
 			if _shin_back_bone:
 				_foot_back_bone = _shin_back_bone.get_node_or_null("FootBack") as Bone2D
+		_spine_lower_bone = skeleton.get_node_or_null("Pelvis/SpineLower") as Bone2D
+		if _spine_lower_bone:
+			_spine_upper_bone = _spine_lower_bone.get_node_or_null("SpineUpper") as Bone2D
+		else:
+			var pelvis := skeleton.get_node_or_null("Pelvis") as Bone2D
+			if pelvis:
+				_spine_lower_bone = Bone2D.new()
+				_spine_lower_bone.name = "SpineLower"
+				_spine_lower_bone.position = Vector2(0, -7.33)
+				_spine_lower_bone.rest = Transform2D(0.0, Vector2(0, -7.33))
+				pelvis.add_child(_spine_lower_bone)
+				_spine_upper_bone = Bone2D.new()
+				_spine_upper_bone.name = "SpineUpper"
+				_spine_upper_bone.position = Vector2(0, -7.33)
+				_spine_upper_bone.rest = Transform2D(0.0, Vector2(0, -7.33))
+				_spine_lower_bone.add_child(_spine_upper_bone)
 	punch_hitbox = Area2D.new()
 	punch_hitbox.name = "PunchHitbox"
 	punch_hitbox.collision_layer = 0
@@ -910,7 +942,7 @@ func _sync_visual(delta: float) -> void:
 		equipment.sync_handedness(_forearm_back_bone,_hand_back_bone,right_depth,-facing)
 func _get_kill_score() -> Node:
 	if is_inside_tree() and get_tree() and get_tree().root:
-		return get_tree().root.get_node_or_null("KillScore")
+		return get_tree().get_first_node_in_group(&"score_system")
 	return null
 
 func receive_hit(hit_data: Variant) -> void:

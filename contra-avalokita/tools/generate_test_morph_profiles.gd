@@ -1,9 +1,9 @@
 extends SceneTree
 ## Creates the five development profiles used by the SDF morph test suite.
 
-const Modifier = preload("res://scripts/sdf_modifier.gd")
-const Profile = preload("res://scripts/sdf_morph_profile.gd")
-const OUTPUT_DIR := "res://resources/morphs"
+const Modifier = preload("res://gameplay/character/sdf/sdf_modifier.gd")
+const Profile = preload("res://gameplay/character/sdf/sdf_morph_profile.gd")
+const OUTPUT_DIRS := ["res://content/base/morphs", "res://resources/morphs"]
 
 func _initialize() -> void:
 	call_deferred("generate")
@@ -37,15 +37,21 @@ func modifier(
 	result.depth = depth
 	return result
 
-func save_profile(file_name: String, id: StringName, modifiers: Array[Resource]) -> Error:
-	var profile := Profile.new()
-	profile.id = id
-	for item in modifiers:
-		profile.modifiers.append(item)
-	return ResourceSaver.save(profile, OUTPUT_DIR.path_join(file_name))
+func save_profile(file_name: String, id: StringName, items: Array[Resource]) -> Error:
+	for output_dir in OUTPUT_DIRS:
+		DirAccess.make_dir_recursive_absolute(output_dir)
+		var profile: SdfMorphProfile = Profile.new()
+		profile.id = id
+		for item in items:
+			profile.modifiers.append(item as SdfModifier)
+		var err := ResourceSaver.save(profile, output_dir.path_join(file_name))
+		if err != OK:
+			return err
+	return OK
 
 func generate() -> void:
-	DirAccess.make_dir_recursive_absolute(OUTPUT_DIR)
+	for output_dir in OUTPUT_DIRS:
+		DirAccess.make_dir_recursive_absolute(output_dir)
 	var add := Modifier.Operation.ADD
 	var subtract := Modifier.Operation.SUBTRACT
 	var circle := Modifier.Shape.CIRCLE
@@ -76,5 +82,5 @@ func generate() -> void:
 			push_error("Failed to generate morph profile: %s" % error_string(result))
 			quit(1)
 			return
-	print("Generated five SDF morph profiles in ", OUTPUT_DIR)
+	print("Generated five SDF morph profiles in ", OUTPUT_DIRS)
 	quit()

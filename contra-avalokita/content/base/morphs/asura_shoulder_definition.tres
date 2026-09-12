@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://content/base/morphs/asura_shoulder.tres" id="2"]
+[resource]
+script = ExtResource("1")
+id = &"base:asura_shoulder"
+content_type = &"morph"
+display_name = "Asura Shoulder"
+tags = Array[StringName]([&"add", &"shoulder"])
+resource = ExtResource("2")

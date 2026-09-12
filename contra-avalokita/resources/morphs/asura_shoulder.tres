@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
 
-[ext_resource type="Script" path="res://scripts/sdf_modifier.gd" id="1_hsu5d"]
-[ext_resource type="Script" path="res://scripts/sdf_morph_profile.gd" id="2_3582c"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_modifier.gd" id="1_hsu5d"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_morph_profile.gd" id="2_3582c"]
 
-[sub_resource type="Resource" id="Resource_8xere"]
+[sub_resource type="Resource" id="Resource_qj2ro"]
 script = ExtResource("1_hsu5d")
 id = &"ShoulderMass"
 anchor = &"ArmFrontStart"
@@ -12,7 +12,7 @@ radius = 6.2
 softness = 1.4
 depth = 1.0
 
-[sub_resource type="Resource" id="Resource_afllp"]
+[sub_resource type="Resource" id="Resource_ixiuv"]
 script = ExtResource("1_hsu5d")
 id = &"ShoulderSpur"
 shape = 1
@@ -27,4 +27,4 @@ depth = 1.0
 [resource]
 script = ExtResource("2_3582c")
 id = &"AsuraShoulder"
-modifiers = Array[ExtResource("1_hsu5d")]([SubResource("Resource_8xere"), SubResource("Resource_afllp")])
+modifiers = Array[ExtResource("1_hsu5d")]([SubResource("Resource_qj2ro"), SubResource("Resource_ixiuv")])

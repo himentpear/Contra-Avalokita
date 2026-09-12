@@ -1,13 +1,13 @@
 extends SceneTree
 
-const Modifier = preload("res://scripts/sdf_modifier.gd")
-const Profile = preload("res://scripts/sdf_morph_profile.gd")
+const Modifier = preload("res://gameplay/character/sdf/sdf_modifier.gd")
+const Profile = preload("res://gameplay/character/sdf/sdf_morph_profile.gd")
 const PROFILE_PATHS := [
-	"res://resources/morphs/swollen_arm.tres",
-	"res://resources/morphs/hungry_ghost.tres",
-	"res://resources/morphs/asura_shoulder.tres",
-	"res://resources/morphs/hollow_face.tres",
-	"res://resources/morphs/spine_growth.tres",
+	"res://content/base/morphs/swollen_arm.tres",
+	"res://content/base/morphs/hungry_ghost.tres",
+	"res://content/base/morphs/asura_shoulder.tres",
+	"res://content/base/morphs/hollow_face.tres",
+	"res://content/base/morphs/spine_growth.tres",
 ]
 
 var failures := 0
@@ -39,7 +39,7 @@ func run() -> void:
 	var baseline_leg_radius := renderer.segments[0].radius_start
 	var baseline_arm_radius := renderer.segments[6].radius_start
 	var baseline_torso_radius := renderer.segments[11].radius_start
-	var baseline_head_radius := renderer.segments[14].radius_start
+	var baseline_head_radius := renderer.segments[15].radius_start
 	var renderer_child_count := renderer.get_child_count()
 
 	check(renderer.active_morph_profile_count() == 0, "Base anatomy starts without active morph profiles")
@@ -108,7 +108,7 @@ func run() -> void:
 	renderer.apply_morph_profile(scale_profile)
 	renderer.sync_skeleton(actor.skeleton)
 	check(is_equal_approx(renderer.segments[11].radius_start, baseline_torso_radius * 1.2), "Body radius multiplier affects base torso anatomy")
-	check(is_equal_approx(renderer.segments[14].radius_start, baseline_head_radius * 0.8), "Head radius multiplier affects base head anatomy")
+	check(is_equal_approx(renderer.segments[15].radius_start, baseline_head_radius * 0.8), "Head radius multiplier affects base head anatomy")
 	check(is_equal_approx(renderer.segments[6].radius_start, baseline_arm_radius * 1.1), "Arm radius multiplier affects base arm anatomy")
 	check(is_equal_approx(renderer.segments[0].radius_start, baseline_leg_radius * 0.9), "Leg radius multiplier affects base leg anatomy")
 	check(Color(renderer.shader_material.get_shader_parameter("mud_color")).is_equal_approx(scale_profile.mud_color), "Last enabled profile color override reaches the shader")

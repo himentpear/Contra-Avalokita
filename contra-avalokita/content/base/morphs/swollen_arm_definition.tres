@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://content/base/morphs/swollen_arm.tres" id="2"]
+[resource]
+script = ExtResource("1")
+id = &"base:swollen_arm"
+content_type = &"morph"
+display_name = "Swollen Arm"
+tags = Array[StringName]([&"add", &"arm"])
+resource = ExtResource("2")

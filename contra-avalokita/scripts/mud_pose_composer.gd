@@ -16,6 +16,10 @@ var footwork_lead := "Front"
 var last_action_time := -1.0
 var last_action_stage := -1
 const WALL_ANIMATION_REFERENCE_PLANE_X := 12.0
+const MudWallPoseComposer = preload("res://scripts/mud_wall_pose_composer.gd")
+const MudSpineController = preload("res://scripts/mud_spine_controller.gd")
+var wall_composer := MudWallPoseComposer.new()
+var spine_controller := MudSpineController.new()
 
 func restore_base() -> void:
 	for bone in base_pose:
@@ -48,13 +52,22 @@ func evaluate(delta: float) -> void:
 	elif block_weight > 0.001:
 		apply_block(block_weight)
 	if character.wall_action != &"None":
-		apply_wall_action()
+		apply_wall_action(delta)
+
+	# Procedural Spine deformation chain:
+	if is_instance_valid(character) and character.skeleton:
+		var pelvis := character.skeleton.get_node_or_null("Pelvis") as Bone2D
+		var torso := character.skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
+		var spine_lower := character._spine_lower_bone
+		var spine_upper := character._spine_upper_bone
+		if is_instance_valid(pelvis) and is_instance_valid(torso) and is_instance_valid(spine_lower) and is_instance_valid(spine_upper):
+			spine_controller.update(character, pelvis, torso, spine_lower, spine_upper, delta)
 
 	if character.has_reaction():
 		apply_reaction(delta)
 	queue_redraw()
 
-func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global: Vector2, bend_sign: float, weight: float) -> void:
+func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global: Vector2, bend_sign: float, weight: float, hint_global: Vector2 = Vector2.ZERO, is_leg: bool = false, knee_sign: float = 0.0) -> void:
 	if not is_instance_valid(upper) or not is_instance_valid(lower) or not is_instance_valid(end):
 		return
 	var parent := upper.get_parent() as Node2D
@@ -62,19 +75,38 @@ func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global:
 		return
 	var root := upper.position
 	var target := parent.to_local(target_global)
+
+	# 1. Hard anatomical constraint for legs: foot cannot be higher than hip
+	if is_leg and is_instance_valid(character):
+		target.y = maxf(target.y, root.y + character.wall_min_foot_below_hip)
+
 	var delta := target - root
 	var upper_length := lower.position.length()
 	var lower_length := end.position.length()
 	if delta.length_squared() < 0.001 or upper_length < 0.01 or lower_length < 0.01:
 		return
-	var distance := clampf(delta.length(), absf(upper_length - lower_length) + 0.15, upper_length + lower_length - 0.15)
+
+	var min_dist := absf(upper_length - lower_length) + 0.15
+	var max_dist := upper_length + lower_length - 0.15
+	# 2. Max reach ratio: cap to 96% extension for legs to avoid singularity
+	if is_leg:
+		max_dist = minf(max_dist, (upper_length + lower_length) * 0.96)
+	var distance := clampf(delta.length(), min_dist, max_dist)
 	var solved_target := root + delta.normalized() * distance
 	var shoulder_cos := clampf((upper_length * upper_length + distance * distance - lower_length * lower_length) / (2.0 * upper_length * distance), -1.0, 1.0)
+
+	# 3. Singularity shield for legs: clamp knee angle to [25°, 150°] range
+	if is_leg:
+		shoulder_cos = clampf(shoulder_cos, cos(deg_to_rad(150.0)), cos(deg_to_rad(25.0)))
+
+	# 4. Bend sign selection: use locked knee_sign if provided, else default
 	var bend := bend_sign
-	if is_zero_approx(bend):
-		# Treat the keyed AnimationPlayer pose as the pole/hint. This keeps the
-		# contact target procedural while letting artists flip or reshape the knee
-		# directly in the animation editor.
+	if is_leg:
+		# knee_sign: +1 = outward (correct climbing pose), -1 = inward (bad).
+		# Outward in pelvis space = negative X (away from wall).
+		# Locked knee_sign from character takes priority; fallback to +1.0 (outward)
+		bend = knee_sign if not is_zero_approx(knee_sign) else 1.0
+	elif is_zero_approx(bend):
 		var target_angle := (solved_target - root).angle()
 		var bend_angle := acos(shoulder_cos)
 		var plus_upper := target_angle + bend_angle - PI * 0.5
@@ -83,12 +115,17 @@ func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global:
 		var plus_knee := root + Vector2(0.0, upper_length).rotated(plus_upper)
 		var minus_knee := root + Vector2(0.0, upper_length).rotated(minus_upper)
 		bend = 1.0 if authored_knee.distance_squared_to(plus_knee) <= authored_knee.distance_squared_to(minus_knee) else -1.0
+
 	var solved_upper := (solved_target - root).angle() + bend * acos(shoulder_cos) - PI * 0.5
-	upper.rotation = lerp_angle(upper.rotation, solved_upper, weight)
 	var solved_target_global := parent.to_global(solved_target)
 	var target_in_upper := upper.to_local(solved_target_global)
 	var solved_lower := (target_in_upper - lower.position).angle() - PI * 0.5
+
+	# 5. Stable angle clamping: don't allow spin > 90° per frame (suppress branch flip)
+	# Use lerp_angle which already picks the shortest arc. No hard snap needed.
+	upper.rotation = lerp_angle(upper.rotation, solved_upper, weight)
 	lower.rotation = lerp_angle(lower.rotation, solved_lower, weight)
+
 
 func _point_foot_at_wall(foot: Bone2D, weight: float) -> void:
 	if not is_instance_valid(foot) or not foot.get_parent() is Node2D:
@@ -98,7 +135,7 @@ func _point_foot_at_wall(foot: Bone2D, weight: float) -> void:
 	var local_direction := parent.to_local(direction_point) - foot.position
 	foot.rotation = lerp_angle(foot.rotation, local_direction.angle(), weight)
 
-func apply_wall_action() -> void:
+func apply_wall_action(delta: float = 0.0) -> void:
 	var pelvis := character.skeleton.get_node_or_null("Pelvis") as Bone2D
 	var torso := character.skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
 	var head := character.skeleton.get_node_or_null("Pelvis/Torso/Head") as Bone2D
@@ -118,14 +155,6 @@ func apply_wall_action() -> void:
 		return
 
 	var action := character.wall_action
-	var wall_x := character.wall_surface_x
-	if is_inf(wall_x):
-		wall_x = character.global_position.x + character.wall_side * 10.0
-	var hang_weight := smoothstep(0.0, 0.07, character.wall_action_time) if action == &"WallHang" else 1.0
-	var main_hand_target := Vector2(wall_x - character.wall_side * 1.5, character.wall_hand_anchor_y + character.wall_slide_scrape_offset)
-	var assist_hand_target := Vector2(wall_x - character.wall_side * 2.5, character.wall_hand_anchor_y + 9.0 + character.wall_slide_scrape_offset * 0.5)
-	var high_foot_target := Vector2(wall_x - character.wall_side * 3.5, character.wall_foot_anchor_y + character.wall_slide_scrape_offset)
-	var low_foot_target := Vector2(wall_x - character.wall_side * 5.0, character.global_position.y - 3.0)
 	var plane_x := character.wall_plane_local_x()
 	var authored_wall_pose := String(character.anim_player.current_animation).begins_with("Wall/")
 	if authored_wall_pose and action != &"WallRelease":
@@ -133,72 +162,37 @@ func apply_wall_action() -> void:
 		# Preserve edited offsets while translating the pose to the real wall plane.
 		pelvis.position.x += plane_x - WALL_ANIMATION_REFERENCE_PLANE_X
 
-	if action == &"WallHang":
-		# Three-point support: main hand + high near foot + low assisting foot.
-		if not authored_wall_pose:
-			pelvis.position = pelvis.position.lerp(Vector2(plane_x - 11.0, -33.0), hang_weight)
-			pelvis.rotation = lerp_angle(pelvis.rotation, deg_to_rad(-3.0), hang_weight)
-			torso.position = torso.position.lerp(Vector2(2.0, -21.5), hang_weight)
-			torso.rotation = lerp_angle(torso.rotation, deg_to_rad(8.0), hang_weight)
-			if head: head.rotation = lerp_angle(head.rotation, deg_to_rad(-7.0), hang_weight)
-			if is_instance_valid(upper_f): upper_f.position = upper_f.position.lerp(Vector2(4.0, -2.0), hang_weight)
-		_solve_wall_chain(upper_f, fore_f, hand_f, main_hand_target, 1.0, hang_weight)
-		_solve_wall_chain(upper_b, fore_b, hand_b, assist_hand_target, -1.0, hang_weight * 0.82)
-		_solve_wall_chain(thigh_f, shin_f, foot_f, high_foot_target, 0.0, hang_weight)
-		_solve_wall_chain(thigh_b, shin_b, foot_b, low_foot_target, 1.0, hang_weight * 0.88)
-		_point_foot_at_wall(foot_f, hang_weight)
-		_point_foot_at_wall(foot_b, hang_weight * 0.75)
-	elif action == &"WallSlide":
-		# The shoulder stays closer than the waist. Anchors descend slower than the
-		# body, continuously opening the elbows and knees as friction stretches them.
-		if not authored_wall_pose:
-			pelvis.position = pelvis.position.lerp(Vector2(plane_x - 13.0, -32.0 + character.wall_slide_scrape_offset), 1.0)
-			pelvis.rotation = lerp_angle(pelvis.rotation, deg_to_rad(-2.0), 1.0)
-			torso.position = torso.position.lerp(Vector2(2.7, -21.0), 1.0)
-			torso.rotation = lerp_angle(torso.rotation, deg_to_rad(12.0), 1.0)
-			if head: head.rotation = lerp_angle(head.rotation, deg_to_rad(-9.0), 1.0)
-		_solve_wall_chain(upper_f, fore_f, hand_f, main_hand_target, 1.0, 1.0)
-		_solve_wall_chain(upper_b, fore_b, hand_b, assist_hand_target, -1.0, 0.72)
-		# The wall-side foot stays planted while the knee pole opens away from the
-		# wall, producing the readable hip -> outward knee -> wall foot Z shape.
-		_solve_wall_chain(thigh_f, shin_f, foot_f, high_foot_target, 0.0, 1.0)
-		_solve_wall_chain(thigh_b, shin_b, foot_b, low_foot_target, 1.0, 0.82)
-		_point_foot_at_wall(foot_f, 1.0)
-		_point_foot_at_wall(foot_b, 0.65)
-	elif action == &"WallPush":
-		var push_p := clampf(character.wall_action_time / maxf(character.wall_push_duration, 0.001), 0.0, 1.0)
-		var extension := smoothstep(0.30, 1.0, push_p)
-		var torso_release := smoothstep(0.62, 1.0, push_p)
-		# First two frames compress 3 px into the wall; hip then drives away while
-		# the fixed foot targets force knee extension. The hand releases last.
-		if not authored_wall_pose:
-			pelvis.position = pelvis.position.lerp(Vector2(plane_x - lerpf(7.0, 16.0, extension), lerpf(-30.0, -35.0, extension)), 1.0)
-			pelvis.rotation = lerp_angle(pelvis.rotation, lerpf(deg_to_rad(3.0), deg_to_rad(-10.0), extension), 1.0)
-			torso.position = torso.position.lerp(Vector2(lerpf(2.5, -1.5, torso_release), -21.0), 1.0)
-			torso.rotation = lerp_angle(torso.rotation, lerpf(deg_to_rad(10.0), deg_to_rad(-14.0), torso_release), 1.0)
-			if head: head.rotation = lerp_angle(head.rotation, lerpf(deg_to_rad(-8.0), deg_to_rad(9.0), torso_release), 1.0)
-		_solve_wall_chain(upper_f, fore_f, hand_f, main_hand_target, 1.0, 1.0)
-		_solve_wall_chain(upper_b, fore_b, hand_b, assist_hand_target, -1.0, 1.0 - torso_release * 0.45)
-		_solve_wall_chain(thigh_f, shin_f, foot_f, high_foot_target, 0.0, 1.0)
-		_solve_wall_chain(thigh_b, shin_b, foot_b, low_foot_target, 1.0, 1.0)
-		_point_foot_at_wall(foot_f, smoothstep(0.55, 1.0, push_p))
-		_point_foot_at_wall(foot_b, smoothstep(0.68, 1.0, push_p))
-	elif action == &"WallRelease":
-		var release_p := clampf(character.wall_action_time / maxf(character.wall_release_duration, 0.001), 0.0, 1.0)
-		var body_hold := 1.0 - smoothstep(0.62, 1.0, release_p)
-		var hand_hold := 1.0 - smoothstep(0.24, 0.72, release_p)
-		if not authored_wall_pose:
-			pelvis.position = pelvis.position.lerp(Vector2(-4.0, -35.0), body_hold)
-			pelvis.rotation = lerp_angle(pelvis.rotation, deg_to_rad(-12.0), body_hold)
-			torso.position = torso.position.lerp(Vector2(-1.5, -21.0), body_hold)
-			torso.rotation = lerp_angle(torso.rotation, deg_to_rad(-15.0), body_hold)
-			if head: head.rotation = lerp_angle(head.rotation, deg_to_rad(9.0), body_hold)
-		_solve_wall_chain(upper_f, fore_f, hand_f, main_hand_target, 1.0, hand_hold)
-		_solve_wall_chain(thigh_f, shin_f, foot_f, high_foot_target, 0.0, body_hold)
-		if not authored_wall_pose:
-			if is_instance_valid(thigh_b): thigh_b.rotation = lerp_angle(thigh_b.rotation, 0.70, body_hold)
-			if is_instance_valid(shin_b): shin_b.rotation = lerp_angle(shin_b.rotation, -0.46, body_hold)
-		_point_foot_at_wall(foot_f, body_hold)
+	var targets := wall_composer.compose(character, delta)
+	if targets == null:
+		return
+
+	if not authored_wall_pose:
+		if action in [&"WallHang", &"WallSlide", &"WallPush", &"WallRelease"]:
+			pelvis.position = pelvis.position.lerp(targets.pelvis_pos, targets.body_weight)
+			pelvis.rotation = lerp_angle(pelvis.rotation, targets.pelvis_rot, targets.body_weight)
+			torso.position = torso.position.lerp(targets.torso_pos, targets.body_weight)
+			torso.rotation = lerp_angle(torso.rotation, targets.torso_rot, targets.body_weight)
+			if head: head.rotation = lerp_angle(head.rotation, targets.head_rot, targets.body_weight)
+			if is_instance_valid(upper_f): upper_f.position = upper_f.position.lerp(targets.upper_arm_f_pos, targets.body_weight)
+
+	# Hands: precision wall-contact IK
+	if targets.hand_f_weight > 0.001:
+		_solve_wall_chain(upper_f, fore_f, hand_f, targets.hand_f_target, 1.0, targets.hand_f_weight, targets.elbow_f_hint, false)
+	if targets.hand_b_weight > 0.001:
+		_solve_wall_chain(upper_b, fore_b, hand_b, targets.hand_b_target, -1.0, targets.hand_b_weight, targets.elbow_b_hint, false)
+
+	# Legs: natural walk-derived pose driven (NO forced foot IK)
+	if targets.leg_weight > 0.001:
+		if is_instance_valid(thigh_f): thigh_f.rotation = lerp_angle(thigh_f.rotation, targets.thigh_f_rot, targets.leg_weight)
+		if is_instance_valid(shin_f): shin_f.rotation = lerp_angle(shin_f.rotation, targets.shin_f_rot, targets.leg_weight)
+		if is_instance_valid(foot_f): foot_f.rotation = lerp_angle(foot_f.rotation, targets.foot_f_rot, targets.leg_weight)
+		if is_instance_valid(thigh_b): thigh_b.rotation = lerp_angle(thigh_b.rotation, targets.thigh_b_rot, targets.leg_weight)
+		if is_instance_valid(shin_b): shin_b.rotation = lerp_angle(shin_b.rotation, targets.shin_b_rot, targets.leg_weight)
+		if is_instance_valid(foot_b): foot_b.rotation = lerp_angle(foot_b.rotation, targets.foot_b_rot, targets.leg_weight)
+	elif action == &"WallRelease" and not authored_wall_pose:
+		if is_instance_valid(thigh_b): thigh_b.rotation = lerp_angle(thigh_b.rotation, 0.70, targets.body_weight)
+		if is_instance_valid(shin_b): shin_b.rotation = lerp_angle(shin_b.rotation, -0.46, targets.body_weight)
+
 
 func apply_block(w: float) -> void:
 	var pelvis := character.skeleton.get_node_or_null("Pelvis") as Bone2D

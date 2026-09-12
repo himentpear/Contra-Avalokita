@@ -59,6 +59,9 @@ func bind(action: StringName, keys: Array) -> void:
 		event.physical_keycode = code
 		InputMap.action_add_event(action, event)
 
+func _get_score_system() -> Node:
+	return get_tree().get_first_node_in_group(&"score_system") if is_inside_tree() else null
+
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	font = preload("res://assets/fonts/fusion-pixel-12px-proportional-zh_hans.otf")
@@ -248,7 +251,7 @@ func _process(delta: float) -> void:
 		details_menu_open = not details_menu_open
 	if Input.is_action_just_pressed("score_target"): spawn_score_target()
 	if Input.is_action_just_pressed("score_realm"):
-		var ks = get_node_or_null("/root/KillScore")
+		var ks := _get_score_system()
 		if ks: ks.realm = (ks.realm + 1) % 6
 	if Input.is_action_just_pressed("crowd"): cycle_crowd()
 	if Input.is_action_just_pressed("kill"):
@@ -308,9 +311,38 @@ func _on_tactical_hud_draw() -> void:
 	if player.rig.debug_draw:
 		var gait_phase := player.anim_player.current_animation_position / maxf(player.anim_player.current_animation_length, .001)
 		var action_phase := player.attack_time / maxf(player.attack_duration, .001) if player.is_attacking() else 0.0
-		tactical_overlay.draw_rect(Rect2(16, 56, 380, 32), Color(0.05, 0.09, 0.11, 0.85))
+		tactical_overlay.draw_rect(Rect2(16, 56, 380, 44), Color(0.05, 0.09, 0.11, 0.85))
 		tactical_overlay.draw_string(font, Vector2(22, 70), "MOVE %s  ACT %s  GAIT %.2f  ATK %.2f" % [player.state, player.action_state, gait_phase, action_phase], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("e0e7cc"))
 		tactical_overlay.draw_string(font, Vector2(22, 83), "FLOOR %s  VY %.1f   GREEN: BASE  PINK: ACTION  GOLD: PELVIS" % [str(player.is_on_floor()), player.velocity.y], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
+		# Wall & Spine deformation debug row
+		var spine_w := player.pose_composer.spine_controller.spine_wall_weight if (player.pose_composer and player.pose_composer.spine_controller) else 0.0
+		if player.is_wall_attached() or player.wall_action != &"None" or spine_w > 0.01:
+			tactical_overlay.draw_string(font, Vector2(22, 96),
+				"WALL %s  SPINE_WEIGHT %.2f  ACTION %s  SIDE %+.0f" % [
+					String(player.wall_action), spine_w, String(player.action_state), player.wall_side
+				], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("ffd467"))
+		# Draw Spine deformation chain: Pelvis (white) -> SpineLower (yellow) -> SpineUpper (orange) -> Chest (cyan)
+		var skeleton: Skeleton2D = player.skeleton
+		if skeleton:
+			var cam_offset := Vector2.ZERO
+			if has_node("Camera2D"): cam_offset = get_node("Camera2D").get_screen_center_position() - Vector2(320, 180)
+			var b_pelvis := skeleton.get_node_or_null("Pelvis") as Bone2D
+			var b_torso := skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
+			var b_spinel := player._spine_lower_bone
+			var b_spineu := player._spine_upper_bone
+			if b_pelvis and b_torso:
+				var p_pos := b_pelvis.global_position - cam_offset
+				var c_pos := b_torso.global_position - cam_offset
+				var sl_pos := b_spinel.global_position - cam_offset if b_spinel else p_pos.lerp(c_pos, 0.33)
+				var su_pos := b_spineu.global_position - cam_offset if b_spineu else p_pos.lerp(c_pos, 0.67)
+				tactical_overlay.draw_circle(p_pos, 3.0, Color("ffffff"))   # Pelvis = white
+				tactical_overlay.draw_circle(sl_pos, 2.5, Color("ffd467")) # SpineLower = yellow
+				tactical_overlay.draw_circle(su_pos, 2.5, Color("ff8c32")) # SpineUpper = orange
+				tactical_overlay.draw_circle(c_pos, 3.0, Color("7affff"))   # Chest = cyan
+				tactical_overlay.draw_line(p_pos, sl_pos, Color("ffffff", 0.7), 1.5)
+				tactical_overlay.draw_line(sl_pos, su_pos, Color("ffd467", 0.7), 1.5)
+				tactical_overlay.draw_line(su_pos, c_pos, Color("7affff", 0.7), 1.5)
+
 
 	# Bottom control bar
 	tactical_overlay.draw_rect(Rect2(0, 324, 640, 36), Color(0.04, 0.07, 0.09, 0.92))
@@ -345,7 +377,7 @@ func _draw_details_menu() -> void:
 	tactical_overlay.draw_rect(Rect2(104, 92, 210, 20), Color(0.08, 0.14, 0.18, 0.85))
 	tactical_overlay.draw_string(font, Vector2(112, 106), "击杀得分 / 六进制六道", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("c3d29a"))
 
-	var ks = get_node_or_null("/root/KillScore")
+	var ks := _get_score_system()
 	var total_score: int = ks.total if ks else 0
 	var streak: int = ks.streak if ks else 0
 	var realm_idx: int = clampi(ks.realm if ks else 0, 0, 5)

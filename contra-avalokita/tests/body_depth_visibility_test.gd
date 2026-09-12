@@ -1,7 +1,7 @@
 extends SceneTree
 func _initialize() -> void: call_deferred("run")
 func run() -> void:
-	var arena := preload("res://scenes/test_arena.tscn").instantiate()
+	var arena := preload("res://tests/character/test_arena.tscn").instantiate()
 	root.add_child(arena)
 	var actor: MudCharacter = arena.player
 	actor.player_controlled = false
