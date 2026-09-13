@@ -881,6 +881,8 @@ func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
 	_update_hit_flash(delta)
 	if local_time_scale <= 0.0:
+		if is_instance_valid(pose_composer):
+			pose_composer.evaluate(0.0)
 		_sync_visual(0.0)
 		return
 	delta *= local_time_scale

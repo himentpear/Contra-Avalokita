@@ -29,7 +29,7 @@ func _ready() -> void:
 	queue_redraw()
 
 func _on_body_entered(body: Node) -> void:
-	if consumed or not body.has_method("obtain_item"): return
+	if consumed or not body is MudCharacter or not body.player_controlled: return
 	var obtained := false
 	if not content_id.is_empty() and body.has_method("obtain_content_item"):
 		obtained = bool(body.call("obtain_content_item", content_id))
@@ -38,7 +38,7 @@ func _on_body_entered(body: Node) -> void:
 		obtained = true
 	if not obtained: return
 	consumed = true
-	monitoring = false
+	set_deferred("monitoring", false)
 	collected.emit(item)
 	_refresh()
 	queue_redraw()

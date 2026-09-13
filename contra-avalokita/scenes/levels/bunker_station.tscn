@@ -1,0 +1,451 @@
+[gd_scene load_steps=18 format=3 uid="uid://c6pmvq7y4l1ab"]
+
+[ext_resource type="Script" path="res://scripts/rendering/level_root.gd" id="1_root"]
+[ext_resource type="Script" path="res://scripts/rendering/level_environment_controller.gd" id="2_env"]
+[ext_resource type="Script" path="res://scripts/rendering/vfx_router.gd" id="3_vfx"]
+[ext_resource type="Script" path="res://scripts/rendering/camera_fx_controller.gd" id="4_cam"]
+[ext_resource type="Script" path="res://scripts/rendering/render_debug_overlay.gd" id="5_dbg"]
+[ext_resource type="PackedScene" uid="uid://ci8mp7y04x2ln" path="res://scenes/environment/industrial_lamp.tscn" id="6_lamp"]
+[ext_resource type="PackedScene" uid="uid://dmkv382yn81al" path="res://scenes/environment/steam_vent.tscn" id="7_vent"]
+[ext_resource type="PackedScene" uid="uid://d3pmk5x08va4l" path="res://scenes/environment/structural_column.tscn" id="8_col"]
+[ext_resource type="PackedScene" uid="uid://b2k8y4xv6mlaq" path="res://scenes/environment/foreground_pipe_cluster.tscn" id="9_pipe"]
+[ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="10_char"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
+size = Vector2(1600, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_l"]
+size = Vector2(32, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_r"]
+size = Vector2(32, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_plat"]
+size = Vector2(180, 16)
+
+[sub_resource type="Gradient" id="Gradient_train_light"]
+colors = PackedColorArray(0.9, 0.65, 0.25, 0.85, 0.9, 0.65, 0.25, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_train"]
+gradient = SubResource("Gradient_train_light")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_trig"]
+size = Vector2(64, 96)
+
+[node name="BunkerStation" type="Node2D" node_paths=PackedStringArray("world", "background_world", "gameplay_world", "foreground_world", "lighting", "environment_fx", "runtime_fx", "camera_rig", "screen_fx", "ui", "environment_controller", "player")]
+script = ExtResource("1_root")
+world = NodePath("World")
+background_world = NodePath("World/BackgroundWorld")
+gameplay_world = NodePath("World/GameplayWorld")
+foreground_world = NodePath("World/ForegroundWorld")
+lighting = NodePath("World/Lighting")
+environment_fx = NodePath("World/EnvironmentFX")
+runtime_fx = NodePath("RuntimeFX")
+camera_rig = NodePath("CameraRig")
+screen_fx = NodePath("ScreenFX")
+ui = NodePath("UI")
+environment_controller = NodePath("LevelEnvironmentController")
+player = NodePath("World/GameplayWorld/Player")
+
+[node name="LevelEnvironmentController" type="Node" parent="." node_paths=PackedStringArray("canvas_modulate", "far_fx", "mid_fx", "near_fx", "atmospheric_overlay")]
+script = ExtResource("2_env")
+canvas_modulate = NodePath("../World/Lighting/GlobalLighting/CanvasModulate")
+far_fx = NodePath("../World/EnvironmentFX/FarFX")
+mid_fx = NodePath("../World/EnvironmentFX/MidFX")
+near_fx = NodePath("../World/EnvironmentFX/NearFX")
+atmospheric_overlay = NodePath("../World/EnvironmentFX/AtmosphericOverlay")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="BackgroundWorld" type="Node2D" parent="World"]
+
+[node name="FarBackground" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -90
+scroll_scale = Vector2(0.12, 1)
+
+[node name="TunnelVoid" type="Polygon2D" parent="World/BackgroundWorld/FarBackground"]
+color = Color(0.04, 0.05, 0.07, 1)
+polygon = PackedVector2Array(-800, -500, 2400, -500, 2400, 500, -800, 500)
+
+[node name="DistantSilhouettes" type="Polygon2D" parent="World/BackgroundWorld/FarBackground"]
+color = Color(0.07, 0.09, 0.12, 1)
+polygon = PackedVector2Array(-600, 140, -400, 20, -200, 70, 0, -20, 200, 60, 500, -50, 800, 40, 1100, -10, 1400, 80, 1800, 10, 2200, 140)
+
+[node name="DistantStructures" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -70
+scroll_scale = Vector2(0.25, 1)
+
+[node name="MegaTrain" type="Node2D" parent="World/BackgroundWorld/DistantStructures"]
+position = Vector2(350, 30)
+
+[node name="TrainBody" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain"]
+color = Color(0.1, 0.13, 0.16, 1)
+polygon = PackedVector2Array(-350, -40, 450, -40, 480, 60, -350, 60)
+
+[node name="TrainRoofEquipment" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain"]
+color = Color(0.14, 0.17, 0.21, 1)
+polygon = PackedVector2Array(-320, -52, -180, -52, -170, -40, -330, -40, 100, -48, 260, -48, 270, -40, 90, -40)
+
+[node name="TrainWindows" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain"]
+light_mask = 32
+color = Color(0.85, 0.62, 0.22, 0.9)
+polygon = PackedVector2Array(-300, -20, -260, -20, -260, 0, -300, 0, -220, -20, -180, -20, -180, 0, -220, 0, -140, -20, -100, -20, -100, 0, -140, 0, -60, -20, -20, -20, -20, 0, -60, 0, 20, -20, 60, -20, 60, 0, 20, 0, 100, -20, 140, -20, 140, 0, 100, 0, 180, -20, 220, -20, 220, 0, 180, 0, 260, -20, 300, -20, 300, 0, 260, 0)
+
+[node name="RunningLights" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain"]
+light_mask = 32
+color = Color(0.38, 0.78, 0.83, 1)
+polygon = PackedVector2Array(470, -10, 478, -10, 478, -2, 470, -2, 470, 20, 478, 20, 478, 28, 470, 28)
+
+[node name="SmokeSockets" type="Node2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain"]
+position = Vector2(-250, -52)
+
+[node name="MidBackground" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -50
+scroll_scale = Vector2(0.5, 1)
+
+[node name="StationRearWall" type="Polygon2D" parent="World/BackgroundWorld/MidBackground"]
+light_mask = 2
+color = Color(0.14, 0.17, 0.2, 1)
+polygon = PackedVector2Array(-400, -350, 1800, -350, 1800, 220, -400, 220)
+
+[node name="SupportFrames" type="Line2D" parent="World/BackgroundWorld/MidBackground"]
+light_mask = 2
+points = PackedVector2Array(-300, -250, -300, 180, -100, -250, -100, 180, 100, -250, 100, 180, 300, -250, 300, 180, 500, -250, 500, 180, 700, -250, 700, 180, 900, -250, 900, 180, 1100, -250, 1100, 180, 1300, -250, 1300, 180, 1500, -250, 1500, 180)
+width = 3.0
+default_color = Color(0.18, 0.22, 0.26, 1)
+
+[node name="PipeNetwork" type="Line2D" parent="World/BackgroundWorld/MidBackground"]
+light_mask = 2
+points = PackedVector2Array(-350, -120, 200, -120, 220, -40, 850, -40, 870, -150, 1600, -150)
+width = 4.0
+default_color = Color(0.12, 0.14, 0.17, 1)
+
+[node name="NearBackground" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -30
+scroll_scale = Vector2(0.8, 1)
+
+[node name="RearColumns" type="Polygon2D" parent="World/BackgroundWorld/NearBackground"]
+light_mask = 2
+color = Color(0.17, 0.21, 0.25, 1)
+polygon = PackedVector2Array(-50, -280, -20, -280, -20, 180, -50, 180, 250, -280, 280, -280, 280, 180, 250, 180, 550, -280, 580, -280, 580, 180, 550, 180, 850, -280, 880, -280, 880, 180, 850, 180, 1150, -280, 1180, -280, 1180, 180, 1150, 180)
+
+[node name="RearCables" type="Line2D" parent="World/BackgroundWorld/NearBackground"]
+light_mask = 2
+points = PackedVector2Array(-100, -180, 100, -130, 300, -170, 500, -120, 700, -165, 900, -125, 1100, -175, 1300, -135)
+width = 1.5
+default_color = Color(0.1, 0.12, 0.14, 1)
+
+[node name="GameplayWorld" type="Node2D" parent="World"]
+
+[node name="StaticGeometry" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="StationFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry"]
+position = Vector2(600, 154)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StationFloor"]
+shape = SubResource("RectangleShape2D_floor")
+
+[node name="FloorVisual" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/StationFloor"]
+light_mask = 4
+color = Color(0.24, 0.28, 0.32, 1)
+polygon = PackedVector2Array(-800, -16, 800, -16, 800, 16, -800, 16)
+
+[node name="FloorTopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/StationFloor"]
+light_mask = 4
+points = PackedVector2Array(-800, -16, 800, -16)
+width = 1.5
+default_color = Color(0.55, 0.62, 0.68, 1)
+
+[node name="LeftBoundaryWall" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry"]
+position = Vector2(-200, -80)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/LeftBoundaryWall"]
+shape = SubResource("RectangleShape2D_wall_l")
+
+[node name="RightBoundaryWall" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry"]
+position = Vector2(1400, -80)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/RightBoundaryWall"]
+shape = SubResource("RectangleShape2D_wall_r")
+
+[node name="Platforms" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="CatwalkLeft" type="StaticBody2D" parent="World/GameplayWorld/Platforms" groups=["climbable_surface"]]
+position = Vector2(250, 40)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/Platforms/CatwalkLeft"]
+shape = SubResource("RectangleShape2D_plat")
+
+[node name="Visual" type="Polygon2D" parent="World/GameplayWorld/Platforms/CatwalkLeft"]
+light_mask = 4
+color = Color(0.3, 0.36, 0.42, 1)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="CatwalkRight" type="StaticBody2D" parent="World/GameplayWorld/Platforms" groups=["climbable_surface"]]
+position = Vector2(750, 40)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/Platforms/CatwalkRight"]
+shape = SubResource("RectangleShape2D_plat")
+
+[node name="Visual" type="Polygon2D" parent="World/GameplayWorld/Platforms/CatwalkRight"]
+light_mask = 4
+color = Color(0.3, 0.36, 0.42, 1)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="InteractiveProps" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="ControlConsole" type="Node2D" parent="World/GameplayWorld/InteractiveProps"]
+position = Vector2(500, 138)
+
+[node name="ConsoleMesh" type="Polygon2D" parent="World/GameplayWorld/InteractiveProps/ControlConsole"]
+light_mask = 4
+color = Color(0.2, 0.24, 0.27, 1)
+polygon = PackedVector2Array(-14, -24, 14, -24, 10, 0, -10, 0)
+
+[node name="ScreenGlow" type="Polygon2D" parent="World/GameplayWorld/InteractiveProps/ControlConsole"]
+light_mask = 32
+color = Color(0.38, 0.78, 0.83, 0.9)
+polygon = PackedVector2Array(-10, -22, 10, -22, 8, -14, -8, -14)
+
+[node name="Enemies" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="Player" parent="World/GameplayWorld" instance=ExtResource("10_char")]
+position = Vector2(300, 136)
+
+[node name="GameplayTriggers" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="StationCheckpoint" type="Area2D" parent="World/GameplayWorld/GameplayTriggers"]
+position = Vector2(500, 90)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/GameplayTriggers/StationCheckpoint"]
+shape = SubResource("RectangleShape2D_trig")
+
+[node name="ForegroundWorld" type="Node2D" parent="World"]
+
+[node name="NearForeground" type="Parallax2D" parent="World/ForegroundWorld"]
+z_index = 45
+scroll_scale = Vector2(1.1, 1)
+
+[node name="Railings" type="Line2D" parent="World/ForegroundWorld/NearForeground"]
+light_mask = 16
+points = PackedVector2Array(-200, 150, 1400, 150)
+width = 2.0
+default_color = Color(0.1, 0.12, 0.15, 1)
+
+[node name="ForegroundPipes" parent="World/ForegroundWorld/NearForeground" instance=ExtResource("9_pipe")]
+position = Vector2(420, 0)
+
+[node name="FrontOccluders" type="Parallax2D" parent="World/ForegroundWorld"]
+z_index = 65
+scroll_scale = Vector2(1.22, 1)
+
+[node name="ColumnLeft" parent="World/ForegroundWorld/FrontOccluders" instance=ExtResource("8_col")]
+position = Vector2(80, 0)
+
+[node name="ColumnRight" parent="World/ForegroundWorld/FrontOccluders" instance=ExtResource("8_col")]
+position = Vector2(980, 0)
+
+[node name="Lighting" type="Node2D" parent="World"]
+
+[node name="GlobalLighting" type="Node2D" parent="World/Lighting"]
+
+[node name="CanvasModulate" type="CanvasModulate" parent="World/Lighting/GlobalLighting"]
+color = Color(0.12, 0.15, 0.18, 1)
+
+[node name="BackgroundLights" type="Node2D" parent="World/Lighting"]
+
+[node name="TrainWindowLight" type="PointLight2D" parent="World/Lighting/BackgroundLights"]
+position = Vector2(350, 20)
+color = Color(0.9, 0.65, 0.25, 1)
+energy = 0.8
+range_item_cull_mask = 2
+shadow_enabled = false
+texture = SubResource("GradientTexture2D_train")
+texture_scale = 3.0
+
+[node name="GameplayLights" type="Node2D" parent="World/Lighting"]
+
+[node name="StationLamp1" parent="World/Lighting/GameplayLights" instance=ExtResource("6_lamp")]
+position = Vector2(250, 10)
+
+[node name="StationLamp2" parent="World/Lighting/GameplayLights" instance=ExtResource("6_lamp")]
+position = Vector2(750, 10)
+
+[node name="ForegroundLights" type="Node2D" parent="World/Lighting"]
+
+[node name="DynamicLights" type="Node2D" parent="World/Lighting"]
+
+[node name="EnvironmentFX" type="Node2D" parent="World"]
+
+[node name="FarFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = -85
+scroll_scale = Vector2(0.12, 1)
+
+[node name="MidFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = -65
+scroll_scale = Vector2(0.25, 1)
+
+[node name="GameplayWorldFX" type="Node2D" parent="World/EnvironmentFX"]
+z_index = 5
+
+[node name="FloorVent" parent="World/EnvironmentFX/GameplayWorldFX" instance=ExtResource("7_vent")]
+position = Vector2(400, 138)
+
+[node name="NearFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = 50
+scroll_scale = Vector2(1.1, 1)
+
+[node name="AtmosphericOverlay" type="Polygon2D" parent="World/EnvironmentFX"]
+z_index = 80
+color = Color(0.06, 0.09, 0.12, 0.12)
+polygon = PackedVector2Array(-800, -500, 2400, -500, 2400, 500, -800, 500)
+
+[node name="RuntimeFX" type="Node2D" parent="." node_paths=PackedStringArray("character_fx_behind", "character_fx_body", "character_fx_front", "combat_fx", "projectile_fx", "world_transient_fx", "dynamic_lights")]
+script = ExtResource("3_vfx")
+character_fx_behind = NodePath("CharacterFXBehind")
+character_fx_body = NodePath("CharacterFXBody")
+character_fx_front = NodePath("CharacterFXFront")
+combat_fx = NodePath("CombatFX")
+projectile_fx = NodePath("ProjectileFX")
+world_transient_fx = NodePath("WorldTransientFX")
+dynamic_lights = NodePath("../World/Lighting/DynamicLights")
+
+[node name="CharacterFXBehind" type="Node2D" parent="RuntimeFX"]
+z_index = -5
+
+[node name="CharacterFXBody" type="Node2D" parent="RuntimeFX"]
+z_index = 5
+
+[node name="CharacterFXFront" type="Node2D" parent="RuntimeFX"]
+z_index = 25
+
+[node name="CombatFX" type="Node2D" parent="RuntimeFX"]
+z_index = 30
+
+[node name="ProjectileFX" type="Node2D" parent="RuntimeFX"]
+z_index = 20
+
+[node name="WorldTransientFX" type="Node2D" parent="RuntimeFX"]
+z_index = 15
+
+[node name="CameraRig" type="Node2D" parent="." node_paths=PackedStringArray("camera", "follow_target")]
+script = ExtResource("4_cam")
+camera = NodePath("Camera2D")
+follow_target = NodePath("../World/GameplayWorld/Player")
+
+[node name="Camera2D" type="Camera2D" parent="CameraRig"]
+position = Vector2(300, 90)
+zoom = Vector2(1.25, 1.25)
+limit_left = -200
+limit_top = -450
+limit_right = 1400
+limit_bottom = 260
+position_smoothing_enabled = false
+
+[node name="ScreenFX" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="WorldPostFX" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="DamageOverlay" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.8, 0.1, 0.1, 0)
+
+[node name="FlashOverlay" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Vignette" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.15)
+
+[node name="TransitionFX" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="HUD" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BossUI" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="InteractionUI" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DebugUI" type="Control" parent="UI" node_paths=PackedStringArray("level_root")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5_dbg")
+level_root = NodePath("../..")
+
+[node name="Menus" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

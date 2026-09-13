@@ -25,7 +25,7 @@ func run() -> void:
 		assert(result.penalty == [0,0,20,40,60,80,80][i])
 	score.streak=100
 	assert(is_equal_approx(score.settle("cap",profile,1,1,1,{}).combo,1.8))
-	var arena = load("res://tests/character/test_arena.tscn").instantiate()
+	var arena = load("res://scenes/test_arena.tscn").instantiate()
 	root.add_child(arena)
 	await physics_frame
 	score.reset_run()

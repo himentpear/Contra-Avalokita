@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8m5xv4nq6ylw"]
+
+[ext_resource type="Script" path="res://scripts/rendering/combat_impact_fx.gd" id="1_fx"]
+
+[node name="CombatImpactFX" type="Node2D"]
+z_index = 30
+light_mask = 32
+script = ExtResource("1_fx")

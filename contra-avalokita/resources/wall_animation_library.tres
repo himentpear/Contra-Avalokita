@@ -1,4 +1,4 @@
-[gd_resource type="AnimationLibrary" format=3]
+[gd_resource type="AnimationLibrary" format=3 uid="uid://coeygueddnrgu"]
 
 [sub_resource type="Animation" id="Animation_m4spv"]
 resource_name = "Hang"

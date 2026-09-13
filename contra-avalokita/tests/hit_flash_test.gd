@@ -21,7 +21,7 @@ func ticks(count: int) -> void:
 
 
 func run() -> void:
-	var arena := load("res://tests/character/test_arena.tscn").instantiate() as Node2D
+	var arena := load("res://scenes/test_arena.tscn").instantiate() as Node2D
 	root.add_child(arena)
 	var victim: MudCharacter = arena.player
 	victim.player_controlled = false

@@ -80,7 +80,7 @@
 ## 6. 修改 Main Scene
 
 - `run/main_scene` 统一修改为指向 `res://bootstrap/boot.tscn`。
-- 启动后自动流转进入 `res://tests/character/test_arena.tscn`，无缝兼容现有研发流程。
+- 启动后自动流转进入统一正式测试场 `res://scenes/test_arena.tscn`。
 
 ---
 

@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://d3pmk5x08va4l"]
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_col"]
+polygon = PackedVector2Array(-18, -200, 18, -200, 18, 200, -18, 200)
+
+[node name="StructuralColumn" type="Node2D"]
+z_index = 65
+light_mask = 16
+
+[node name="ColumnMesh" type="Polygon2D" parent="."]
+light_mask = 16
+color = Color(0.08, 0.1, 0.12, 1)
+polygon = PackedVector2Array(-18, -200, 18, -200, 18, 200, -18, 200)
+
+[node name="BevelLeft" type="Line2D" parent="."]
+light_mask = 16
+points = PackedVector2Array(-17, -200, -17, 200)
+width = 1.0
+default_color = Color(0.16, 0.2, 0.24, 1)
+
+[node name="BevelRight" type="Line2D" parent="."]
+light_mask = 16
+points = PackedVector2Array(17, -200, 17, 200)
+width = 1.0
+default_color = Color(0.05, 0.06, 0.08, 1)
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OccluderPolygon2D_col")
+occluder_light_mask = 12

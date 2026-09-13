@@ -2,6 +2,7 @@ extends Node2D
 
 const CHARACTER := preload("res://scenes/mud_character.tscn")
 const DUMMY := preload("res://scripts/training_dummy.gd")
+const TEST_DUMMY := preload("res://scripts/test_dummy_target.gd")
 const Glyphs := preload("res://scripts/six_realm_glyphs.gd")
 const ITEM_PICKUP := preload("res://scripts/coyote_item_pickup.gd")
 const ENEMY_CONTROLLER := preload("res://scripts/training_enemy_controller.gd")
@@ -12,32 +13,56 @@ const COYOTE_ITEMS: Array[CoyoteItem] = [
 	preload("res://content/base/items/coyote/dear_cruel_gravity.tres"),
 	preload("res://content/base/items/coyote/three_eyed_pardon.tres"),
 ]
-const MAIN_DECK_SURFACE_Y := 138.0
-const HELIPAD_SURFACE_Y := 124.0
 
+const MAIN_SURFACE_Y := 138.0
+const TEST_KILL_Y := 480.0
+
+@export_group("Arena Presentation")
+@export var background_color := Color("111318")
+@export_range(-1200.0, 300.0, 1.0) var camera_center_y := 0.0
+@export var camera_shake_enabled := false
+@export_group("")
+
+# Node references
 var world_node: Node2D
 var background_node: Node2D
 var geometry_node: Node2D
+var markers_node: Node2D
+var actors_node: Node2D
+var checkpoints_node: Node2D
 var hud_layer: CanvasLayer
 var tactical_overlay: Control
+var item_console: PanelContainer
 var item_gallery: Control
 var camera: Camera2D
 
+# Actors & Entities
 var player: MudCharacter
+var dummy: Node2D # Persistent dummy for backward compatibility
+var stationary_dummy: CharacterBody2D
+var blocking_dummy: CharacterBody2D
+var damage_dummy: CharacterBody2D
+var knockback_dummy: CharacterBody2D
+var ledge_dummy: CharacterBody2D
 var scoring_enemy: MudCharacter
-var dummy: Node2D
 var crowd: Array[MudCharacter] = []
 var real_enemies: Array[MudCharacter] = []
-var item_pickups: Array[CoyoteItemPickup] = []
+var item_pickups: Array[Node] = []
+var checkpoints: Array[Vector2] = []
+
+# State & Telemetry
+var show_stats_panel := true
+var show_item_console := true
 var crowd_mode := 0
-var details_menu_open := false
 var elapsed := 0.0
 var frame := 0
 var font: Font
 var pickup_notice := ""
 var pickup_notice_left := 0.0
+var knockback_feedback := ""
+var knockback_feedback_left := 0.0
 
-@export var camera_shake_enabled := false
+# Camera shake
 var camera_shake_offset := Vector2.ZERO
 var camera_shake_timer := 0.0
 var camera_shake_duration := 0.0
@@ -55,13 +80,30 @@ func _enter_tree() -> void:
 	bind("weapon_sword", [KEY_1])
 	bind("weapon_none", [KEY_2])
 	bind("debug_rig", [KEY_F1])
-	bind("toggle_details", [KEY_F5])
-	bind("toggle_coyote_items", [KEY_F6])
-	bind("crowd", [KEY_T])
-	bind("reset", [KEY_R])
-	bind("kill", [KEY_K])
+	bind("debug_stats", [KEY_F1])
+	bind("toggle_item_console", [KEY_F2])
 	bind("spawn_enemy", [KEY_F3])
 	bind("score_realm", [KEY_F4])
+	bind("toggle_details", [KEY_F5])
+	bind("toggle_coyote_items", [KEY_F6])
+	bind("reset", [KEY_R])
+	bind("kill", [KEY_K])
+	bind("crowd", [KEY_T])
+	bind("shake_toggle", [KEY_C])
+	
+	# Teleport hotkeys: 1-6 (numpad or top row with modifier/direct)
+	bind("tp_zone_1", [KEY_1])
+	bind("tp_zone_2", [KEY_2])
+	bind("tp_zone_3", [KEY_3])
+	bind("tp_zone_4", [KEY_4])
+	bind("tp_zone_5", [KEY_5])
+	bind("tp_zone_6", [KEY_6])
+	
+	# Knockback test triggers: 7, 8, 9
+	bind("knockback_weak", [KEY_7])
+	bind("knockback_medium", [KEY_8])
+	bind("knockback_heavy", [KEY_9])
+	
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	InputMap.action_add_event("attack", click)
@@ -80,121 +122,55 @@ func _get_score_system() -> Node:
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	font = preload("res://assets/fonts/fusion-pixel-12px-proportional-zh_hans.otf")
+	
+	_build_world_hierarchy()
+	_build_geometry()
+	_setup_checkpoints()
+	_spawn_actors()
+	_build_camera()
+	_build_ui()
+	
+	var game := get_node_or_null("/root/Game")
+	if game and is_instance_valid(game.current_session) and game.current_session.has_method("set_player"):
+		game.current_session.set_player(player)
 
-	# 1. World Hierarchy
+func _build_world_hierarchy() -> void:
 	world_node = Node2D.new()
 	world_node.name = "World"
 	add_child(world_node)
-
-	# 1.1 Backgrounds (Origin (0,0), uncentered, exact 870x288)
+	
 	background_node = Node2D.new()
 	background_node.name = "Background"
 	world_node.add_child(background_node)
-
-	var sky_sprite := Sprite2D.new()
-	sky_sprite.name = "SkySea"
-	sky_sprite.texture = preload("res://assets/backgrounds/oil_rig_sky_sea.png")
-	sky_sprite.centered = false
-	sky_sprite.position = Vector2.ZERO
-	sky_sprite.z_index = -20
-	background_node.add_child(sky_sprite)
-
-	var rig_sprite := Sprite2D.new()
-	rig_sprite.name = "Platform"
-	rig_sprite.texture = preload("res://assets/backgrounds/oil_rig_platform.png")
-	rig_sprite.centered = false
-	rig_sprite.position = Vector2.ZERO
-	rig_sprite.z_index = -10
-	background_node.add_child(rig_sprite)
-
-	# 1.2 Geometry & Collision Decks
+	
+	var solid_bg := Polygon2D.new()
+	solid_bg.name = "SolidColor"
+	solid_bg.polygon = PackedVector2Array([
+		Vector2(-600, -1400), Vector2(4800, -1400),
+		Vector2(4800, 800), Vector2(-600, 800)
+	])
+	solid_bg.color = background_color
+	solid_bg.z_index = -100
+	background_node.add_child(solid_bg)
+	
 	geometry_node = Node2D.new()
 	geometry_node.name = "Geometry"
 	world_node.add_child(geometry_node)
+	
+	markers_node = Node2D.new()
+	markers_node.name = "Markers"
+	markers_node.z_index = -2
+	world_node.add_child(markers_node)
+	
+	actors_node = Node2D.new()
+	actors_node.name = "TestActors"
+	world_node.add_child(actors_node)
+	
+	checkpoints_node = Node2D.new()
+	checkpoints_node.name = "Checkpoints"
+	world_node.add_child(checkpoints_node)
 
-	# Main deck: Surface Y = 138, extends downwards
-	# Center = ((32 + 868)/2, 138 + 20/2) = (450, 148)
-	var main_deck_size := Vector2(836, 20)
-	var main_deck_center := Vector2(450, MAIN_DECK_SURFACE_Y + main_deck_size.y * 0.5)
-	platform(main_deck_center, main_deck_size)
-
-	# Helipad deck: Surface Y = 124, extends downwards
-	# Center = ((780 + 865)/2, 124 + 16/2) = (822.5, 132)
-	var helipad_size := Vector2(85, 16)
-	var helipad_center := Vector2(822.5, HELIPAD_SURFACE_Y + helipad_size.y * 0.5)
-	platform(helipad_center, helipad_size)
-
-	# Safety / Test platform at Y = 284 for compatibility with legacy test vectors
-	platform(Vector2(435, 303), Vector2(900, 38))
-
-	# Boundaries (walls at X=16 and X=878)
-	platform(Vector2(16, 144), Vector2(16, 288))
-	platform(Vector2(878, 144), Vector2(16, 288))
-
-	# Unified wall-movement course: both faces can be grabbed, slid and jumped.
-	training_platform(Vector2(548, 95), Vector2(18, 86))
-	training_platform(Vector2(716, 95), Vector2(18, 86))
-	training_platform(Vector2(632, 53), Vector2(186, 14))
-
-	# 1.3 Characters & Targets
-	player = CHARACTER.instantiate()
-	player.name = "Player"
-	# Character collision capsule bottom is at position.y + 2.0 -> Y=136 rests at surface Y=138
-	player.position = Vector2(300, MAIN_DECK_SURFACE_Y - 2.0)
-	world_node.add_child(player)
-	player.movement_assist_debug = false
-
-	dummy = Node2D.new()
-	dummy.name = "Dummy"
-	dummy.set_script(DUMMY)
-	dummy.position = Vector2(411, MAIN_DECK_SURFACE_Y - 2.0)
-	world_node.add_child(dummy)
-
-	spawn_item_pickups()
-
-	var npc := CHARACTER.instantiate() as MudCharacter
-	npc.name = "NPC"
-	npc.player_controlled = false
-	npc.position = Vector2(130, MAIN_DECK_SURFACE_Y - 2.0)
-	world_node.add_child(npc)
-	npc.body_renderer.mud_color = Color("87704b")
-	npc.weapons.equip(null)
-	npc.equipment.toggle()
-	npc.rig.time = 1.8
-	crowd.append(npc)
-
-	# 2. Camera2D with 1.25x Zoom and Integer Pixel Tracking
-	camera = Camera2D.new()
-	camera.name = "Camera2D"
-	camera.zoom = Vector2(1.25, 1.25)
-	camera.limit_left = 0
-	camera.limit_top = 0
-	camera.limit_right = 870
-	camera.limit_bottom = 288
-	camera.position_smoothing_enabled = false
-	var init_x := clampf(player.position.x, 256.0, 614.0)
-	camera.position = Vector2(round(init_x), 144.0)
-	add_child(camera)
-
-	# 3. Screen-Space Tactical HUD (CanvasLayer)
-	hud_layer = CanvasLayer.new()
-	hud_layer.name = "HUD"
-	hud_layer.layer = 5
-	add_child(hud_layer)
-
-	tactical_overlay = Control.new()
-	tactical_overlay.name = "TacticalOverlay"
-	tactical_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tactical_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tactical_overlay.draw.connect(_on_tactical_hud_draw)
-	hud_layer.add_child(tactical_overlay)
-	item_gallery = preload("res://ui/items/coyote_item_gallery.tscn").instantiate()
-	item_gallery.position = Vector2(48, 58)
-	item_gallery.scale = Vector2.ONE * 0.68
-	item_gallery.visible = false
-	hud_layer.add_child(item_gallery)
-
-func platform(center: Vector2, size: Vector2) -> StaticBody2D:
+func platform(center: Vector2, size: Vector2, col: Color = Color("707882"), edge_col: Color = Color("d4dae0")) -> StaticBody2D:
 	var body := StaticBody2D.new()
 	body.position = center
 	var collider := CollisionShape2D.new()
@@ -202,90 +178,348 @@ func platform(center: Vector2, size: Vector2) -> StaticBody2D:
 	shape.size = size
 	collider.shape = shape
 	body.add_child(collider)
-	if geometry_node:
-		geometry_node.add_child(body)
-	else:
-		add_child(body)
+	
+	var surface := Polygon2D.new()
+	surface.name = "Surface"
+	surface.polygon = PackedVector2Array([
+		-size * 0.5, Vector2(size.x * 0.5, -size.y * 0.5),
+		size * 0.5, Vector2(-size.x * 0.5, size.y * 0.5)
+	])
+	surface.color = col
+	surface.z_index = -5
+	body.add_child(surface)
+	
+	var edge := Line2D.new()
+	edge.name = "TopEdge"
+	edge.points = PackedVector2Array([Vector2(-size.x * 0.5, -size.y * 0.5), Vector2(size.x * 0.5, -size.y * 0.5)])
+	edge.width = 1.0
+	edge.default_color = edge_col
+	edge.z_index = -4
+	body.add_child(edge)
+	
+	geometry_node.add_child(body)
 	return body
 
-func training_platform(center: Vector2, size: Vector2) -> StaticBody2D:
-	var body := platform(center, size)
-	var visual_rect := Polygon2D.new()
-	visual_rect.polygon = PackedVector2Array([
-		-size*0.5, Vector2(size.x*0.5, -size.y*0.5), size*0.5, Vector2(-size.x*0.5, size.y*0.5)
-	])
-	visual_rect.color = Color("40554d")
-	visual_rect.z_index = -2
-	body.add_child(visual_rect)
+func training_platform(center: Vector2, size: Vector2, col: Color = Color("4e9fa8")) -> StaticBody2D:
+	var body := platform(center, size, col, Color("8ae2ec"))
+	body.add_to_group(&"climbable_surface")
 	return body
+
+func _build_geometry() -> void:
+	# Left outer boundary wall
+	platform(Vector2(-12, 0), Vector2(24, 600), Color("3d444c"))
+	
+	# =========================================================================
+	# ZONE 01: BASELINE LOCOMOTION TRACK & FACING SYMMETRY (X: 0 to 800)
+	# =========================================================================
+	# Baseline Main Floor: Surface Y = 138, bottom Y = 158
+	platform(Vector2(400, 148), Vector2(800, 20))
+	# Legacy compatibility floor at Y=284 (for punch_attack_test etc.)
+	platform(Vector2(435, 303), Vector2(900, 38))
+	
+	# =========================================================================
+	# ZONE 02: COYOTE TIMING STEPS (X: 860 to 1400)
+	# =========================================================================
+	# Lower floor under coyote steps: Surface Y = 160
+	platform(Vector2(1130, 176), Vector2(560, 32))
+	
+	# Ledge A: Normal walk-off ledge (X: 860 to 980, Surface Y = 64)
+	platform(Vector2(920, 80), Vector2(120, 32))
+	# Ledge B: Running walk-off ledge (X: 1040 to 1200, Surface Y = 64)
+	platform(Vector2(1120, 80), Vector2(160, 32))
+	# Ledge C: Attack walk-off ledge (X: 1260 to 1380, Surface Y = 64)
+	platform(Vector2(1320, 80), Vector2(120, 32))
+	
+	# =========================================================================
+	# ZONE 06: GRAVITY DROP LABORATORY (X: 1420 to 1540)
+	# =========================================================================
+	# High drop platform at Y = -48 (drop 208 px to floor Y = 160)
+	platform(Vector2(1480, -32), Vector2(120, 32))
+	# Drop shaft floor: Surface Y = 160
+	platform(Vector2(1500, 176), Vector2(160, 32))
+	
+	# =========================================================================
+	# ZONE 03: HORIZONTAL GAP CALIBRATION (Identical Surface Y = 128)
+	# Gaps: 48, 64, 80, 96, 112, 128, 160 px
+	# =========================================================================
+	# Platform 0: width 80 (X: 1580 to 1660)
+	platform(Vector2(1620, 144), Vector2(80, 32))
+	# Gap 1 (48 px) -> Platform 1: width 64 (X: 1708 to 1772)
+	platform(Vector2(1740, 144), Vector2(64, 32))
+	# Gap 2 (64 px) -> Platform 2: width 64 (X: 1836 to 1900)
+	platform(Vector2(1868, 144), Vector2(64, 32))
+	# Gap 3 (80 px) -> Platform 3: width 64 (X: 1980 to 2044)
+	platform(Vector2(2012, 144), Vector2(64, 32))
+	# Gap 4 (96 px) -> Platform 4: width 64 (X: 2140 to 2204)
+	platform(Vector2(2172, 144), Vector2(64, 32))
+	# Gap 5 (112 px) -> Platform 5: width 64 (X: 2316 to 2380)
+	platform(Vector2(2348, 144), Vector2(64, 32))
+	# Gap 6 (128 px) -> Platform 6: width 64 (X: 2508 to 2572)
+	platform(Vector2(2540, 144), Vector2(64, 32))
+	# Gap 7 (160 px) -> Platform 7: width 80 (X: 2732 to 2812)
+	platform(Vector2(2772, 144), Vector2(80, 32))
+	
+	# Lower safety/recovery floor under gap calibration (Surface Y = 240)
+	platform(Vector2(2200, 256), Vector2(1300, 32), Color("3d444c"))
+	
+	# =========================================================================
+	# ZONE 11: SMALL PLATFORM PRECISION ARRAY (Surface Y = 192)
+	# Widths: 96, 64, 48, 32 px with equal 48 px gaps
+	# =========================================================================
+	# P1 (96 px): X: 1640 to 1736
+	platform(Vector2(1688, 208), Vector2(96, 32))
+	# P2 (64 px): X: 1784 to 1848
+	platform(Vector2(1816, 208), Vector2(64, 32))
+	# P3 (48 px): X: 1896 to 1944
+	platform(Vector2(1920, 208), Vector2(48, 32))
+	# P4 (32 px): X: 1992 to 2024
+	platform(Vector2(2008, 208), Vector2(32, 32))
+	
+	# =========================================================================
+	# ZONE 04: JUMP BUFFER LANDING STAIRCASE & ZONE 05: HEIGHT CALIBRATION
+	# =========================================================================
+	# High drop platform at Y = -48 for deliberate early/buffered/late buffer test
+	platform(Vector2(2870, -32), Vector2(80, 32))
+	# Staircase descending steps:
+	# Step 1: Surface Y = 32
+	platform(Vector2(2952, 48), Vector2(64, 32))
+	# Step 2: Surface Y = 64
+	platform(Vector2(3032, 80), Vector2(64, 32))
+	# Step 3: Surface Y = 96
+	platform(Vector2(3112, 112), Vector2(64, 32))
+	# Step 4: Surface Y = 128
+	platform(Vector2(3192, 144), Vector2(64, 32))
+	# Step 5 / Ground: Surface Y = 160
+	platform(Vector2(3272, 176), Vector2(80, 32))
+	
+	# Low ceiling test platform (X: 3260 to 3360, floor Y=160, ceiling Y=106, clearance 54 px)
+	platform(Vector2(3310, 98), Vector2(100, 16), Color("5a626a"))
+	
+	# =========================================================================
+	# ZONE 07: WALL MECHANICS TOWER (X: 3380 to 3660)
+	# =========================================================================
+	# Ground floor: Surface Y = 160
+	platform(Vector2(3520, 176), Vector2(300, 32))
+	# Left climbable wall (X = 3420, height 260 from Y = -100 to 160)
+	training_platform(Vector2(3420, 30), Vector2(16, 260))
+	# Right climbable wall (X = 3484, height 260 from Y = -100 to 160, shaft width 48 px)
+	training_platform(Vector2(3484, 30), Vector2(16, 260))
+	# Top bridge surface (Surface Y = -100)
+	training_platform(Vector2(3510, -92), Vector2(200, 16))
+	# Single isolated dual-face wall (X = 3580, height 200 from Y = -40 to 160)
+	training_platform(Vector2(3580, 60), Vector2(16, 200))
+	
+	# =========================================================================
+	# ZONE 08: COMBAT TEST FLOOR, ZONE 09: LEDGE COMBAT & ZONE 10: KNOCKBACK EDGE
+	# =========================================================================
+	# Combat Main Floor: X: 3680 to 4250, Surface Y = 160 (width 570 px)
+	platform(Vector2(3965, 176), Vector2(570, 32), Color("7a6b8f"), Color("b5a2cc"))
+	# Knockback platform: X: 4280 to 4420, Surface Y = 160 (edge at X = 4420, vertical drop)
+	platform(Vector2(4350, 176), Vector2(140, 32), Color("8f5b5b"), Color("cc9292"))
+	
+	# Right outer boundary wall
+	platform(Vector2(4460, 0), Vector2(24, 600), Color("3d444c"))
+
+func _setup_checkpoints() -> void:
+	checkpoints = [
+		Vector2(400, 136),   # 1: Baseline & Symmetry
+		Vector2(900, 62),    # 2: Coyote Steps & Gravity Drop
+		Vector2(1620, 126),  # 3: Gaps & Precision Array
+		Vector2(2952, 30),   # 4: Jump Buffer & Height Wall
+		Vector2(3452, 158),  # 5: Wall Mechanics Tower
+		Vector2(3780, 158),  # 6: Combat Arena & Knockback
+	]
+
+func _spawn_actors() -> void:
+	# 1. Player
+	player = CHARACTER.instantiate()
+	player.name = "Player"
+	player.position = checkpoints[0]
+	world_node.add_child(player)
+	player.movement_assist_debug = true
+	
+	# 2. Legacy Dummy for punch_attack_test & compatibility
+	dummy = Node2D.new()
+	dummy.name = "Dummy"
+	dummy.set_script(DUMMY)
+	dummy.position = Vector2(411, 136)
+	actors_node.add_child(dummy)
+	
+	# 3. Dedicated Combat Laboratory Dummies
+	stationary_dummy = TEST_DUMMY.new()
+	stationary_dummy.name = "StationaryDummy"
+	stationary_dummy.dummy_type = TEST_DUMMY.DummyType.STATIONARY
+	stationary_dummy.position = Vector2(3780, 158)
+	actors_node.add_child(stationary_dummy)
+	
+	blocking_dummy = TEST_DUMMY.new()
+	blocking_dummy.name = "BlockingDummy"
+	blocking_dummy.dummy_type = TEST_DUMMY.DummyType.BLOCKING
+	blocking_dummy.position = Vector2(3880, 158)
+	actors_node.add_child(blocking_dummy)
+	
+	damage_dummy = TEST_DUMMY.new()
+	damage_dummy.name = "DamageDummy"
+	damage_dummy.dummy_type = TEST_DUMMY.DummyType.DAMAGE
+	damage_dummy.position = Vector2(3980, 158)
+	actors_node.add_child(damage_dummy)
+	
+	knockback_dummy = TEST_DUMMY.new()
+	knockback_dummy.name = "KnockbackDummy"
+	knockback_dummy.dummy_type = TEST_DUMMY.DummyType.KNOCKBACK
+	knockback_dummy.position = Vector2(4080, 158)
+	actors_node.add_child(knockback_dummy)
+	
+	# 4. Ledge Combat Dummy (at X=4230, right before ledge X=4250)
+	ledge_dummy = TEST_DUMMY.new()
+	ledge_dummy.name = "LedgeDummy"
+	ledge_dummy.dummy_type = TEST_DUMMY.DummyType.STATIONARY
+	ledge_dummy.position = Vector2(4230, 158)
+	actors_node.add_child(ledge_dummy)
+	
+	# 5. Five Item Pickups in baseline area (X: 80 to 280) for real station collection test
+	spawn_item_pickups()
 
 func spawn_item_pickups() -> void:
 	for pickup in item_pickups:
 		if is_instance_valid(pickup): pickup.queue_free()
 	item_pickups.clear()
 	for i in COYOTE_ITEMS.size():
-		var pickup := ITEM_PICKUP.new() as CoyoteItemPickup
-		pickup.name = "ItemPickup_%02d" % (i+1)
+		var pickup: Node = ITEM_PICKUP.new()
+		pickup.name = "ItemPickup_%02d" % (i + 1)
 		pickup.item = COYOTE_ITEMS[i]
 		pickup.content_id = COYOTE_ITEMS[i].id
-		pickup.position = Vector2(62.0+i*47.0, MAIN_DECK_SURFACE_Y-14.0)
+		pickup.position = Vector2(80.0 + i * 48.0, 124.0)
 		pickup.collected.connect(_on_item_collected)
 		world_node.add_child(pickup)
 		item_pickups.append(pickup)
 
 func _on_item_collected(item: CoyoteItem) -> void:
-	pickup_notice = "获得道具："+item.display_name+"  //  "+item.mechanical_text.replace("\n", " ")
-	pickup_notice_left = 2.8
+	pickup_notice = "PICKED UP: %s // %s" % [item.display_name, item.mechanical_text.replace("\n", " ")]
+	pickup_notice_left = 3.0
 
-func spawn_real_enemy() -> MudCharacter:
-	var enemy := CHARACTER.instantiate() as MudCharacter
-	enemy.name = "TrainingEnemy_%02d" % (real_enemies.size()+1)
-	enemy.player_controlled = false
-	enemy.score_profile = preload("res://resources/grunt_score.tres")
-	enemy.score_credit_enabled = true
-	enemy.max_health = 45.0
-	var desired_x := player.position.x+player.facing*155.0
-	enemy.position = Vector2(clampf(desired_x, 330.0, 500.0), MAIN_DECK_SURFACE_Y-2.0)
-	world_node.add_child(enemy)
-	enemy.body_renderer.mud_color = Color("87505a")
-	enemy.add_to_group(&"training_enemy")
-	var controller := ENEMY_CONTROLLER.new() as TrainingEnemyController
-	controller.name = "EnemyController"
-	controller.actor = enemy
-	controller.target = player
-	enemy.add_child(controller)
-	real_enemies.append(enemy)
-	return enemy
+func _build_camera() -> void:
+	camera = Camera2D.new()
+	camera.name = "Camera2D"
+	camera.zoom = Vector2(1.0, 1.0)
+	camera.limit_left = -200
+	camera.limit_top = -600
+	camera.limit_right = 4600
+	camera.limit_bottom = 520
+	camera.position_smoothing_enabled = false
+	camera.position = Vector2(player.position.x, camera_center_y)
+	add_child(camera)
 
-func spawn_score_target() -> void:
-	if is_instance_valid(scoring_enemy): scoring_enemy.queue_free()
-	scoring_enemy = CHARACTER.instantiate()
-	scoring_enemy.player_controlled = false
-	scoring_enemy.score_profile = preload("res://resources/grunt_score.tres")
-	scoring_enemy.max_health = 30
-	var spawn_x := clampf(player.position.x + player.facing * 65.0, 40.0, 840.0)
-	scoring_enemy.position = Vector2(spawn_x, player.position.y)
-	world_node.add_child(scoring_enemy)
-	scoring_enemy.body_renderer.mud_color = Color("875f60")
-	scoring_enemy.weapons.equip(null)
+func _build_ui() -> void:
+	hud_layer = CanvasLayer.new()
+	hud_layer.name = "HUD"
+	hud_layer.layer = 5
+	add_child(hud_layer)
+	
+	tactical_overlay = Control.new()
+	tactical_overlay.name = "TacticalOverlay"
+	tactical_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tactical_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tactical_overlay.draw.connect(_on_tactical_overlay_draw)
+	hud_layer.add_child(tactical_overlay)
+	
+	# Item Test Console Panel (Docked top-right)
+	_build_item_console()
+	
+	# Item Gallery Modal
+	item_gallery = preload("res://ui/items/coyote_item_gallery.tscn").instantiate()
+	item_gallery.position = Vector2(48, 58)
+	item_gallery.scale = Vector2.ONE * 0.68
+	item_gallery.visible = false
+	hud_layer.add_child(item_gallery)
 
-func cycle_crowd() -> void:
-	crowd_mode = (crowd_mode + 1) % 3
-	for npc in crowd:
-		if is_instance_valid(npc): npc.queue_free()
-	crowd.clear()
-	var count := [1, 9, 29][crowd_mode] as int
-	for i in count:
-		var npc := CHARACTER.instantiate() as MudCharacter
-		npc.player_controlled = false
-		npc.position = Vector2(60.0 + (i % 15) * 45.0, MAIN_DECK_SURFACE_Y - 2.0)
-		world_node.add_child(npc)
-		npc.rig.time = i * 0.31
-		npc.rig.gait.phase = fposmod(i * 0.31, 1.0)
-		npc.body_renderer.mud_color = Color.from_hsv(0.18 + i * 0.005, 0.42, 0.45 + (i % 3) * 0.08)
-		npc.weapons.equip(null)
-		npc.equipment.toggle()
-		crowd.append(npc)
+func _build_item_console() -> void:
+	item_console = PanelContainer.new()
+	item_console.name = "ItemConsole"
+	item_console.position = Vector2(440, 52)
+	item_console.custom_minimum_size = Vector2(190, 180)
+	
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	item_console.add_child(margin)
+	
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 3)
+	margin.add_child(vbox)
+	
+	var title := Label.new()
+	title.text = "ITEM MODIFIER CONSOLE"
+	title.add_theme_color_override("font_color", Color("c1d18b"))
+	vbox.add_child(title)
+	
+	for i in COYOTE_ITEMS.size():
+		var item := COYOTE_ITEMS[i]
+		var cb := CheckBox.new()
+		cb.text = item.display_name
+		cb.name = "ItemCheck_%d" % i
+		cb.toggled.connect(func(active: bool) -> void:
+			if not is_instance_valid(player): return
+			if active and not player.item_inventory.has(item.id):
+				player.obtain_item(item)
+			elif not active and player.item_inventory.has(item.id):
+				player.remove_item(item.id)
+		)
+		vbox.add_child(cb)
+	
+	var hbox := HBoxContainer.new()
+	vbox.add_child(hbox)
+	
+	var btn_reset := Button.new()
+	btn_reset.text = "RESET"
+	btn_reset.pressed.connect(func() -> void:
+		if is_instance_valid(player):
+			player.item_inventory.clear()
+			_refresh_item_console_checks()
+	)
+	hbox.add_child(btn_reset)
+	
+	var btn_all := Button.new()
+	btn_all.text = "ALL ITEMS"
+	btn_all.pressed.connect(func() -> void:
+		if is_instance_valid(player):
+			for item in COYOTE_ITEMS:
+				player.obtain_item(item)
+			_refresh_item_console_checks()
+	)
+	hbox.add_child(btn_all)
+	
+	hud_layer.add_child(item_console)
+
+func _refresh_item_console_checks() -> void:
+	if not is_instance_valid(item_console) or not is_instance_valid(player): return
+	for i in COYOTE_ITEMS.size():
+		var cb := item_console.find_child("ItemCheck_%d" % i, true, false) as CheckBox
+		if cb:
+			cb.set_pressed_no_signal(player.item_inventory.has(COYOTE_ITEMS[i].id))
+
+func teleport_to_zone(zone_idx: int) -> void:
+	if zone_idx < 0 or zone_idx >= checkpoints.size() or not is_instance_valid(player):
+		return
+	player.revive()
+	player.position = checkpoints[zone_idx]
+	player.velocity = Vector2.ZERO
+
+func apply_developer_knockback(force: float, is_heavy := false) -> void:
+	if not is_instance_valid(player): return
+	var hit := HitEvent.new()
+	hit.attacker = null
+	hit.damage = 10.0
+	hit.direction = Vector2.RIGHT
+	hit.impact_force = force
+	hit.poise_damage = 30.0 if not is_heavy else 100.0
+	hit.hit_type = &"HeavyHit" if is_heavy else &"LightHit"
+	hit.target_push_distance = 3.0 if not is_heavy else 6.0
+	player.receive_hit(hit)
+	knockback_feedback = "APPLIED KNOCKBACK: FORCE = %.0f  HEAVY = %s" % [force, str(is_heavy)]
+	knockback_feedback_left = 2.0
 
 func trigger_camera_shake(dir: Vector2, amp: float, duration: float = 0.08) -> void:
 	if not camera_shake_enabled:
@@ -302,16 +536,15 @@ func trigger_camera_shake(dir: Vector2, amp: float, duration: float = 0.08) -> v
 func _process(delta: float) -> void:
 	elapsed += delta
 	frame += 1
-	pickup_notice_left = maxf(0.0, pickup_notice_left-delta)
-
-	# Camera integer pixel tracking
+	pickup_notice_left = maxf(0.0, pickup_notice_left - delta)
+	knockback_feedback_left = maxf(0.0, knockback_feedback_left - delta)
+	
+	# Camera tracking
 	if is_instance_valid(player) and is_instance_valid(camera):
-		var target_x := clampf(player.global_position.x, 256.0, 614.0)
-		camera.global_position.x = round(
-			lerpf(camera.global_position.x, target_x, 1.0 - exp(-8.0 * delta))
-		)
-		camera.global_position.y = 144.0
-
+		var target_x := player.global_position.x
+		camera.global_position.x = round(lerpf(camera.global_position.x, target_x, 1.0 - exp(-12.0 * delta)))
+		camera.global_position.y = camera_center_y
+		
 		if camera_shake_enabled and camera_shake_timer > 0.0:
 			camera_shake_timer = maxf(0.0, camera_shake_timer - delta)
 			var p: float = camera_shake_timer / camera_shake_duration
@@ -321,206 +554,344 @@ func _process(delta: float) -> void:
 		else:
 			camera_shake_offset = Vector2.ZERO
 			camera.offset = Vector2.ZERO
-
+	
 	if not is_instance_valid(player): return
-
-	# Controls & shortcuts
-	if Input.is_action_just_pressed("toggle_details"):
-		details_menu_open = not details_menu_open
+	
+	# Respawn on falling below TEST_KILL_Y
+	if player.global_position.y > TEST_KILL_Y:
+		var nearest_idx := 0
+		var min_dist := INF
+		for i in checkpoints.size():
+			var dist := absf(player.global_position.x - checkpoints[i].x)
+			if dist < min_dist:
+				min_dist = dist
+				nearest_idx = i
+		teleport_to_zone(nearest_idx)
+	
+	# Input shortcuts
+	if Input.is_action_just_pressed("debug_stats"):
+		show_stats_panel = not show_stats_panel
+	if Input.is_action_just_pressed("toggle_item_console"):
+		show_item_console = not show_item_console
+		item_console.visible = show_item_console
 	if Input.is_action_just_pressed("toggle_coyote_items"):
 		item_gallery.visible = not item_gallery.visible
-	if Input.is_action_just_pressed("spawn_enemy"): spawn_real_enemy()
-	if Input.is_action_just_pressed("score_realm"):
-		var ks := _get_score_system()
-		if ks: ks.realm = (ks.realm + 1) % 6
-	if Input.is_action_just_pressed("crowd"): cycle_crowd()
+	if Input.is_action_just_pressed("shake_toggle"):
+		camera_shake_enabled = not camera_shake_enabled
 	if Input.is_action_just_pressed("kill"):
 		player.die()
 	if player.state == &"Dead" and (Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("attack")):
 		player.rise()
 	if Input.is_action_just_pressed("reset"):
-		player.position = Vector2(300, MAIN_DECK_SURFACE_Y - 2.0)
-		player.velocity = Vector2.ZERO
-		player.revive()
-		player.item_inventory.clear()
+		# Revive at nearest checkpoint without erasing inventory
+		var nearest_idx := 0
+		var min_dist := INF
+		for i in checkpoints.size():
+			var dist := absf(player.global_position.x - checkpoints[i].x)
+			if dist < min_dist:
+				min_dist = dist
+				nearest_idx = i
+		teleport_to_zone(nearest_idx)
 		for pickup in item_pickups:
 			if is_instance_valid(pickup): pickup.reset_pickup()
-
+		for d in [stationary_dummy, blocking_dummy, damage_dummy, knockback_dummy, ledge_dummy]:
+			if is_instance_valid(d): d.reset_state(d.global_position)
+	
+	# Zone Teleport shortcuts (1-6)
+	if Input.is_key_pressed(KEY_1): teleport_to_zone(0)
+	elif Input.is_key_pressed(KEY_2): teleport_to_zone(1)
+	elif Input.is_key_pressed(KEY_3): teleport_to_zone(2)
+	elif Input.is_key_pressed(KEY_4): teleport_to_zone(3)
+	elif Input.is_key_pressed(KEY_5): teleport_to_zone(4)
+	elif Input.is_key_pressed(KEY_6): teleport_to_zone(5)
+	
+	# Knockback test keys: 7, 8, 9
+	if Input.is_action_just_pressed("knockback_weak"):
+		apply_developer_knockback(55.0, false)
+	elif Input.is_action_just_pressed("knockback_medium"):
+		apply_developer_knockback(90.0, false)
+	elif Input.is_action_just_pressed("knockback_heavy"):
+		apply_developer_knockback(135.0, true)
+	
+	if Input.is_action_just_pressed("crowd"):
+		cycle_crowd()
+	
 	for i in crowd.size():
 		var npc := crowd[i]
 		if is_instance_valid(npc) and crowd_mode > 0:
 			npc.set_intent(sin(elapsed * 0.7 + i) * 0.25, false, fmod(elapsed + i * 0.2, 2.1) < delta)
-
+	
+	# Sync UI Checkbox states
+	_refresh_item_console_checks()
+	
 	if is_instance_valid(tactical_overlay):
 		tactical_overlay.queue_redraw()
 
-	if "--capture" in OS.get_cmdline_user_args() and frame == 80:
-		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png("res://artifacts/mvp_preview.png")
-		get_tree().quit()
+func cycle_crowd() -> void:
+	crowd_mode = (crowd_mode + 1) % 3
+	for npc in crowd:
+		if is_instance_valid(npc): npc.queue_free()
+	crowd.clear()
+	var count := [1, 9, 29][crowd_mode] as int
+	for i in count:
+		var npc := CHARACTER.instantiate() as MudCharacter
+		npc.player_controlled = false
+		npc.position = Vector2(60.0 + (i % 15) * 45.0, MAIN_SURFACE_Y - 2.0)
+		world_node.add_child(npc)
+		npc.rig.time = i * 0.31
+		npc.rig.gait.phase = fposmod(i * 0.31, 1.0)
+		npc.body_renderer.mud_color = Color.from_hsv(0.18 + i * 0.005, 0.42, 0.45 + (i % 3) * 0.08)
+		npc.weapons.equip(null)
+		npc.equipment.toggle()
+		crowd.append(npc)
 
-func _on_tactical_hud_draw() -> void:
-	if not font or not is_instance_valid(player): return
+func spawn_real_enemy() -> MudCharacter:
+	var game := get_node_or_null("/root/Game")
+	var enemy := CHARACTER.instantiate() as MudCharacter
+	enemy.name = "TrainingEnemy_%02d" % (real_enemies.size() + 1)
+	enemy.player_controlled = false
+	enemy.score_profile = preload("res://resources/grunt_score.tres")
+	enemy.score_credit_enabled = true
+	enemy.max_health = 45.0
+	var desired_x := player.position.x + player.facing * 140.0
+	enemy.position = Vector2(desired_x, MAIN_SURFACE_Y - 2.0)
+	world_node.add_child(enemy)
+	enemy.body_renderer.mud_color = Color("87505a")
+	enemy.add_to_group(&"training_enemy")
+	if game and is_instance_valid(game.current_session) and is_instance_valid(game.current_session.combat_context):
+		game.current_session.combat_context.register_actor(enemy)
+		enemy.tree_exiting.connect(func() -> void:
+			if is_instance_valid(game.current_session) and is_instance_valid(game.current_session.combat_context):
+				game.current_session.combat_context.unregister_actor(enemy)
+		)
+	var controller: Node = ENEMY_CONTROLLER.new()
+	controller.name = "EnemyController"
+	controller.actor = enemy
+	controller.target = player
+	enemy.add_child(controller)
+	real_enemies.append(enemy)
+	return enemy
 
-	# Top status header
-	tactical_overlay.draw_rect(Rect2(0, 0, 640, 48), Color(0.04, 0.07, 0.09, 0.88))
-	tactical_overlay.draw_rect(Rect2(16, 12, 3, 24), Color("c1d18b"))
-	tactical_overlay.draw_string(font, Vector2(26, 25), "MIRE / MOTION LAB // RIG 07 OFFSHORE SECTOR", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("e0e7cc"))
-	tactical_overlay.draw_string(font, Vector2(26, 40), "PROCEDURAL HUMANOID // FLOAT RIG + SDF BODY // GODOT 4.7", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
-	tactical_overlay.draw_string(font, Vector2(490, 24), "%02d ACTORS   %3d FPS" % [crowd.size() + 1, Engine.get_frames_per_second()], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("bfd08c"))
-	tactical_overlay.draw_string(font, Vector2(490, 39), "T  POPULATION: 2 / 10 / 30", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("a3b5af"))
+func spawn_score_target() -> void:
+	if is_instance_valid(scoring_enemy): scoring_enemy.queue_free()
+	scoring_enemy = CHARACTER.instantiate()
+	scoring_enemy.player_controlled = false
+	scoring_enemy.score_profile = preload("res://resources/grunt_score.tres")
+	scoring_enemy.max_health = 30.0
+	var spawn_x := clampf(player.position.x + player.facing * 65.0, 40.0, 840.0)
+	scoring_enemy.position = Vector2(spawn_x, player.position.y)
+	world_node.add_child(scoring_enemy)
+	scoring_enemy.body_renderer.mud_color = Color("875f60")
+	scoring_enemy.weapons.equip(null)
 
-	# Live telemetry card (screen coordinates) - hidden when details modal is open
-	if not details_menu_open:
-		tactical_overlay.draw_rect(Rect2(480, 56, 146, 130), Color(0.05, 0.09, 0.11, 0.85))
-		tactical_overlay.draw_rect(Rect2(480, 56, 146, 130), Color("293a3b"), false, 1.0)
-		tactical_overlay.draw_string(font, Vector2(488, 72), "LIVE TELEMETRY", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("c3d29a"))
+func _draw() -> void:
+	# World-space measurement lines and markers
+	_draw_zone_markers()
 
-		var weapon_name := player.weapons.current.weapon_name if player.weapons.current else "Unarmed"
-		var lines: Array[String] = [
-			"STATE    " + String(player.state),
-			"ACTION   " + String(player.action_state),
-			"VEL      %5.1f / %5.1f" % [player.velocity.x, player.velocity.y],
-			"GROUNDED " + str(player.is_on_floor()),
-			"ELBOW    %3.0f deg" % player.rig.angles.get("ArmFront", 0),
-			"KNEE     %3.0f deg" % player.rig.angles.get("LegFront", 0),
-			"WEAPON   " + weapon_name,
-			"DUMMY    %02d HITS" % dummy.hit_count
-		]
-		for i in lines.size():
-			tactical_overlay.draw_string(font, Vector2(488, 87 + i * 12), lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("a3b5af"))
-
-	# Debug joint rig telemetry bar if F1 toggled
-	if player.rig.debug_draw:
-		var gait_phase := player.anim_player.current_animation_position / maxf(player.anim_player.current_animation_length, .001)
-		var action_phase := player.attack_time / maxf(player.attack_duration, .001) if player.is_attacking() else 0.0
-		tactical_overlay.draw_rect(Rect2(16, 56, 440, 60), Color(0.05, 0.09, 0.11, 0.85))
-		tactical_overlay.draw_string(font, Vector2(22, 70), "MOVE %s  ACT %s  GAIT %.2f  ATK %.2f" % [player.state, player.action_state, gait_phase, action_phase], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("e0e7cc"))
-		tactical_overlay.draw_string(font, Vector2(22, 83), "FLOOR %s  VY %.1f   GREEN: BASE  PINK: ACTION  GOLD: PELVIS" % [str(player.is_on_floor()), player.velocity.y], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
-		var assist := player.movement_assist
-		tactical_overlay.draw_string(font, Vector2(22, 96), "UNFALLEN %.3f / %.3f  BUFFER %.3f / %.3f  GRAV %.2f  CAN %s  LAST %s" % [
-			assist.get_coyote_remaining(), assist.get_effective_coyote_time(),
-			assist.jump_buffer_remaining, assist.get_effective_jump_buffer_time(),
-			assist.get_gravity_multiplier(), str(player.is_on_floor() or assist.has_active_coyote_window()), String(assist.source_name())
-		], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("e6f0cf") if assist.is_unfallen() else Color("71827b"))
-		# Wall & Spine deformation debug row
-		var spine_w := player.pose_composer.spine_controller.spine_wall_weight if (player.pose_composer and player.pose_composer.spine_controller) else 0.0
-		if player.is_wall_attached() or player.wall_action != &"None" or spine_w > 0.01:
-			tactical_overlay.draw_string(font, Vector2(22, 109),
-				"WALL %s  SPINE_WEIGHT %.2f  ACTION %s  SIDE %+.0f" % [
-					String(player.wall_action), spine_w, String(player.action_state), player.wall_side
-				], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("ffd467"))
-		# Draw Spine deformation chain: Pelvis (white) -> SpineLower (yellow) -> SpineUpper (orange) -> Chest (cyan)
-		var skeleton: Skeleton2D = player.skeleton
-		if skeleton:
-			var cam_offset := Vector2.ZERO
-			if has_node("Camera2D"): cam_offset = get_node("Camera2D").get_screen_center_position() - Vector2(320, 180)
-			var b_pelvis := skeleton.get_node_or_null("Pelvis") as Bone2D
-			var b_torso := skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
-			var b_spinel := player._spine_lower_bone
-			var b_spineu := player._spine_upper_bone
-			if b_pelvis and b_torso:
-				var p_pos := b_pelvis.global_position - cam_offset
-				var c_pos := b_torso.global_position - cam_offset
-				var sl_pos := b_spinel.global_position - cam_offset if b_spinel else p_pos.lerp(c_pos, 0.33)
-				var su_pos := b_spineu.global_position - cam_offset if b_spineu else p_pos.lerp(c_pos, 0.67)
-				tactical_overlay.draw_circle(p_pos, 3.0, Color("ffffff"))   # Pelvis = white
-				tactical_overlay.draw_circle(sl_pos, 2.5, Color("ffd467")) # SpineLower = yellow
-				tactical_overlay.draw_circle(su_pos, 2.5, Color("ff8c32")) # SpineUpper = orange
-				tactical_overlay.draw_circle(c_pos, 3.0, Color("7affff"))   # Chest = cyan
-				tactical_overlay.draw_line(p_pos, sl_pos, Color("ffffff", 0.7), 1.5)
-				tactical_overlay.draw_line(sl_pos, su_pos, Color("ffd467", 0.7), 1.5)
-				tactical_overlay.draw_line(su_pos, c_pos, Color("7affff", 0.7), 1.5)
-
-
-	# Bottom control bar
-	tactical_overlay.draw_rect(Rect2(0, 324, 640, 36), Color(0.04, 0.07, 0.09, 0.92))
-	tactical_overlay.draw_line(Vector2(0, 324), Vector2(640, 324), Color("293a3b"), 1.0)
-	tactical_overlay.draw_string(font, Vector2(18, 339), "A D  WALK    HOLD SHIFT  RUN    SPACE  JUMP    J / LMB  ATTACK    L  BLOCK    E  ARMOR", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("d1d9b7"))
-	tactical_overlay.draw_string(font, Vector2(18, 353), "1  SWORD    2  UNARMED    F1  JOINTS + MORPHS    F5  DETAILS    K  DIE    SPACE  RISE    R  RESET    T  CROWD", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
-
-	# F5 Details Panel Menu Modal
-	if details_menu_open:
-		_draw_details_menu()
-
-func _draw_details_menu() -> void:
-	# 1. Dimmed backdrop
-	tactical_overlay.draw_rect(Rect2(0, 0, 640, 360), Color(0.02, 0.04, 0.06, 0.78))
-
-	# 2. Outer Frame (460 x 248)
-	var panel := Rect2(90, 56, 460, 248)
-	tactical_overlay.draw_rect(panel, Color("0a141a"))
-	tactical_overlay.draw_rect(panel, Color("293a3b"), false, 1.0)
-
-	# Header bar
-	tactical_overlay.draw_rect(Rect2(90, 56, 460, 26), Color("132329"))
-	tactical_overlay.draw_line(Vector2(90, 82), Vector2(550, 82), Color("293a3b"), 1.0)
-	tactical_overlay.draw_rect(Rect2(98, 63, 3, 12), Color("c1d18b"))
-	tactical_overlay.draw_string(font, Vector2(108, 73), "TACTICAL EVALUATION & SCORING // 战术评估详情面板", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("e0e7cc"))
-	tactical_overlay.draw_string(font, Vector2(462, 73), "[F5] 关闭 / CLOSE", HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color("81947e"))
-
-	# 3. Left Box: 击杀得分与六道系统 (KILL SCORING & SIX REALMS)
-	var box_l := Rect2(104, 92, 210, 200)
-	tactical_overlay.draw_rect(box_l, Color(0.05, 0.09, 0.12, 0.75))
-	tactical_overlay.draw_rect(box_l, Color("1d2e33"), false, 1.0)
-	tactical_overlay.draw_rect(Rect2(104, 92, 210, 20), Color(0.08, 0.14, 0.18, 0.85))
-	tactical_overlay.draw_string(font, Vector2(112, 106), "击杀得分 / 六进制六道", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("c3d29a"))
-
-	var ks := _get_score_system()
-	var total_score: int = ks.total if ks else 0
-	var streak: int = ks.streak if ks else 0
-	var realm_idx: int = clampi(ks.realm if ks else 0, 0, 5)
-
-	# Heximal glyphs display
-	tactical_overlay.draw_string(font, Vector2(112, 126), "六进制总分:", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("a3b5af"))
-	var digits := Glyphs.digits(total_score)
-	for i in digits.size():
-		tactical_overlay.draw_set_transform(Vector2(174 + i * 16.0, 123), 0, Vector2.ONE * 0.65)
-		Glyphs.draw_symbol(tactical_overlay, digits[i], Color("ffffff"), 1.1)
-	tactical_overlay.draw_set_transform(Vector2.ZERO)
-
-	tactical_overlay.draw_string(font, Vector2(112, 148), "十进制换算:  %d PT" % total_score, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("e0e7cc"))
-
-	# Current Realm
-	var realm_name: String = Glyphs.NAMES_ZH[realm_idx]
-	tactical_overlay.draw_string(font, Vector2(112, 170), "当前道相:  %s" % realm_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("a3b5af"))
-	tactical_overlay.draw_set_transform(Vector2(208, 166), 0, Vector2.ONE * 0.55)
-	Glyphs.draw_symbol(tactical_overlay, realm_idx, Color("c1d18b"), 1.0)
-	tactical_overlay.draw_set_transform(Vector2.ZERO)
-
-	# Streak / combo
-	tactical_overlay.draw_string(font, Vector2(112, 192), "当前连杀:  %d 连杀" % streak, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("a3b5af"))
-	if ks and streak > 0:
-		var rem_time := maxf(0.0, ks.combo_timeout - (ks.clock - ks.last_kill))
-		tactical_overlay.draw_string(font, Vector2(112, 208), "连击剩余:  %.1f 秒" % rem_time, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
-	else:
-		tactical_overlay.draw_string(font, Vector2(112, 208), "连击状态:  空闲 / IDLE", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("6b7c76"))
-
-	# Shortcuts hint box inside left panel
-	tactical_overlay.draw_rect(Rect2(110, 226, 198, 56), Color(0.03, 0.06, 0.08, 0.7))
-	tactical_overlay.draw_rect(Rect2(110, 226, 198, 56), Color("1a292e"), false, 1.0)
-	tactical_overlay.draw_string(font, Vector2(116, 243), "[F3] 召唤评分目标", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("bfd08c"))
-	tactical_overlay.draw_string(font, Vector2(116, 258), "[F4] 切换六道道相", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("bfd08c"))
-	tactical_overlay.draw_string(font, Vector2(116, 273), "击杀评分仅在目标死亡时结算", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("6b7c76"))
-
-	# 4. Right Box: 机体战术遥测 (UNIT & COMBAT TELEMETRY)
-	var box_r := Rect2(326, 92, 210, 200)
-	tactical_overlay.draw_rect(box_r, Color(0.05, 0.09, 0.12, 0.75))
-	tactical_overlay.draw_rect(box_r, Color("1d2e33"), false, 1.0)
-	tactical_overlay.draw_rect(Rect2(326, 92, 210, 20), Color(0.08, 0.14, 0.18, 0.85))
-	tactical_overlay.draw_string(font, Vector2(334, 106), "机体状态与关节遥测", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("c3d29a"))
-
-	var weapon_name := player.weapons.current.weapon_name if player.weapons.current else "Unarmed"
-	var r_lines: Array[String] = [
-		"生命值 (HP)   %3.0f / %3.0f" % [player.health, player.max_health],
-		"架势值 (POISE)  %3.0f / %3.0f" % [player.stability, player.max_stability],
-		"移动状态       " + String(player.state),
-		"动作层         " + String(player.action_state),
-		"速度 (VEL)     vx=%.1f vy=%.1f" % [player.velocity.x, player.velocity.y],
-		"肘弯曲/压迫    %3.0f° / %.2f" % [player.rig.angles.get("ArmFront", 0), player.rig.compressions.get("ArmFront", 0)],
-		"膝关节弯曲     %3.0f°" % player.rig.angles.get("LegFront", 0),
-		"当前武装       " + weapon_name,
-		"训练木桩命中   %02d 次" % dummy.hit_count
+func _draw_zone_markers() -> void:
+	var font_res := font if font else ThemeDB.fallback_font
+	
+	# =========================================================================
+	# ZONE 01: Baseline vertical floor markers
+	# =========================================================================
+	for x in range(0, 801, 32):
+		var is_strong := (x % 128 == 0)
+		var tick_h := 14.0 if is_strong else 6.0
+		var col := Color("e4e7eb") if is_strong else Color("8b939c", 0.7)
+		draw_line(Vector2(x, MAIN_SURFACE_Y), Vector2(x, MAIN_SURFACE_Y + tick_h), col, 1.0)
+		if is_strong:
+			draw_string(font_res, Vector2(x - 10, MAIN_SURFACE_Y + 24), str(x), HORIZONTAL_ALIGNMENT_CENTER, 20, 8, Color("e4e7eb"))
+	
+	# Facing Symmetry Station at X = 400
+	draw_line(Vector2(400, MAIN_SURFACE_Y - 50), Vector2(400, MAIN_SURFACE_Y), Color("e4e7eb"), 1.5)
+	draw_string(font_res, Vector2(300, MAIN_SURFACE_Y - 54), "LEFT TEST ← │ → RIGHT TEST", HORIZONTAL_ALIGNMENT_CENTER, 200, 9, Color("ffffff"))
+	var sym_offsets: Array[int] = [-192, -128, -64, 0, 64, 128, 192]
+	for off in sym_offsets:
+		var sx: float = 400.0 + off
+		draw_line(Vector2(sx, MAIN_SURFACE_Y - 8), Vector2(sx, MAIN_SURFACE_Y), Color("d49b3d"), 1.0)
+		draw_string(font_res, Vector2(sx - 16, MAIN_SURFACE_Y - 12), "%+d" % off if off != 0 else "0", HORIZONTAL_ALIGNMENT_CENTER, 32, 7, Color("d49b3d"))
+	
+	# =========================================================================
+	# ZONE 02: Coyote Steps timing reference markers
+	# =========================================================================
+	var ledges: Array[Dictionary] = [
+		{"x": 980.0, "y": 64.0, "label": "LEDGE A: WALK"},
+		{"x": 1200.0, "y": 64.0, "label": "LEDGE B: RUN"},
+		{"x": 1380.0, "y": 64.0, "label": "LEDGE C: ATK"},
 	]
-	for i in r_lines.size():
-		tactical_overlay.draw_string(font, Vector2(334, 126 + i * 18), r_lines[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("a3b5af"))
+	for l in ledges:
+		var lx: float = l["x"]
+		var ly: float = l["y"]
+		draw_string(font_res, Vector2(lx - 80, ly - 8), l["label"], HORIZONTAL_ALIGNMENT_LEFT, 100, 8, Color("d49b3d"))
+		# Timing ticks below edge (0.05s, 0.10s base, 0.14s pardon, 0.16s wile, 0.20s max)
+		var ticks: Array[Dictionary] = [
+			{"t": 0.05, "dy": 8.0, "text": "0.05s"},
+			{"t": 0.10, "dy": 20.0, "text": "0.10s (BASE)"},
+			{"t": 0.14, "dy": 36.0, "text": "0.14s"},
+			{"t": 0.16, "dy": 48.0, "text": "0.16s (WILE)"},
+			{"t": 0.20, "dy": 68.0, "text": "0.20s (MAX)"},
+		]
+		for tk in ticks:
+			var ty: float = ly + tk["dy"]
+			draw_line(Vector2(lx, ty), Vector2(lx + 12, ty), Color("d49b3d", 0.8), 1.0)
+			draw_string(font_res, Vector2(lx + 16, ty + 3), tk["text"], HORIZONTAL_ALIGNMENT_LEFT, 70, 7, Color("d49b3d"))
+	
+	# =========================================================================
+	# ZONE 06: Gravity Drop Shaft vertical measurement wall
+	# =========================================================================
+	draw_string(font_res, Vector2(1420, -56), "ZONE 06: GRAVITY SHAFT (g x 0.65)", HORIZONTAL_ALIGNMENT_LEFT, 160, 8, Color("d4dae0"))
+	for y_off in range(16, 209, 16):
+		var gy: float = -48.0 + y_off
+		var is_major := (y_off % 32 == 0)
+		var tick_w := 14.0 if is_major else 6.0
+		draw_line(Vector2(1500, gy), Vector2(1500 + tick_w, gy), Color("e4e7eb"), 1.0)
+		if is_major:
+			draw_string(font_res, Vector2(1518, gy + 3), "%d px" % y_off, HORIZONTAL_ALIGNMENT_LEFT, 40, 7, Color("e4e7eb"))
+	
+	# =========================================================================
+	# ZONE 03: Gap Calibration labels
+	# =========================================================================
+	var gap_labels: Array[Dictionary] = [
+		{"x": 1684.0, "w": "48 px"},
+		{"x": 1804.0, "w": "64 px"},
+		{"x": 1940.0, "w": "80 px"},
+		{"x": 2092.0, "w": "96 px"},
+		{"x": 2260.0, "w": "112 px"},
+		{"x": 2444.0, "w": "128 px"},
+		{"x": 2652.0, "w": "160 px"},
+	]
+	for g in gap_labels:
+		draw_string(font_res, Vector2(g["x"] - 20, 160), "GAP " + g["w"], HORIZONTAL_ALIGNMENT_CENTER, 60, 7, Color("d4dae0"))
+	
+	# =========================================================================
+	# ZONE 05: Height Calibration Vertical Wall
+	# =========================================================================
+	draw_string(font_res, Vector2(2860, -56), "ZONE 05: VERTICAL APEX RULER", HORIZONTAL_ALIGNMENT_LEFT, 160, 8, Color("d4dae0"))
+	for h in range(16, 209, 16):
+		var hy: float = MAIN_SURFACE_Y - h
+		var is_major := (h % 32 == 0)
+		var tw := 12.0 if is_major else 5.0
+		draw_line(Vector2(2910 - tw, hy), Vector2(2910, hy), Color("e4e7eb"), 1.0)
+		if is_major:
+			draw_string(font_res, Vector2(2870, hy + 3), "%d" % h, HORIZONTAL_ALIGNMENT_RIGHT, 34, 7, Color("e4e7eb"))
+	
+	# =========================================================================
+	# ZONE 07: Wall Tower status label
+	# =========================================================================
+	draw_string(font_res, Vector2(3390, -112), "ZONE 07: WALL MECHANICS TOWER", HORIZONTAL_ALIGNMENT_LEFT, 180, 8, Color("4e9fa8"))
+	
+	# =========================================================================
+	# ZONE 08: Combat Centerline
+	# =========================================================================
+	draw_line(Vector2(3980, MAIN_SURFACE_Y - 60), Vector2(3980, MAIN_SURFACE_Y), Color("8b6fb5"), 1.0)
+	draw_string(font_res, Vector2(3910, MAIN_SURFACE_Y - 66), "COMBAT SYMMETRY LINE", HORIZONTAL_ALIGNMENT_CENTER, 140, 8, Color("8b6fb5"))
+
+func _on_tactical_overlay_draw() -> void:
+	if not font or not is_instance_valid(player): return
+	
+	# Top status header
+	tactical_overlay.draw_rect(Rect2(0, 0, 640, 42), Color(0.04, 0.07, 0.09, 0.90))
+	tactical_overlay.draw_rect(Rect2(12, 10, 3, 22), Color("c1d18b"))
+	tactical_overlay.draw_string(font, Vector2(22, 22), "CONTRA-AVALOKITA // DETERMINISTIC MECHANICS LABORATORY", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("e0e7cc"))
+	tactical_overlay.draw_string(font, Vector2(22, 35), "FLAT-COLOR RIG TESTBED // COYOTE & MODIFIER VERIFICATION // GODOT 4.7", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("81947e"))
+	tactical_overlay.draw_string(font, Vector2(510, 22), "%3d FPS" % Engine.get_frames_per_second(), HORIZONTAL_ALIGNMENT_RIGHT, -1, 9, Color("bfd08c"))
+	
+	# Notice toast
+	if pickup_notice_left > 0.0:
+		tactical_overlay.draw_rect(Rect2(120, 46, 400, 22), Color(0.04, 0.08, 0.09, 0.94))
+		tactical_overlay.draw_rect(Rect2(120, 46, 400, 22), Color("c1d18b"), false, 1.0)
+		tactical_overlay.draw_string(font, Vector2(124, 61), pickup_notice, HORIZONTAL_ALIGNMENT_CENTER, 392, 8, Color("e6f0cf"))
+	elif knockback_feedback_left > 0.0:
+		tactical_overlay.draw_rect(Rect2(120, 46, 400, 22), Color(0.12, 0.04, 0.04, 0.94))
+		tactical_overlay.draw_rect(Rect2(120, 46, 400, 22), Color("c85050"), false, 1.0)
+		tactical_overlay.draw_string(font, Vector2(124, 61), knockback_feedback, HORIZONTAL_ALIGNMENT_CENTER, 392, 8, Color("ffc0c0"))
+	
+	# 1. Live Effective Stats Panel (Top-Left)
+	if show_stats_panel:
+		_draw_live_stats_panel()
+	
+	# 2. In-World Floating UNFALLEN Indicator
+	_draw_unfallen_indicator()
+	
+	# Bottom control bar
+	tactical_overlay.draw_rect(Rect2(0, 324, 640, 36), Color(0.04, 0.07, 0.09, 0.94))
+	tactical_overlay.draw_line(Vector2(0, 324), Vector2(640, 324), Color("293a3b"), 1.0)
+	tactical_overlay.draw_string(font, Vector2(14, 338), "1-6 TELEPORT ZONES  |  7-9 KNOCKBACK (W/M/H)  |  R RESPAWN  |  K DIE  |  F1 STATS  |  F2 ITEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("d1d9b7"))
+	tactical_overlay.draw_string(font, Vector2(14, 352), "A/D MOVE  |  SHIFT RUN  |  SPACE JUMP  |  J ATTACK  |  L BLOCK  |  F6 ITEM CARDS  |  C SHAKE [%s]" % ("ON" if camera_shake_enabled else "OFF"), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("81947e"))
+
+func _draw_live_stats_panel() -> void:
+	var assist := player.movement_assist
+	var panel := Rect2(12, 48, 172, 196)
+	tactical_overlay.draw_rect(panel, Color(0.04, 0.07, 0.09, 0.88))
+	tactical_overlay.draw_rect(panel, Color("293a3b"), false, 1.0)
+	tactical_overlay.draw_string(font, Vector2(18, 62), "LIVE TELEMETRY", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("c1d18b"))
+	
+	var facing_str := "RIGHT" if player.facing > 0.0 else "LEFT"
+	var grounded_str := "TRUE" if player.is_on_floor() else "FALSE"
+	var unfallen_str := "TRUE" if assist.is_unfallen() else "FALSE"
+	var grav_mult := assist.get_gravity_multiplier()
+	var jump_src := String(assist.source_name())
+	
+	var stats: Array[String] = [
+		"Facing             " + facing_str,
+		"State              " + String(player.state),
+		"Grounded           " + grounded_str,
+		"Velocity           %4.0f, %4.0f" % [player.velocity.x, player.velocity.y],
+		"",
+		"Coyote Base        %.3f s" % assist.base_coyote_time,
+		"Coyote Bonus       %+.3f s" % assist.coyote_time_bonus,
+		"Coyote Effective   %.3f s" % assist.get_effective_coyote_time(),
+		"Coyote Remaining   %.3f s" % assist.get_coyote_remaining(),
+		"UNFALLEN           " + unfallen_str,
+		"",
+		"Jump Buffer        %.3f / %.3f" % [assist.jump_buffer_remaining, assist.get_effective_jump_buffer_time()],
+		"Gravity Multiplier %.2f" % grav_mult,
+		"Last Jump Source   " + jump_src,
+		"Active Items       %d / %d" % [player.item_inventory.items().size(), COYOTE_ITEMS.size()],
+	]
+	
+	for i in stats.size():
+		if stats[i] == "": continue
+		var col := Color("e0e7cc")
+		if stats[i].begins_with("UNFALLEN") and assist.is_unfallen():
+			col = Color("d49b3d")
+		elif stats[i].begins_with("Gravity Multiplier") and grav_mult < 0.99:
+			col = Color("62c7d4")
+		tactical_overlay.draw_string(font, Vector2(18, 76 + i * 11), stats[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 7, col)
+
+func _draw_unfallen_indicator() -> void:
+	if not is_instance_valid(player) or not is_instance_valid(camera): return
+	var assist := player.movement_assist
+	
+	# Determine state badge
+	var badge_text := "GROUND"
+	var badge_col := Color("6b7c76")
+	if assist.is_unfallen():
+		badge_text = "UNFALLEN"
+		badge_col = Color("d49b3d")
+	elif player.is_wall_attached():
+		badge_text = "WALL"
+		badge_col = Color("4e9fa8")
+	elif not player.is_on_floor():
+		badge_text = "AIRBORNE"
+		badge_col = Color("7088a0")
+	
+	# Screen space position above player
+	var screen_pos := player.global_position - camera.get_screen_center_position() + Vector2(320, 180)
+	var badge_rect := Rect2(screen_pos.x - 36, screen_pos.y - 74, 72, 14)
+	tactical_overlay.draw_rect(badge_rect, Color(0.04, 0.07, 0.09, 0.85))
+	tactical_overlay.draw_rect(badge_rect, badge_col, false, 1.0)
+	tactical_overlay.draw_string(font, Vector2(screen_pos.x - 34, screen_pos.y - 63), badge_text, HORIZONTAL_ALIGNMENT_CENTER, 68, 8, badge_col)
+	
+	# If UNFALLEN is active, draw shrinking progress bar
+	if assist.is_unfallen():
+		var prog := assist.get_coyote_progress()
+		var bar_rect := Rect2(screen_pos.x - 36, screen_pos.y - 58, 72, 5)
+		tactical_overlay.draw_rect(bar_rect, Color("1a1f24"))
+		tactical_overlay.draw_rect(Rect2(screen_pos.x - 36, screen_pos.y - 58, 72 * prog, 5), Color("d49b3d"))
+		tactical_overlay.draw_string(font, Vector2(screen_pos.x - 34, screen_pos.y - 50), "%.3f / %.3f" % [assist.coyote_remaining, assist.get_effective_coyote_time()], HORIZONTAL_ALIGNMENT_CENTER, 68, 7, Color("ffffff"))
+	elif assist.jump_buffer_remaining > 0.0:
+		var buf_prog := assist.jump_buffer_remaining / maxf(assist.get_effective_jump_buffer_time(), 0.001)
+		var buf_rect := Rect2(screen_pos.x - 36, screen_pos.y - 58, 72, 4)
+		tactical_overlay.draw_rect(buf_rect, Color("1a1f24"))
+		tactical_overlay.draw_rect(Rect2(screen_pos.x - 36, screen_pos.y - 58, 72 * buf_prog, 4), Color("62c7d4"))
