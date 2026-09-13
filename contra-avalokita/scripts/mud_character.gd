@@ -434,8 +434,9 @@ func _on_punch_area_entered(area: Area2D) -> void:
 		splatter.burst(area.global_position, 5)
 
 @onready var visual: Node2D = $Visual
+@onready var pose_root: Node2D = $Visual/PoseRoot
 @onready var anim_player: AnimationPlayer = $AnimationPlayer
-@onready var skeleton: Skeleton2D = $Visual/Skeleton2D
+@onready var skeleton: Skeleton2D = $Visual/PoseRoot/Skeleton2D
 @onready var body_renderer: MudBodyRenderer = $Visual/MudBodyRenderer
 @onready var eyes: MudEyeController = $Visual/Eyes
 @onready var equipment: EquipmentManager = $Visual/Equipment
@@ -908,7 +909,7 @@ func _sync_visual(delta: float) -> void:
 	impact_accent_offset = impact_accent_offset.move_toward(Vector2.ZERO, delta * 30.0)
 	reaction_push_offset = reaction_push_offset.move_toward(Vector2.ZERO, delta * 24.0)
 	# Only the visual origin is snapped, never the physics body or FK anchors.
-	visual.position = (global_position + reaction_push_offset).round() - global_position
+	visual.position = global_position.round() - global_position
 	# Biomechanically stable skeleton: do NOT scale skeletal limb lengths
 	visual.scale = Vector2(facing, 1.0)
 	# Legacy Front bones are anatomical RIGHT; Back bones are anatomical LEFT.

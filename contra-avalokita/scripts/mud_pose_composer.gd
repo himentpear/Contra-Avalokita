@@ -22,8 +22,8 @@ var wall_composer := MudWallPoseComposer.new()
 var spine_controller := MudSpineController.new()
 
 func restore_base() -> void:
-	for bone in base_pose:
-		if is_instance_valid(bone): bone.transform = base_pose[bone]
+	for pose_node in base_pose:
+		if is_instance_valid(pose_node): pose_node.transform = base_pose[pose_node]
 
 func evaluate(delta: float) -> void:
 	var player := character.anim_player
@@ -35,6 +35,8 @@ func evaluate(delta: float) -> void:
 	else:
 		player.advance(delta)
 	base_pose.clear()
+	if is_instance_valid(character.pose_root):
+		base_pose[character.pose_root] = character.pose_root.transform
 	for bone in character.skeleton.find_children("*","Bone2D"):
 		base_pose[bone] = bone.transform
 	weight = 0.0
@@ -160,7 +162,7 @@ func apply_wall_action(delta: float = 0.0) -> void:
 	if authored_wall_pose and action != &"WallRelease":
 		# Wall clips are authored against a canonical right wall at local x=12.
 		# Preserve edited offsets while translating the pose to the real wall plane.
-		pelvis.position.x += plane_x - WALL_ANIMATION_REFERENCE_PLANE_X
+		character.pose_root.position.x += plane_x - WALL_ANIMATION_REFERENCE_PLANE_X
 
 	var targets := wall_composer.compose(character, delta)
 	if targets == null:
@@ -168,7 +170,8 @@ func apply_wall_action(delta: float = 0.0) -> void:
 
 	if not authored_wall_pose:
 		if action in [&"WallHang", &"WallSlide", &"WallPush", &"WallRelease"]:
-			pelvis.position = pelvis.position.lerp(targets.pelvis_pos, targets.body_weight)
+			character.pose_root.position.x = lerpf(character.pose_root.position.x,targets.pelvis_pos.x,targets.body_weight)
+			pelvis.position.y = lerpf(pelvis.position.y,targets.pelvis_pos.y,targets.body_weight)
 			pelvis.rotation = lerp_angle(pelvis.rotation, targets.pelvis_rot, targets.body_weight)
 			torso.position = torso.position.lerp(targets.torso_pos, targets.body_weight)
 			torso.rotation = lerp_angle(torso.rotation, targets.torso_rot, targets.body_weight)
@@ -294,7 +297,13 @@ func apply_action() -> void:
 		var node := character.get_node_or_null(NodePath(target[0]))
 		var property := target[1]
 		var value = clip.value_track_interpolate(track,sample_time)
-		if node == pelvis:
+		if node == character.pose_root and is_unarmed_stationary:
+			# Preserve the action mask: stationary unarmed clips may author root pose;
+			# moving/blade attacks get their root offset from additive footwork.
+			if property == "position": node.position = node.position.lerp(value,weight)
+			elif property == "rotation": node.rotation = lerp_angle(node.rotation,float(value),weight)
+			elif property == "scale": node.scale = node.scale.lerp(value,weight)
+		elif node == pelvis:
 			if property == "rotation":
 				if is_unarmed_stationary:
 					pelvis.rotation = lerp_angle(pelvis.rotation, float(value), weight)
@@ -348,7 +357,10 @@ func apply_blade_footwork(duration: float) -> void:
 	last_action_time = character.attack_time
 	last_action_stage = character.combo_stage
 	var offsets: Dictionary = blade_footwork.sample(character.combo_stage,character.attack_time/maxf(duration,.001))
-	pelvis.position += offsets.pelvis*lower_body_weight
+	# Horizontal lunge is a temporary visual-root offset. Pelvis keeps only
+	# anatomical compression so its local reference never doubles as root motion.
+	character.pose_root.position.x += offsets.pelvis.x*lower_body_weight
+	pelvis.position.y += offsets.pelvis.y*lower_body_weight
 	for side in feet:
 		feet[side] += (offsets.front if side == footwork_lead else offsets.back)*lower_body_weight
 		if side != footwork_lead:
@@ -415,6 +427,8 @@ func apply_reaction(_delta: float) -> void:
 	var torso := character.skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
 	var head := character.skeleton.get_node_or_null("Pelvis/Torso/Head") as Bone2D
 	if not pelvis or not torso or not head: return
+	# World-space hit push becomes a mirrored Visual-local PoseRoot offset.
+	character.pose_root.position += Vector2(character.reaction_push_offset.x*character.facing,character.reaction_push_offset.y)
 	
 	var tier: StringName = character.reaction_state
 	var region: StringName = character.reaction_region
@@ -440,9 +454,10 @@ func apply_reaction(_delta: float) -> void:
 			head.position += Vector2(local_dir.x * 3.5, local_dir.y * 1.5) * w_push
 			torso.rotation += local_dir.x * 0.12 * w_rot
 			torso.position += Vector2(local_dir.x * 1.8, local_dir.y * 0.8) * w_push
-			pelvis.position.x += local_dir.x * 0.8 * w_push
+			character.pose_root.position.x += local_dir.x * 0.8 * w_push
 		&"LOWER_TORSO", &"LEG":
-			pelvis.position += Vector2(local_dir.x * 2.8, local_dir.y * 1.4) * w_push
+			character.pose_root.position.x += local_dir.x * 2.8 * w_push
+			pelvis.position.y += local_dir.y * 1.4 * w_push
 			pelvis.rotation += local_dir.x * 0.08 * w_rot
 			torso.position += Vector2(local_dir.x * 1.8, local_dir.y * 0.8) * w_push
 			head.position += Vector2(local_dir.x * 1.0, 0.0) * w_push
@@ -451,7 +466,7 @@ func apply_reaction(_delta: float) -> void:
 			torso.position += Vector2(local_dir.x * 4.2, local_dir.y * 1.8) * w_push
 			head.position += Vector2(local_dir.x * 2.4, local_dir.y * 1.0) * w_push
 			head.rotation += -local_dir.x * 0.08 * w_rot
-			pelvis.position.x += local_dir.x * 1.6 * w_push
+			character.pose_root.position.x += local_dir.x * 1.6 * w_push
 			
 	if tier in [&"HeavyHit", &"Knockdown"]:
 		torso.rotation += local_dir.x * 0.18 * w_rot
@@ -509,7 +524,7 @@ func _apply_block_hit_shockwave(p: float, local_dir: Vector2) -> void:
 		
 	# 3. Pelvis & Knees absorption (Feet stay firmly grounded!)
 	if is_instance_valid(pelvis):
-		pelvis.position.x += push_x * 1.0 * w_pelvis
+		character.pose_root.position.x += push_x * 1.0 * w_pelvis
 	if is_instance_valid(sf):
 		sf.rotation += deg_to_rad(6.0) * w_pelvis
 	if is_instance_valid(tf):

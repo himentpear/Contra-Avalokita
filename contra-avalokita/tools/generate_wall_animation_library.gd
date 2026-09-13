@@ -4,22 +4,22 @@ extends SceneTree
 
 const OUTPUT := "res://resources/wall_animation_library.tres"
 const TRACKS := [
-	{"path": "Visual/Skeleton2D/Pelvis:position", "node": "Visual/Skeleton2D/Pelvis", "property": "position"},
-	{"path": "Visual/Skeleton2D/Pelvis:rotation", "node": "Visual/Skeleton2D/Pelvis", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso:position", "node": "Visual/Skeleton2D/Pelvis/Torso", "property": "position"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso:rotation", "node": "Visual/Skeleton2D/Pelvis/Torso", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso/Head:rotation", "node": "Visual/Skeleton2D/Pelvis/Torso/Head", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso/UpperArmFront:position", "node": "Visual/Skeleton2D/Pelvis/Torso/UpperArmFront", "property": "position"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso/UpperArmFront:rotation", "node": "Visual/Skeleton2D/Pelvis/Torso/UpperArmFront", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso/UpperArmFront/ForearmFront:rotation", "node": "Visual/Skeleton2D/Pelvis/Torso/UpperArmFront/ForearmFront", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso/UpperArmBack:rotation", "node": "Visual/Skeleton2D/Pelvis/Torso/UpperArmBack", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/Torso/UpperArmBack/ForearmBack:rotation", "node": "Visual/Skeleton2D/Pelvis/Torso/UpperArmBack/ForearmBack", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/ThighFront:rotation", "node": "Visual/Skeleton2D/Pelvis/ThighFront", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/ThighFront/ShinFront:rotation", "node": "Visual/Skeleton2D/Pelvis/ThighFront/ShinFront", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/ThighFront/ShinFront/FootFront:rotation", "node": "Visual/Skeleton2D/Pelvis/ThighFront/ShinFront/FootFront", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/ThighBack:rotation", "node": "Visual/Skeleton2D/Pelvis/ThighBack", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/ThighBack/ShinBack:rotation", "node": "Visual/Skeleton2D/Pelvis/ThighBack/ShinBack", "property": "rotation"},
-	{"path": "Visual/Skeleton2D/Pelvis/ThighBack/ShinBack/FootBack:rotation", "node": "Visual/Skeleton2D/Pelvis/ThighBack/ShinBack/FootBack", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis:position", "node": "Visual/PoseRoot/Skeleton2D/Pelvis", "property": "position"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso:position", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso", "property": "position"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/Head:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/Head", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmFront:position", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmFront", "property": "position"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmFront:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmFront", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmFront/ForearmFront:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmFront/ForearmFront", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmBack:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmBack", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmBack/ForearmBack:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/Torso/UpperArmBack/ForearmBack", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighFront:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighFront", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighFront/ShinFront:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighFront/ShinFront", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighFront/ShinFront/FootFront:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighFront/ShinFront/FootFront", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighBack:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighBack", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighBack/ShinBack:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighBack/ShinBack", "property": "rotation"},
+	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighBack/ShinBack/FootBack:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis/ThighBack/ShinBack/FootBack", "property": "rotation"},
 ]
 
 const CLIPS := [
