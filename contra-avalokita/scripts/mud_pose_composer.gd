@@ -285,11 +285,12 @@ func apply_action() -> void:
 	weight = smoothstep(0.0,attack_blend_in,t) * (1.0-smoothstep(clip.length*recovery_start,clip.length,t))
 	var pelvis := character.skeleton.get_node("Pelvis") as Bone2D
 	var is_unarmed_stationary: bool = not character.is_armed() and character.state == &"Idle" and character.is_on_floor()
+	var pelvis_base := pelvis.transform
 	var legs: Dictionary = {}
 	if not is_unarmed_stationary:
 		for side in ["Front","Back"]:
 			var leg := pelvis.get_node("Thigh"+side) as Bone2D
-			legs[leg] = leg.global_transform
+			legs[leg] = leg.transform
 	for track in clip.get_track_count():
 		if clip.track_get_type(track) != Animation.TYPE_VALUE or not clip.track_is_enabled(track): continue
 		var target := String(clip.track_get_path(track)).split(":")
@@ -336,7 +337,11 @@ func apply_action() -> void:
 	if not is_unarmed_stationary:
 		var active_damping: float = 0.12 * weight if (not character.is_armed() and character.state in [&"Walk", &"Run"]) else 0.0
 		for leg in legs:
-			leg.global_transform = legs[leg]
+			# Preserve the authored thigh pose in Skeleton-local space while pelvis
+			# twists are layered on top. Avoid assigning a global transform below
+			# Visual's negative X scale; Transform2D decomposition is not mirror-safe.
+			var leg_base: Transform2D = legs[leg]
+			leg.transform = pelvis.transform.affine_inverse() * pelvis_base * leg_base
 			if active_damping > 0.0:
 				leg.rotation = lerpf(leg.rotation, 0.0, active_damping)
 	if character.is_armed() and character.weapons.current.weapon_class == "blade":
@@ -350,8 +355,10 @@ func apply_blade_footwork(duration: float) -> void:
 	var rolls: Dictionary = {}
 	for side in ["Front","Back"]:
 		var foot := pelvis.get_node("Thigh%s/Shin%s/Foot%s" % [side,side,side]) as Bone2D
-		feet[side] = character.visual.to_local(foot.global_position)
-		rolls[side] = foot.global_rotation-character.visual.global_rotation
+		var foot_origin_visual := character.visual.to_local(foot.to_global(Vector2.ZERO))
+		var foot_axis_visual := character.visual.to_local(foot.to_global(Vector2.RIGHT)) - foot_origin_visual
+		feet[side] = foot_origin_visual
+		rolls[side] = foot_axis_visual.angle()
 	if character.combo_stage != last_action_stage or character.attack_time < last_action_time:
 		footwork_lead = "Front" if feet["Front"].x >= feet["Back"].x else "Back"
 	last_action_time = character.attack_time
@@ -372,24 +379,35 @@ func apply_blade_footwork(duration: float) -> void:
 		var thigh := pelvis.get_node("Thigh"+side) as Bone2D
 		var shin := thigh.get_node("Shin"+side) as Bone2D
 		var foot := shin.get_node("Foot"+side) as Bone2D
-		var hip := character.visual.to_local(thigh.global_position)
+		var target_global := character.visual.to_global(feet[side])
+		var target_in_pelvis := pelvis.to_local(target_global)
 		var reach := (shin.position.length()+foot.position.length())*.997
-		var dx: float = feet[side].x-hip.x
-		pelvis.position.y += maxf(0.0,feet[side].y-sqrt(maxf(1.0,reach*reach-dx*dx))-hip.y)
+		var dx: float = target_in_pelvis.x-thigh.position.x
+		pelvis.position.y += maxf(0.0,target_in_pelvis.y-sqrt(maxf(1.0,reach*reach-dx*dx))-thigh.position.y)
 	for side in feet:
 		var thigh := pelvis.get_node("Thigh"+side) as Bone2D
 		var shin := thigh.get_node("Shin"+side) as Bone2D
 		var foot := shin.get_node("Foot"+side) as Bone2D
-		var hip := character.visual.to_local(thigh.global_position)
-		var delta: Vector2 = feet[side]-hip
+		# Convert the target once into Pelvis-local space, then solve the whole
+		# chain locally. Visual owns mirroring; the bone solution is identical
+		# for facing left and right.
+		var target_global := character.visual.to_global(feet[side])
+		var target_in_pelvis := pelvis.to_local(target_global)
+		var delta: Vector2 = target_in_pelvis-thigh.position
 		var a := shin.position.length()
 		var b := foot.position.length()
 		var d := clampf(delta.length(),absf(a-b)+.01,a+b-.01)
 		var bend := PI-acos(clampf((a*a+b*b-d*d)/(2*a*b),-1,1))
 		var direction := atan2(-delta.x,delta.y)-acos(clampf((a*a+d*d-b*b)/(2*a*d),-1,1))
-		thigh.rotation = direction-(pelvis.global_rotation-character.visual.global_rotation)
+		thigh.rotation = direction
 		shin.rotation = bend
-		foot.rotation = rolls[side]-direction-bend
+		# Carry the desired foot direction into Pelvis space as a vector. Angles
+		# derived from global_rotation are ambiguous below a mirrored parent.
+		var roll_axis_visual := Vector2.RIGHT.rotated(float(rolls[side]))
+		var roll_origin_pelvis := pelvis.to_local(character.visual.to_global(Vector2.ZERO))
+		var roll_tip_pelvis := pelvis.to_local(character.visual.to_global(roll_axis_visual))
+		var desired_pelvis_roll := (roll_tip_pelvis-roll_origin_pelvis).angle()
+		foot.rotation = desired_pelvis_roll-thigh.rotation-shin.rotation
 
 func apply_reaction(_delta: float) -> void:
 	if not character or not character.has_reaction(): return

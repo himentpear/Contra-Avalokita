@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://content/base/items/coyote/dear_cruel_gravity.tres" id="2"]
+[resource]
+script = ExtResource("1")
+id = &"base:dear_cruel_gravity"
+content_type = &"item"
+display_name = "致冷酷的重力"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+resource = ExtResource("2")

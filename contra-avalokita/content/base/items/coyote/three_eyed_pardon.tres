@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CoyoteItem" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/coyote_item.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"base:three_eyed_pardon"
+display_name = "三目阎罗赦令"
+rarity = &"EPIC"
+mechanical_text = "土狼时间 +0.04 秒。\n跳跃输入缓冲 +0.05 秒。"
+flavor_text = "一目见生，一目见死，第三目准你迟到片刻。"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+modifiers = {&"coyote_time_bonus": 0.04, &"jump_buffer_time_bonus": 0.05}

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CoyoteItem" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/coyote_item.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"base:hermes_winged_boots"
+display_name = "赫尔墨斯的翼靴"
+rarity = &"RARE"
+mechanical_text = "未堕状态下起跳时，\n跳跃力量提高 10%。"
+flavor_text = "大地的判决，对神使而言总要迟上一瞬。"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+modifiers = {&"coyote_vertical_jump_multiplier": 1.10}

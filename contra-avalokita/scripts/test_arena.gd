@@ -3,6 +3,15 @@ extends Node2D
 const CHARACTER := preload("res://scenes/mud_character.tscn")
 const DUMMY := preload("res://scripts/training_dummy.gd")
 const Glyphs := preload("res://scripts/six_realm_glyphs.gd")
+const ITEM_PICKUP := preload("res://scripts/coyote_item_pickup.gd")
+const ENEMY_CONTROLLER := preload("res://scripts/training_enemy_controller.gd")
+const COYOTE_ITEMS: Array[CoyoteItem] = [
+	preload("res://content/base/items/coyote/wile_glance.tres"),
+	preload("res://content/base/items/coyote/suspended_absurdity.tres"),
+	preload("res://content/base/items/coyote/hermes_winged_boots.tres"),
+	preload("res://content/base/items/coyote/dear_cruel_gravity.tres"),
+	preload("res://content/base/items/coyote/three_eyed_pardon.tres"),
+]
 const MAIN_DECK_SURFACE_Y := 138.0
 const HELIPAD_SURFACE_Y := 124.0
 
@@ -11,17 +20,22 @@ var background_node: Node2D
 var geometry_node: Node2D
 var hud_layer: CanvasLayer
 var tactical_overlay: Control
+var item_gallery: Control
 var camera: Camera2D
 
 var player: MudCharacter
 var scoring_enemy: MudCharacter
 var dummy: Node2D
 var crowd: Array[MudCharacter] = []
+var real_enemies: Array[MudCharacter] = []
+var item_pickups: Array[CoyoteItemPickup] = []
 var crowd_mode := 0
 var details_menu_open := false
 var elapsed := 0.0
 var frame := 0
 var font: Font
+var pickup_notice := ""
+var pickup_notice_left := 0.0
 
 @export var camera_shake_enabled := false
 var camera_shake_offset := Vector2.ZERO
@@ -42,10 +56,11 @@ func _enter_tree() -> void:
 	bind("weapon_none", [KEY_2])
 	bind("debug_rig", [KEY_F1])
 	bind("toggle_details", [KEY_F5])
+	bind("toggle_coyote_items", [KEY_F6])
 	bind("crowd", [KEY_T])
 	bind("reset", [KEY_R])
 	bind("kill", [KEY_K])
-	bind("score_target", [KEY_F3])
+	bind("spawn_enemy", [KEY_F3])
 	bind("score_realm", [KEY_F4])
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
@@ -116,18 +131,26 @@ func _ready() -> void:
 	platform(Vector2(16, 144), Vector2(16, 288))
 	platform(Vector2(878, 144), Vector2(16, 288))
 
+	# Unified wall-movement course: both faces can be grabbed, slid and jumped.
+	training_platform(Vector2(548, 95), Vector2(18, 86))
+	training_platform(Vector2(716, 95), Vector2(18, 86))
+	training_platform(Vector2(632, 53), Vector2(186, 14))
+
 	# 1.3 Characters & Targets
 	player = CHARACTER.instantiate()
 	player.name = "Player"
 	# Character collision capsule bottom is at position.y + 2.0 -> Y=136 rests at surface Y=138
-	player.position = Vector2(250, MAIN_DECK_SURFACE_Y - 2.0)
+	player.position = Vector2(300, MAIN_DECK_SURFACE_Y - 2.0)
 	world_node.add_child(player)
+	player.movement_assist_debug = false
 
 	dummy = Node2D.new()
 	dummy.name = "Dummy"
 	dummy.set_script(DUMMY)
 	dummy.position = Vector2(411, MAIN_DECK_SURFACE_Y - 2.0)
 	world_node.add_child(dummy)
+
+	spawn_item_pickups()
 
 	var npc := CHARACTER.instantiate() as MudCharacter
 	npc.name = "NPC"
@@ -165,6 +188,11 @@ func _ready() -> void:
 	tactical_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tactical_overlay.draw.connect(_on_tactical_hud_draw)
 	hud_layer.add_child(tactical_overlay)
+	item_gallery = preload("res://ui/items/coyote_item_gallery.tscn").instantiate()
+	item_gallery.position = Vector2(48, 58)
+	item_gallery.scale = Vector2.ONE * 0.68
+	item_gallery.visible = false
+	hud_layer.add_child(item_gallery)
 
 func platform(center: Vector2, size: Vector2) -> StaticBody2D:
 	var body := StaticBody2D.new()
@@ -179,6 +207,55 @@ func platform(center: Vector2, size: Vector2) -> StaticBody2D:
 	else:
 		add_child(body)
 	return body
+
+func training_platform(center: Vector2, size: Vector2) -> StaticBody2D:
+	var body := platform(center, size)
+	var visual_rect := Polygon2D.new()
+	visual_rect.polygon = PackedVector2Array([
+		-size*0.5, Vector2(size.x*0.5, -size.y*0.5), size*0.5, Vector2(-size.x*0.5, size.y*0.5)
+	])
+	visual_rect.color = Color("40554d")
+	visual_rect.z_index = -2
+	body.add_child(visual_rect)
+	return body
+
+func spawn_item_pickups() -> void:
+	for pickup in item_pickups:
+		if is_instance_valid(pickup): pickup.queue_free()
+	item_pickups.clear()
+	for i in COYOTE_ITEMS.size():
+		var pickup := ITEM_PICKUP.new() as CoyoteItemPickup
+		pickup.name = "ItemPickup_%02d" % (i+1)
+		pickup.item = COYOTE_ITEMS[i]
+		pickup.content_id = COYOTE_ITEMS[i].id
+		pickup.position = Vector2(62.0+i*47.0, MAIN_DECK_SURFACE_Y-14.0)
+		pickup.collected.connect(_on_item_collected)
+		world_node.add_child(pickup)
+		item_pickups.append(pickup)
+
+func _on_item_collected(item: CoyoteItem) -> void:
+	pickup_notice = "获得道具："+item.display_name+"  //  "+item.mechanical_text.replace("\n", " ")
+	pickup_notice_left = 2.8
+
+func spawn_real_enemy() -> MudCharacter:
+	var enemy := CHARACTER.instantiate() as MudCharacter
+	enemy.name = "TrainingEnemy_%02d" % (real_enemies.size()+1)
+	enemy.player_controlled = false
+	enemy.score_profile = preload("res://resources/grunt_score.tres")
+	enemy.score_credit_enabled = true
+	enemy.max_health = 45.0
+	var desired_x := player.position.x+player.facing*155.0
+	enemy.position = Vector2(clampf(desired_x, 330.0, 500.0), MAIN_DECK_SURFACE_Y-2.0)
+	world_node.add_child(enemy)
+	enemy.body_renderer.mud_color = Color("87505a")
+	enemy.add_to_group(&"training_enemy")
+	var controller := ENEMY_CONTROLLER.new() as TrainingEnemyController
+	controller.name = "EnemyController"
+	controller.actor = enemy
+	controller.target = player
+	enemy.add_child(controller)
+	real_enemies.append(enemy)
+	return enemy
 
 func spawn_score_target() -> void:
 	if is_instance_valid(scoring_enemy): scoring_enemy.queue_free()
@@ -225,6 +302,7 @@ func trigger_camera_shake(dir: Vector2, amp: float, duration: float = 0.08) -> v
 func _process(delta: float) -> void:
 	elapsed += delta
 	frame += 1
+	pickup_notice_left = maxf(0.0, pickup_notice_left-delta)
 
 	# Camera integer pixel tracking
 	if is_instance_valid(player) and is_instance_valid(camera):
@@ -249,7 +327,9 @@ func _process(delta: float) -> void:
 	# Controls & shortcuts
 	if Input.is_action_just_pressed("toggle_details"):
 		details_menu_open = not details_menu_open
-	if Input.is_action_just_pressed("score_target"): spawn_score_target()
+	if Input.is_action_just_pressed("toggle_coyote_items"):
+		item_gallery.visible = not item_gallery.visible
+	if Input.is_action_just_pressed("spawn_enemy"): spawn_real_enemy()
 	if Input.is_action_just_pressed("score_realm"):
 		var ks := _get_score_system()
 		if ks: ks.realm = (ks.realm + 1) % 6
@@ -259,9 +339,12 @@ func _process(delta: float) -> void:
 	if player.state == &"Dead" and (Input.is_action_just_pressed("jump") or Input.is_action_just_pressed("attack")):
 		player.rise()
 	if Input.is_action_just_pressed("reset"):
-		player.position = Vector2(250, MAIN_DECK_SURFACE_Y - 2.0)
+		player.position = Vector2(300, MAIN_DECK_SURFACE_Y - 2.0)
 		player.velocity = Vector2.ZERO
 		player.revive()
+		player.item_inventory.clear()
+		for pickup in item_pickups:
+			if is_instance_valid(pickup): pickup.reset_pickup()
 
 	for i in crowd.size():
 		var npc := crowd[i]
@@ -311,13 +394,19 @@ func _on_tactical_hud_draw() -> void:
 	if player.rig.debug_draw:
 		var gait_phase := player.anim_player.current_animation_position / maxf(player.anim_player.current_animation_length, .001)
 		var action_phase := player.attack_time / maxf(player.attack_duration, .001) if player.is_attacking() else 0.0
-		tactical_overlay.draw_rect(Rect2(16, 56, 380, 44), Color(0.05, 0.09, 0.11, 0.85))
+		tactical_overlay.draw_rect(Rect2(16, 56, 440, 60), Color(0.05, 0.09, 0.11, 0.85))
 		tactical_overlay.draw_string(font, Vector2(22, 70), "MOVE %s  ACT %s  GAIT %.2f  ATK %.2f" % [player.state, player.action_state, gait_phase, action_phase], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("e0e7cc"))
 		tactical_overlay.draw_string(font, Vector2(22, 83), "FLOOR %s  VY %.1f   GREEN: BASE  PINK: ACTION  GOLD: PELVIS" % [str(player.is_on_floor()), player.velocity.y], HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("81947e"))
+		var assist := player.movement_assist
+		tactical_overlay.draw_string(font, Vector2(22, 96), "UNFALLEN %.3f / %.3f  BUFFER %.3f / %.3f  GRAV %.2f  CAN %s  LAST %s" % [
+			assist.get_coyote_remaining(), assist.get_effective_coyote_time(),
+			assist.jump_buffer_remaining, assist.get_effective_jump_buffer_time(),
+			assist.get_gravity_multiplier(), str(player.is_on_floor() or assist.has_active_coyote_window()), String(assist.source_name())
+		], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("e6f0cf") if assist.is_unfallen() else Color("71827b"))
 		# Wall & Spine deformation debug row
 		var spine_w := player.pose_composer.spine_controller.spine_wall_weight if (player.pose_composer and player.pose_composer.spine_controller) else 0.0
 		if player.is_wall_attached() or player.wall_action != &"None" or spine_w > 0.01:
-			tactical_overlay.draw_string(font, Vector2(22, 96),
+			tactical_overlay.draw_string(font, Vector2(22, 109),
 				"WALL %s  SPINE_WEIGHT %.2f  ACTION %s  SIDE %+.0f" % [
 					String(player.wall_action), spine_w, String(player.action_state), player.wall_side
 				], HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("ffd467"))

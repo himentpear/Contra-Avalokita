@@ -14,4 +14,6 @@
 
 场景中的 `PoseValidation` 使用 `mud_pose_reference_validator.gd`。编辑器配置警告会逐属性比较 Bone2D 场景变换、`rest` 和 RESET；也可调用 `validate_reference_pose()` 立即输出 `[PoseValidation] Reference pose drift` 错误。
 
+刀剑步法 IK 的脚目标先保存在 `Visual` 局部坐标，再一次性转换到 `Pelvis` 局部坐标。之后大腿、小腿和脚腕只写局部旋转；脚腕朝向通过局部方向向量转换。IK 中禁止读取 `global_rotation`，也禁止在负 X 镜像的 `Visual` 下写入骨骼 `global_transform`。左右朝向只由 `Visual.scale.x` 镜像，同一组局部骨架结果必须完全一致。
+
 如需重新执行结构迁移，可运行 `Godot --headless --path . --script tools/refactor_mud_reference_pose.gd`。该工具只以现有 `rest` 为参考，不会把当前预览姿势定义成新基线。

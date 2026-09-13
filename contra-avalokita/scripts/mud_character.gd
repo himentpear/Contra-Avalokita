@@ -8,6 +8,9 @@ signal footstep(side: StringName)
 signal landed(impact_speed: float, hard: bool)
 signal wall_action_changed(previous: StringName, current: StringName)
 signal wall_jumped(direction: Vector2)
+signal unfallen_started(duration: float)
+signal unfallen_ended
+signal jump_executed(source: MudMovementAssist.JumpSource)
 @export var jump_squat_duration := 0.075
 @export var takeoff_duration := 0.075
 @export var minimum_landing_air_time := 0.08
@@ -15,6 +18,11 @@ signal wall_jumped(direction: Vector2)
 @export var hard_landing_speed := 280.0
 @export var apex_threshold := 35.0
 @export var landing_recovery_duration := 0.07
+@export_group("Movement Assist")
+@export_range(0.0, 0.40, 0.005) var base_coyote_time := 0.10
+@export_range(0.0, 0.30, 0.005) var base_jump_buffer_time := 0.08
+@export var movement_assist_debug := false
+@export_group("")
 var air_time := 0.0
 var last_air_velocity_y := 0.0
 var jump_phase: StringName = &"Grounded"
@@ -22,6 +30,9 @@ var jump_squat_left := 0.0
 var landing_left := 0.0
 var landing_animation: StringName = &""
 var grounded_resume_phase := 0.0
+var movement_assist := MudMovementAssist.new()
+var item_inventory := MudItemInventory.new()
+var pending_jump_source := MudMovementAssist.JumpSource.NONE
 
 @export_group("Wall Movement")
 @export var wall_slide_speed := 58.0
@@ -180,6 +191,8 @@ func _update_wall_after_move() -> void:
 func _start_wall_jump() -> void:
 	if not is_wall_attached() or wall_side == 0.0:
 		return
+	movement_assist.suppress_ground_departure()
+	movement_assist.jump_buffer_remaining = 0.0
 	velocity = Vector2(wall_side * wall_stick_speed, 0.0)
 	wall_hang_left = 0.0
 	_set_wall_action(&"WallPush")
@@ -509,6 +522,12 @@ var _flight_stretch_timer := 0.0
 
 func _ready() -> void:
 	health = max_health
+	movement_assist.configure(base_coyote_time, base_jump_buffer_time)
+	item_inventory.changed.connect(_recompute_movement_modifiers)
+	movement_assist.unfallen_started.connect(func(duration: float) -> void: unfallen_started.emit(duration))
+	movement_assist.unfallen_ended.connect(func() -> void: unfallen_ended.emit())
+	movement_assist.jump_executed.connect(func(source: MudMovementAssist.JumpSource) -> void: jump_executed.emit(source))
+	_recompute_movement_modifiers()
 	$Hurtbox.set_meta("owner_character", self)
 	weapons.owner_character = self
 	if weapons.current: weapons.current.set_meta("owner_character", self)
@@ -587,9 +606,78 @@ func _ready() -> void:
 func set_intent(direction: float, jump := false, attack := false, block := false) -> void:
 	if state == &"Dead": return
 	move_intent = clampf(direction, -1, 1)
+	if jump:
+		movement_assist.register_jump_input()
 	jump_requested = jump_requested or jump
 	attack_requested = attack_requested or attack
 	block_requested = block
+
+func _recompute_movement_modifiers() -> void:
+	movement_assist.apply_modifiers(item_inventory.aggregate_movement_modifiers())
+
+func obtain_item(item: CoyoteItem) -> void:
+	item_inventory.obtain(item)
+
+func remove_item(item_id: StringName) -> void:
+	item_inventory.remove(item_id)
+
+func obtain_content_item(content_id: StringName) -> bool:
+	if not has_node("/root/ContentRegistry"): return false
+	var registry := get_node("/root/ContentRegistry")
+	var definition: ContentDefinition = registry.call("get_content", content_id) as ContentDefinition
+	if definition == null or not definition.resource is CoyoteItem: return false
+	obtain_item(definition.resource as CoyoteItem)
+	return true
+
+func is_unfallen() -> bool:
+	return movement_assist.is_unfallen()
+
+func _draw() -> void:
+	if movement_assist_debug and movement_assist.is_unfallen():
+		draw_line(Vector2(-6.0, 3.0), Vector2(6.0, 3.0), Color(1.0, 1.0, 1.0, 0.72), 1.0)
+		draw_arc(Vector2.ZERO, 4.0, 0.0, TAU, 16, Color(1.0, 1.0, 1.0, 0.58), 1.0)
+
+func has_active_coyote_window() -> bool:
+	return movement_assist.has_active_coyote_window()
+
+func get_effective_coyote_time() -> float:
+	return movement_assist.get_effective_coyote_time()
+
+func get_effective_jump_buffer_time() -> float:
+	return movement_assist.get_effective_jump_buffer_time()
+
+func _is_coyote_source(source: MudMovementAssist.JumpSource) -> bool:
+	return source in [MudMovementAssist.JumpSource.COYOTE, MudMovementAssist.JumpSource.BUFFERED_COYOTE]
+
+func _perform_jump(source: MudMovementAssist.JumpSource) -> void:
+	var is_coyote := _is_coyote_source(source)
+	var vertical_multiplier := movement_assist.coyote_vertical_jump_multiplier if is_coyote else 1.0
+	velocity.y = jump_velocity * vertical_multiplier
+	if is_coyote and absf(velocity.x) > 0.01:
+		# Boost only launch momentum. Normal aerial acceleration remains responsible
+		# for subsequent velocity and pulls it back toward the ordinary speed policy.
+		var launch_cap := move_speed * movement_assist.coyote_horizontal_jump_multiplier
+		velocity.x = clampf(velocity.x * movement_assist.coyote_horizontal_jump_multiplier, -launch_cap, launch_cap)
+	jump_squat_left = 0.0
+	landing_left = 0.0
+	air_time = 0.0
+	pending_jump_source = MudMovementAssist.JumpSource.NONE
+	movement_assist.report_jump_executed(source)
+
+func _try_start_assisted_jump(grounded: bool) -> bool:
+	var source := movement_assist.resolve_jump_source(grounded)
+	if source == MudMovementAssist.JumpSource.NONE:
+		return false
+	movement_assist.consume_jump(source)
+	if source == MudMovementAssist.JumpSource.GROUND:
+		pending_jump_source = source
+		jump_squat_left = jump_squat_duration
+		landing_left = 0.0
+		if state in [&"Walk", &"Run"]:
+			grounded_resume_phase = anim_player.current_animation_position / maxf(anim_player.current_animation_length, .001)
+	else:
+		_perform_jump(source)
+	return true
 
 func die() -> void:
 	if state == &"Dead": return
@@ -611,6 +699,8 @@ func die() -> void:
 	_set_wall_action(&"None")
 	pose_composer.base_pose.clear()
 	jump_requested = false
+	pending_jump_source = MudMovementAssist.JumpSource.NONE
+	movement_assist.reset(false)
 	attack_requested = false
 	reaction_state = &"None"
 	reaction_time = 0.0
@@ -640,6 +730,8 @@ func rise() -> void:
 	hit_stop_duration = 0.0
 	move_intent = 0.0
 	jump_requested = false
+	pending_jump_source = MudMovementAssist.JumpSource.NONE
+	movement_assist.reset(false)
 	attack_requested = false
 	velocity = Vector2.ZERO
 	if weapons:
@@ -683,6 +775,8 @@ func revive(animated: bool = false) -> void:
 	pose_composer.base_pose.clear()
 	move_intent = 0.0
 	jump_requested = false
+	pending_jump_source = MudMovementAssist.JumpSource.NONE
+	movement_assist.reset(is_on_floor())
 	attack_requested = false
 	velocity = Vector2.ZERO
 	state = &"Idle"
@@ -809,6 +903,10 @@ func _physics_process(delta: float) -> void:
 	if is_instance_valid(pose_composer):
 		pose_composer.restore_base()
 
+	var grounded := is_on_floor()
+	var allow_coyote_departure := reaction_state not in [&"HeavyHit", &"Knockdown"] and wall_action == &"None"
+	movement_assist.observe_grounded(grounded, allow_coyote_departure)
+
 	if player_controlled:
 		var input_direction := Input.get_axis("move_left", "move_right")
 		if not Input.is_action_pressed("sprint"): input_direction *= walk_speed_ratio
@@ -832,7 +930,6 @@ func _physics_process(delta: float) -> void:
 		elif action_state == &"Block":
 			action_state = &"None"
 
-	var grounded := is_on_floor()
 	if grounded and state in [&"Walk",&"Run"] and anim_player.current_animation == get_state_animation(state):
 		grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
 	landing_left = maxf(0.0,landing_left-delta)
@@ -849,19 +946,18 @@ func _physics_process(delta: float) -> void:
 		atk_mult *= 0.35
 	velocity.x = move_toward(velocity.x, move_intent * move_speed * atk_mult, acceleration * delta)
 	if move_intent != 0 and not is_attacking() and not is_blocking(): facing = signf(move_intent)
-	if not grounded: velocity.y += gravity * delta
+	if not grounded: velocity.y += gravity * movement_assist.get_gravity_multiplier() * delta
 	_update_wall_before_move(delta)
 	if jump_requested and is_wall_attached():
 		_start_wall_jump()
-	elif jump_requested and grounded and jump_squat_left <= 0:
-		jump_squat_left = jump_squat_duration
-		landing_left = 0.0
-		if state in [&"Walk",&"Run"]:
-			grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
+	elif jump_squat_left <= 0:
+		_try_start_assisted_jump(grounded)
 	if jump_squat_left > 0:
 		jump_squat_left = maxf(0.0,jump_squat_left-delta)
 		if not grounded: jump_squat_left = 0.0
-		elif jump_squat_left == 0: velocity.y = jump_velocity
+		elif jump_squat_left == 0 and pending_jump_source != MudMovementAssist.JumpSource.NONE:
+			_perform_jump(pending_jump_source)
+	movement_assist.advance(delta, grounded, allow_coyote_departure)
 	if not grounded or velocity.y < 0: last_air_velocity_y = velocity.y
 	if attack_requested:
 		if not is_attacking() and (grounded or allow_air_attack):
@@ -874,6 +970,13 @@ func _physics_process(delta: float) -> void:
 	attack_requested = false
 	move_and_slide()
 	_update_wall_after_move()
+	var grounded_after_move := is_on_floor()
+	movement_assist.observe_grounded(grounded_after_move, allow_coyote_departure and wall_action == &"None")
+	# A stored input becomes a buffered-ground jump on the exact air-to-ground
+	# transition. It launches immediately instead of replaying the normal squat.
+	if not grounded and grounded_after_move:
+		_try_start_assisted_jump(true)
+	movement_assist.finish_step()
 	land_time = maxf(0, land_time - delta)
 	_contact_squash_timer = maxf(0.0, _contact_squash_timer - delta)
 	_flight_stretch_timer = maxf(0.0, _flight_stretch_timer - delta)
@@ -904,6 +1007,7 @@ func _physics_process(delta: float) -> void:
 
 func _sync_visual(delta: float) -> void:
 	if not is_instance_valid(visual) or not is_instance_valid(body_renderer): return
+	if movement_assist_debug: queue_redraw()
 	if rig:
 		body_renderer.modifier_debug_draw = rig.debug_draw
 	impact_accent_offset = impact_accent_offset.move_toward(Vector2.ZERO, delta * 30.0)
