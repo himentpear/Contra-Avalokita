@@ -18,6 +18,8 @@ var trail_remaining := 0.0
 var previous_grip := Vector2.ZERO
 var previous_blade := Vector2.ZERO
 @export var damage := 10.0
+@export var combo_impacts: Array[float] = [0.50, 0.75, 1.30]
+@export_enum("punch", "slash", "pierce", "blunt", "bullet", "shotgun", "explosion") var feedback_weapon_type := "slash"
 @export var grip_scale := 1.0
 @export var stretch_multiplier := 1.0
 @export var enable_camera_shake := false
@@ -142,35 +144,27 @@ func _on_area_entered(area: Area2D) -> void:
 	event.damage = damage
 	event.direction = dir
 	event.attacker_velocity = actor_vel
-	event.weapon_type = &"blade"
+	event.weapon_type = StringName(feedback_weapon_type)
+	event.impact = combo_impacts[attack_stage] if attack_stage < combo_impacts.size() else 1.0
+	event.hit_index = hit_targets.size() - 1
 	event.impact_point = area.global_position if is_instance_valid(area) else global_position
 	event.poise_damage = damage * 1.6
 	event.impact_force = clampf(damage * 7.5, 70.0, 180.0)
 	event.hit_type = &"HeavyHit" if damage >= 20.0 else &"LightHit"
 	event.hit_region = &"UPPER_TORSO"
 	if event.hit_type == &"HeavyHit":
-		event.impact_strength = 1.0
-		event.hit_stop_frames = 2
-		event.hit_stop_duration = 0.066
 		event.target_push_distance = 4.0
 		event.attacker_drag_ratio = 0.50
 		event.camera_shake_strength = 0.0
 	else:
-		event.impact_strength = 0.6
-		event.hit_stop_frames = 1
-		event.hit_stop_duration = 0.033
 		event.target_push_distance = 2.4
 		event.attacker_drag_ratio = 0.40
 		event.camera_shake_strength = 0.0
 
 	impact_flash_point = event.impact_point
-	impact_flash_timer = event.hit_stop_duration + 0.033
+	impact_flash_timer = 0.066
 
 	if is_instance_valid(actor):
-		if "hit_stop_duration" in actor:
-			actor.hit_stop_duration = event.hit_stop_duration
-		if "hit_stop_ticks" in actor:
-			actor.hit_stop_ticks = event.hit_stop_frames
 		if "hit_drag_timer" in actor:
 			actor.hit_drag_timer = 0.10
 		if "hit_drag_ratio" in actor:

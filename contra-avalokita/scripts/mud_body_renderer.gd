@@ -10,6 +10,9 @@ const MAX_MODIFIERS := 16
 @export var render_bounds := Rect2(-80, -104, 160, 128)
 @export_range(0.5, 2.0) var edge_width := 1.0
 @export_range(0.0, 0.05) var surface_noise := 0.025
+@export_group("Hit Feedback")
+@export var hit_flash_color := Color.WHITE
+var hit_flash_amount := 0.0
 @export_group("Proportions")
 @export var head_radius := 8.2
 @export var body_radius := 9.0
@@ -206,6 +209,17 @@ func sync_depth_materials() -> void:
 	for material in depth_materials:
 		for uniform in shared_uniforms:
 			material.set_shader_parameter(uniform,shader_material.get_shader_parameter(uniform))
+
+func set_hit_flash(amount: float, color: Color = hit_flash_color) -> void:
+	hit_flash_amount = clampf(amount, 0.0, 1.0)
+	hit_flash_color = color
+	if not is_instance_valid(shader_material):
+		return
+	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
+	for material in depth_materials:
+		material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+		material.set_shader_parameter("hit_flash_color", hit_flash_color)
 
 func cache_bones(skeleton: Skeleton2D) -> void:
 	if not skeleton: return
@@ -513,6 +527,8 @@ func _upload_segments() -> void:
 	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
 	shader_material.set_shader_parameter("impact_params", Vector4(impact_center.x, impact_center.y, impact_radius, impact_depth))
 	shader_material.set_shader_parameter("impact_bulge", Vector4(impact_bulge_center.x, impact_bulge_center.y, impact_bulge_radius, impact_bulge_height))
@@ -535,6 +551,8 @@ func sync(rig: MudRig) -> void:
 	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
 	shader_material.set_shader_parameter("impact_params", Vector4(impact_center.x, impact_center.y, impact_radius, impact_depth))
 	shader_material.set_shader_parameter("impact_bulge", Vector4(impact_bulge_center.x, impact_bulge_center.y, impact_bulge_radius, impact_bulge_height))

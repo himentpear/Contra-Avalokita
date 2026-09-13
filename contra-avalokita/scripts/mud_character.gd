@@ -239,6 +239,7 @@ var attack_requested := false
 @export var punch_animations := PackedStringArray(["Punch/Attack_1", "Punch/Attack_2", "Punch/Attack_3"])
 @export var punch_windows: Array[Vector2] = [Vector2(0.06, 0.18), Vector2(0.08, 0.22), Vector2(0.10, 0.26)]
 @export var punch_damages: Array[float] = [7.0, 9.0, 12.0]
+@export var punch_impacts: Array[float] = [0.50, 0.75, 1.30]
 @export var punch_combo_buffer_start := 0.12
 @export var enable_camera_shake := false
 var punch_hit_targets: Array[int] = []
@@ -264,6 +265,14 @@ var reaction_intensity := 1.0
 var reaction_region: StringName = &"UPPER_TORSO"
 var reaction_impact_local := Vector2.ZERO
 var hit_stop_duration := 0.0
+var local_time_scale := 1.0
+@export_group("Hit Flash")
+@export_range(0.01, 0.30, 0.005) var hit_flash_duration := 0.090
+@export_range(0.0, 1.0, 0.05) var hit_flash_peak := 0.95
+@export var hit_flash_color := Color.WHITE
+var hit_flash_remaining := 0.0
+var _hit_flash_total := 0.0
+var _hit_flash_active_peak := 0.0
 var hit_drag_timer := 0.0
 var hit_drag_ratio := 0.40
 var reaction_push_offset := Vector2.ZERO
@@ -279,6 +288,19 @@ func is_blocking() -> bool:
 
 func is_attacking() -> bool:
 	return action_state.begins_with("Attack")
+
+## Unified local-time seam used by HitstopManager. Animation playback is manual
+## in this character, while movement/combat/SDF all consume the scaled delta.
+func set_local_time_scale(scale: float) -> void:
+	local_time_scale = maxf(scale, 0.0)
+	if anim_player:
+		anim_player.speed_scale = local_time_scale
+	if local_time_scale <= 0.0:
+		hit_stop_duration = INF
+		hit_stop_ticks = maxi(hit_stop_ticks, 1)
+	else:
+		hit_stop_duration = 0.0
+		hit_stop_ticks = 0
 
 func attack_animation() -> StringName:
 	if is_armed():
@@ -366,15 +388,15 @@ func _on_punch_area_entered(area: Area2D) -> void:
 	event.damage = dmg
 	event.direction = Vector2(facing, 0.0)
 	event.attacker_velocity = velocity
-	event.weapon_type = &"unarmed"
+	event.weapon_type = &"punch"
+	event.impact = punch_impacts[combo_stage] if combo_stage < punch_impacts.size() else 1.0
+	event.hit_index = punch_hit_targets.size() - 1
 	event.impact_point = punch_hitbox.global_position
 	if combo_stage == 0:
 		event.hit_type = &"LightHit"
 		event.poise_damage = 12.0
 		event.impact_force = 55.0
 		event.hit_region = &"HEAD"
-		event.hit_stop_duration = 0.033
-		event.hit_stop_frames = 1
 		event.target_push_distance = 1.8
 		event.attacker_drag_ratio = 0.35
 		event.camera_shake_strength = 0.0
@@ -383,8 +405,6 @@ func _on_punch_area_entered(area: Area2D) -> void:
 		event.poise_damage = 18.0
 		event.impact_force = 90.0
 		event.hit_region = &"UPPER_TORSO"
-		event.hit_stop_duration = 0.033
-		event.hit_stop_frames = 1
 		event.target_push_distance = 2.5
 		event.attacker_drag_ratio = 0.40
 		event.camera_shake_strength = 0.0
@@ -393,14 +413,10 @@ func _on_punch_area_entered(area: Area2D) -> void:
 		event.poise_damage = 35.0
 		event.impact_force = 135.0
 		event.hit_region = &"HEAD"
-		event.hit_stop_duration = 0.066
-		event.hit_stop_frames = 2
 		event.target_push_distance = 4.0
 		event.attacker_drag_ratio = 0.50
 		event.camera_shake_strength = 0.0
 
-	hit_stop_duration = event.hit_stop_duration
-	hit_stop_ticks = event.hit_stop_frames
 	hit_drag_timer = 0.10
 	hit_drag_ratio = event.attacker_drag_ratio
 	impact_accent_offset = Vector2(-facing * 1.0, 0.0)
@@ -613,6 +629,8 @@ func die() -> void:
 func rise() -> void:
 	score_life_id += 1
 	if state != &"Dead": return
+	_clear_managed_hitstop()
+	_clear_hit_flash()
 	health = max_health
 	stability = max_stability
 	reaction_state = &"None"
@@ -636,6 +654,8 @@ func rise() -> void:
 
 func revive(animated: bool = false) -> void:
 	score_life_id += 1
+	_clear_managed_hitstop()
+	_clear_hit_flash()
 	if animated and state == &"Dead":
 		rise()
 		return
@@ -764,14 +784,14 @@ func transition(next: StringName) -> void:
 
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
+	_update_hit_flash(delta)
+	if local_time_scale <= 0.0:
+		_sync_visual(0.0)
+		return
+	delta *= local_time_scale
 	if state == &"Dead":
 		if death_controller:
 			death_controller.update(delta)
-		_sync_visual(delta)
-		return
-
-	if hit_stop_duration > 0.0:
-		hit_stop_duration = maxf(0.0, hit_stop_duration - delta)
 		_sync_visual(delta)
 		return
 
@@ -956,6 +976,7 @@ func receive_hit(hit_data: Variant) -> void:
 		event = HitEvent.from_damage(float(hit_data.damage), Vector2(-facing, 0.0))
 	else:
 		event = HitEvent.new()
+	event.victim = self
 	
 	# Frontal Block Check
 	var is_frontal: bool = (event.direction.x * facing) <= 0.1
@@ -964,16 +985,21 @@ func receive_hit(hit_data: Variant) -> void:
 		var block_poise_mult := 0.30 if is_armed() else 0.50
 		var actual_dmg := event.damage * block_dmg_mult
 		health = maxf(health - actual_dmg, 0.0)
+		event.damage_dealt = actual_dmg
+		event.is_blocked = true
 		damaged.emit(actual_dmg)
 		var ks := _get_kill_score()
 		if ks: ks.record_hit(self,event,actual_dmg)
 		preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,actual_dmg)
 		if health <= 0.0:
+			event.is_kill = true
+			_request_confirmed_hitstop(event)
 			die()
 			return
 		stability = maxf(0.0, stability - event.poise_damage * block_poise_mult)
 		stability_cooldown_timer = stability_recovery_cooldown
 		if stability <= 0.0:
+			event.is_armor_break = true
 			# Guard Broken! Heavy stagger
 			reaction_state = &"HeavyHit"
 			if event.hit_type not in [&"HeavyHit", &"Knockdown"] and ks: ks.note_heavy_hit(self)
@@ -993,7 +1019,6 @@ func receive_hit(hit_data: Variant) -> void:
 			reaction_intensity = 1.0
 			# "手臂可以后退，脚不要跟着滑。脚是锚。"
 			reaction_push_offset = Vector2.ZERO
-			hit_stop_duration = 0.033
 			if is_armed():
 				if weapons and weapons.current:
 					weapons.current.impact_flash_point = global_position + Vector2(facing * 20.0, -23.0)
@@ -1001,15 +1026,19 @@ func receive_hit(hit_data: Variant) -> void:
 					weapons.current.queue_redraw()
 			elif splatter:
 				splatter.burst(global_position + Vector2(facing * 8.0, -32.0), 3)
+		_request_confirmed_hitstop(event)
 		return
 
 	health = maxf(health - event.damage, 0.0)
+	event.damage_dealt = event.damage
 	damaged.emit(event.damage)
 	var ks := _get_kill_score()
 	if ks: ks.record_hit(self,event,event.damage)
 	preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,event.damage)
 	
 	if health <= 0.0:
+		event.is_kill = true
+		_request_confirmed_hitstop(event)
 		die()
 		return
 		
@@ -1017,6 +1046,7 @@ func receive_hit(hit_data: Variant) -> void:
 	stability = maxf(0.0, stability - event.poise_damage)
 	stability_cooldown_timer = stability_recovery_cooldown
 	var poise_broken: bool = stability <= 0.0
+	event.is_armor_break = poise_broken
 	
 	# Determine reaction tier
 	var tier: StringName = event.hit_type
@@ -1040,7 +1070,6 @@ func receive_hit(hit_data: Variant) -> void:
 	reaction_direction = event.direction
 	reaction_region = event.hit_region
 	reaction_intensity = clampf(event.impact_force / 80.0, 0.5, 2.2)
-	hit_stop_duration = event.hit_stop_duration
 	
 	# Target Instant Push-First linear displacement along attack direction
 	reaction_push_offset = event.direction * event.target_push_distance
@@ -1085,3 +1114,55 @@ func receive_hit(hit_data: Variant) -> void:
 		combo_queued = false
 		if punch_hitbox:
 			punch_hitbox.monitoring = false
+	_request_confirmed_hitstop(event)
+
+
+func _request_confirmed_hitstop(event: HitEvent) -> void:
+	trigger_hit_flash(event)
+	var manager := get_node_or_null("/root/HitstopManager")
+	if manager:
+		manager.request_hitstop(event)
+
+
+func _clear_managed_hitstop() -> void:
+	var manager := get_node_or_null("/root/HitstopManager")
+	if manager:
+		manager.clear_actor_stop(self)
+	else:
+		set_local_time_scale(1.0)
+
+
+func trigger_hit_flash(event: HitData = null) -> void:
+	var authored_impact := event.impact if event else 1.0
+	var intensity := hit_flash_peak * clampf(0.65 + authored_impact * 0.25, 0.65, 1.0)
+	if event and event.is_blocked:
+		intensity *= 0.70
+	if event and (event.is_critical or event.is_kill or event.is_armor_break or event.is_parry):
+		intensity = hit_flash_peak
+	var duration_scale := clampf(0.85 + authored_impact * 0.15, 0.85, 1.15)
+	var duration := hit_flash_duration * duration_scale
+	hit_flash_remaining = maxf(hit_flash_remaining, duration)
+	_hit_flash_total = maxf(_hit_flash_total, hit_flash_remaining)
+	_hit_flash_active_peak = maxf(_hit_flash_active_peak, intensity)
+	if body_renderer:
+		body_renderer.set_hit_flash(_hit_flash_active_peak, hit_flash_color)
+
+
+func _update_hit_flash(delta: float) -> void:
+	if hit_flash_remaining <= 0.0:
+		return
+	hit_flash_remaining = maxf(0.0, hit_flash_remaining - delta)
+	var weight := pow(hit_flash_remaining / maxf(_hit_flash_total, 0.001), 0.65)
+	if body_renderer:
+		body_renderer.set_hit_flash(_hit_flash_active_peak * weight, hit_flash_color)
+	if hit_flash_remaining == 0.0:
+		_hit_flash_total = 0.0
+		_hit_flash_active_peak = 0.0
+
+
+func _clear_hit_flash() -> void:
+	hit_flash_remaining = 0.0
+	_hit_flash_total = 0.0
+	_hit_flash_active_peak = 0.0
+	if body_renderer:
+		body_renderer.set_hit_flash(0.0, hit_flash_color)

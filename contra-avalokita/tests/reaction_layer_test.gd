@@ -116,7 +116,7 @@ func run() -> void:
 	# Head hit from front (dir = LEFT when facing RIGHT)
 	var head_hit := HitEvent.new(8.0, Vector2.LEFT, Vector2.ZERO, 60.0, 15.0, &"LightHit", &"unarmed", &"HEAD")
 	p.receive_hit(head_hit)
-	await ticks(3) # Peak recoil window
+	await ticks(6) # Local hitstop completes before the independent reaction advances.
 	check(p.has_reaction(), "Head reaction active during peak window")
 	check(head_bone.rotation != initial_head_rot, "Head bone rotates under head hit reaction: rot=%.3f" % head_bone.rotation)
 	await ticks(15)

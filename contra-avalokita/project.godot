@@ -24,6 +24,7 @@ Settings="*res://core/settings/settings_manager.gd"
 SaveManager="*res://core/save/save_manager.gd"
 CommandRegistry="*res://core/debug/command_registry.gd"
 Console="*res://ui/console/console.tscn"
+HitstopManager="*res://scripts/combat/hitstop_manager.gd"
 
 [display]
 

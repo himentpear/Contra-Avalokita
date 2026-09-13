@@ -1,9 +1,11 @@
 extends Node2D
+const HitDataType = preload("res://scripts/combat/hit_data.gd")
 var hit_count := 0
 var flash := 0.0
 
 var react_offset := Vector2.ZERO
 var react_tilt := 0.0
+var local_time_scale := 1.0
 var react_time := 0.0
 var react_duration := 0.0
 var react_type := ""
@@ -27,7 +29,7 @@ func receive_hit(hit_data: Variant) -> void:
 	var damage: float = hit_data.damage if (hit_data is Object and "damage" in hit_data) else float(hit_data)
 	hit_count += 1
 	preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,damage,Vector2(0,-63))
-	flash = 0.15
+	flash = maxf(flash, 0.12)
 	if damage <= 7.5:
 		react_type = "jab"
 		react_duration = 0.14
@@ -46,8 +48,16 @@ func receive_hit(hit_data: Variant) -> void:
 		react_time = react_duration
 		react_offset = Vector2(3.0, 0.0)
 		react_tilt = -0.12
+	if hit_data is HitDataType:
+		hit_data.victim = self
+		var manager := get_node_or_null("/root/HitstopManager")
+		if manager:
+			manager.request_hitstop(hit_data)
 
 func _process(delta: float) -> void:
+	if local_time_scale <= 0.0:
+		return
+	delta *= local_time_scale
 	flash = maxf(0, flash - delta)
 	if react_time > 0:
 		react_time = maxf(0, react_time - delta)
@@ -65,9 +75,13 @@ func _process(delta: float) -> void:
 		react_tilt = 0.0
 	queue_redraw()
 
+func set_local_time_scale(scale: float) -> void:
+	local_time_scale = maxf(scale, 0.0)
+
 func _draw() -> void:
 	draw_set_transform(react_offset, react_tilt, Vector2.ONE)
-	var color := Color("f0dc9a") if flash > 0 else Color("826447")
+	var flash_weight := clampf(flash / 0.08, 0.0, 1.0)
+	var color := Color("826447").lerp(Color.WHITE, flash_weight)
 	draw_rect(Rect2(-3, -57, 6, 57), Color("433e35"))
 	draw_rect(Rect2(-14, -43, 28, 7), Color("554937"))
 	draw_rect(Rect2(-9, -51, 18, 32), Color("252e2b"))
