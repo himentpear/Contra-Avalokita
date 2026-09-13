@@ -25,13 +25,13 @@
 size = Vector2(24, 600)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
-size = Vector2(800, 20)
+size = Vector2(795, 20)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_legacy_floor"]
 size = Vector2(1563, 38)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_coyote_lower"]
-size = Vector2(560, 32)
+size = Vector2(614, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ledge_120"]
 size = Vector2(120, 32)
@@ -108,17 +108,21 @@ screen_atmosphere = NodePath("../ScreenFX/ScreenAtmosphere")
 
 [node name="FarBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=479807024]
 z_index = -90
+texture_filter = 2
 scroll_scale = Vector2(0.12, 1)
 repeat_size = Vector2(869, 0)
 repeat_times = 10
 
 [node name="StationBG" type="Sprite2D" parent="World/BackgroundWorld/FarBackground" unique_id=1507301451]
-position = Vector2(0, -101)
+texture_filter = 2
+position = Vector2(-3.0000005, -179)
+scale = Vector2(1.143132, 1.1198556)
 texture = ExtResource("11_bg")
 centered = false
 
 [node name="DistantStructures" type="Parallax2D" parent="World/BackgroundWorld" unique_id=1949508087]
 z_index = -70
+texture_filter = 1
 scroll_scale = Vector2(0.25, 1)
 
 [node name="DistantGirders" type="Line2D" parent="World/BackgroundWorld/DistantStructures" unique_id=1625468270]
@@ -129,6 +133,7 @@ default_color = Color(0.12, 0.15, 0.18, 0.8)
 
 [node name="MidBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=420486540]
 z_index = -50
+texture_filter = 1
 scroll_scale = Vector2(0.5, 1)
 
 [node name="MidFramework" type="Line2D" parent="World/BackgroundWorld/MidBackground" unique_id=1340449893]
@@ -171,6 +176,7 @@ default_color = Color(0.831, 0.855, 0.878, 1)
 position = Vector2(400, 148)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/BaselineFloor" unique_id=1641260356]
+position = Vector2(-2.5, 0)
 shape = SubResource("RectangleShape2D_floor")
 
 [node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/BaselineFloor" unique_id=266993757]
@@ -208,12 +214,13 @@ default_color = Color(0.831, 0.855, 0.878, 1)
 position = Vector2(1130, 176)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/CoyoteLowerFloor" unique_id=1597960122]
+position = Vector2(-27, 0)
 shape = SubResource("RectangleShape2D_coyote_lower")
 
 [node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/CoyoteLowerFloor" unique_id=983923161]
 z_index = -5
 color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-280, -16, 280, -16, 280, 16, -280, 16)
+polygon = PackedVector2Array(-335, -16, 280, -16, 280, 16, -280, 16)
 
 [node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/CoyoteLowerFloor" unique_id=1513381264]
 z_index = -4
@@ -888,7 +895,7 @@ z_index = 65
 scroll_scale = Vector2(1.22, 1)
 
 [node name="Column1" parent="World/ForegroundWorld/FrontOccluders" unique_id=545032566 instance=ExtResource("8_col")]
-position = Vector2(700, 0)
+position = Vector2(1308, 7)
 
 [node name="Column2" parent="World/ForegroundWorld/FrontOccluders" unique_id=1248922997 instance=ExtResource("8_col")]
 position = Vector2(2800, 0)
@@ -903,18 +910,20 @@ color = Color(0.85, 0.88, 0.9, 1)
 [node name="BackgroundLights" type="Node2D" parent="World/Lighting" unique_id=2136445501]
 
 [node name="GameplayLights" type="Node2D" parent="World/Lighting" unique_id=296259483]
+position = Vector2(-55, -114)
 
 [node name="StationLamp1" parent="World/Lighting/GameplayLights" unique_id=1812388797 instance=ExtResource("6_lamp")]
 position = Vector2(400, 40)
 
 [node name="StationLamp2" parent="World/Lighting/GameplayLights" unique_id=1765438574 instance=ExtResource("6_lamp")]
-position = Vector2(1620, 40)
+position = Vector2(1701, 42)
 
 [node name="ForegroundLights" type="Node2D" parent="World/Lighting" unique_id=1925239011]
 
 [node name="DynamicLights" type="Node2D" parent="World/Lighting" unique_id=902792502]
 
 [node name="EnvironmentFX" type="Node2D" parent="World" unique_id=554945510]
+texture_filter = 1
 
 [node name="FarFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=1329359975]
 z_index = -85
@@ -1033,6 +1042,7 @@ color = Color(0, 0, 0, 0)
 layer = 20
 
 [node name="HUD" type="Control" parent="UI" unique_id=1906953062]
+visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

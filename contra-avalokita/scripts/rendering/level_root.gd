@@ -35,10 +35,16 @@ extends Node2D
 @export var environment_controller: LevelEnvironmentController
 @export_group("")
 
+enum RenderPolicy {
+	PIXEL_STRICT,
+	SUBPIXEL_WORLD
+}
+
 @export var player: MudCharacter
 
 func _ready() -> void:
 	_resolve_domain_references()
+	apply_render_policies()
 	
 	# Register with Game Session if active
 	var game := get_node_or_null("/root/Game")
@@ -48,6 +54,52 @@ func _ready() -> void:
 	# Connect camera follow target to player
 	if is_instance_valid(camera_rig) and is_instance_valid(player):
 		camera_rig.follow_target = player
+
+func apply_render_policies() -> void:
+	# PIXEL_STRICT: GameplayWorld preserves crisp pixel-art texels without bilinear blurring
+	if is_instance_valid(gameplay_world):
+		gameplay_world.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	
+	# SUBPIXEL_WORLD: FarBackground and distant layers use LINEAR / LINEAR_WITH_MIPMAPS
+	# for continuous subpixel interpolation during slow parallax motion
+	if is_instance_valid(background_world):
+		var far_bg: CanvasItem = background_world.get_node_or_null("FarBackground") as CanvasItem
+		if far_bg:
+			far_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		
+		var dist_struct: CanvasItem = background_world.get_node_or_null("DistantStructures") as CanvasItem
+		if dist_struct:
+			dist_struct.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		
+		var mid_bg: CanvasItem = background_world.get_node_or_null("MidBackground") as CanvasItem
+		if mid_bg:
+			mid_bg.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		
+		var near_bg: CanvasItem = background_world.get_node_or_null("NearBackground") as CanvasItem
+		if near_bg:
+			near_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	# Environment FX: particles and volumetric atmospheric haze use LINEAR for continuous motion
+	if is_instance_valid(environment_fx):
+		for channel in ["FarFX", "MidFX", "GameplayWorldFX", "NearFX"]:
+			var fx_node: CanvasItem = environment_fx.get_node_or_null(channel) as CanvasItem
+			if fx_node:
+				fx_node.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+
+	# Foreground world
+	if is_instance_valid(foreground_world):
+		var near_fg: CanvasItem = foreground_world.get_node_or_null("NearForeground") as CanvasItem
+		if near_fg:
+			near_fg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		var front_occ: CanvasItem = foreground_world.get_node_or_null("FrontOccluders") as CanvasItem
+		if front_occ:
+			front_occ.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	# UI: Pixel-strict UI rendering
+	if is_instance_valid(ui):
+		for child in ui.get_children():
+			if child is CanvasItem:
+				(child as CanvasItem).texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func _resolve_domain_references() -> void:
 	if not world: world = get_node_or_null("World")

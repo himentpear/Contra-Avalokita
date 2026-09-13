@@ -49,11 +49,11 @@ func _process(delta: float) -> void:
 	# 1. Target Tracking
 	if is_instance_valid(follow_target):
 		var target_pos := follow_target.global_position
-		camera.global_position.x = round(lerpf(camera.global_position.x, target_pos.x, 1.0 - exp(-follow_speed * delta)))
+		camera.global_position.x = lerpf(camera.global_position.x, target_pos.x, 1.0 - exp(-follow_speed * delta))
 		if lock_y:
 			camera.global_position.y = fixed_y
 		else:
-			camera.global_position.y = round(lerpf(camera.global_position.y, clampf(target_pos.y - 20.0, camera.limit_top + 180.0, camera.limit_bottom - 180.0), 1.0 - exp(-follow_speed * 0.5 * delta)))
+			camera.global_position.y = lerpf(camera.global_position.y, clampf(target_pos.y - 20.0, camera.limit_top + 180.0, camera.limit_bottom - 180.0), 1.0 - exp(-follow_speed * 0.5 * delta))
 	
 	# 2. Directed Shake calculation
 	var current_offset := Vector2.ZERO
@@ -61,7 +61,7 @@ func _process(delta: float) -> void:
 		shake_timer = maxf(0.0, shake_timer - delta)
 		var p: float = shake_timer / shake_duration
 		var osc: float = cos((shake_duration - shake_timer) * 60.0) * shake_amp * p
-		current_offset += (shake_dir * osc).round()
+		current_offset += shake_dir * osc
 	
 	# 3. Trauma Shake calculation
 	if trauma > 0.0:
@@ -69,7 +69,7 @@ func _process(delta: float) -> void:
 		var shake_p := trauma * trauma
 		var noise_x := (randf() * 2.0 - 1.0) * max_shake_offset.x * shake_p
 		var noise_y := (randf() * 2.0 - 1.0) * max_shake_offset.y * shake_p
-		current_offset += Vector2(noise_x, noise_y).round()
+		current_offset += Vector2(noise_x, noise_y)
 		camera.rotation_degrees = (randf() * 2.0 - 1.0) * max_roll_degrees * shake_p
 	else:
 		camera.rotation_degrees = 0.0

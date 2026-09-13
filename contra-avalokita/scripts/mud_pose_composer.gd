@@ -24,6 +24,17 @@ var spine_controller := MudSpineController.new()
 func restore_base() -> void:
 	for pose_node in base_pose:
 		if is_instance_valid(pose_node): pose_node.transform = base_pose[pose_node]
+	if is_instance_valid(character) and character.skeleton:
+		for bone_ref in [
+			character._upper_arm_front_bone,
+			character._forearm_front_bone,
+			character._hand_front_bone,
+			character._upper_arm_back_bone,
+			character._forearm_back_bone,
+			character._hand_back_bone
+		]:
+			if is_instance_valid(bone_ref):
+				bone_ref.position = bone_ref.rest.origin
 
 func evaluate(delta: float) -> void:
 	var player := character.anim_player
@@ -331,7 +342,7 @@ func apply_action() -> void:
 		if character.hit_stop_duration > 0.0 or character.hit_drag_timer > 0.0:
 			var wrist: Bone2D = character._hand_front_bone if is_instance_valid(character._hand_front_bone) else null
 			if wrist:
-				wrist.position.x += -1.2 * weight
+				wrist.rotation += -0.06 * weight
 			torso.rotation += -0.06 * weight
 	# The shared pelvis twist must not rotate hip offsets, knees or planted feet during locomotion or blade attacks.
 	if not is_unarmed_stationary:
@@ -346,6 +357,15 @@ func apply_action() -> void:
 				leg.rotation = lerpf(leg.rotation, 0.0, active_damping)
 	if character.is_armed() and character.weapons.current.weapon_class == "blade":
 		apply_blade_footwork(clip.length)
+	# Enforce anatomical bone lengths: limb endpoints must never stretch
+	if is_instance_valid(character._hand_front_bone):
+		character._hand_front_bone.position = character._hand_front_bone.rest.origin
+	if is_instance_valid(character._forearm_front_bone):
+		character._forearm_front_bone.position = character._forearm_front_bone.rest.origin
+	if is_instance_valid(character._hand_back_bone):
+		character._hand_back_bone.position = character._hand_back_bone.rest.origin
+	if is_instance_valid(character._forearm_back_bone):
+		character._forearm_back_bone.position = character._forearm_back_bone.rest.origin
 
 func apply_blade_footwork(duration: float) -> void:
 	lower_body_weight = blade_footwork.influence(character.state) if character.is_on_floor() else 0.0
@@ -576,3 +596,14 @@ func _draw() -> void:
 		draw_circle(origin,1.6,color)
 		for child in bone.get_children():
 			if child is Bone2D: draw_line(origin,to_local(child.global_position),color,1.0)
+	var shoulder := character._upper_arm_front_bone
+	var elbow := character._forearm_front_bone
+	var hand := character._hand_front_bone
+	if is_instance_valid(shoulder) and is_instance_valid(elbow) and is_instance_valid(hand):
+		var sh_pos := to_local(shoulder.global_position)
+		var el_pos := to_local(elbow.global_position)
+		var h_pos := to_local(hand.global_position)
+		draw_circle(sh_pos, 2.5, Color.RED)
+		draw_circle(el_pos, 2.0, Color.YELLOW)
+		draw_circle(h_pos, 2.0, Color.CYAN)
+		draw_line(sh_pos, h_pos, Color.MAGENTA, 1.0)

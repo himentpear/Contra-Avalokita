@@ -896,6 +896,7 @@ func _physics_process(delta: float) -> void:
 	_update_hit_flash(delta)
 	if local_time_scale <= 0.0:
 		if is_instance_valid(pose_composer):
+			pose_composer.restore_base()
 			pose_composer.evaluate(0.0)
 		_sync_visual(0.0)
 		return

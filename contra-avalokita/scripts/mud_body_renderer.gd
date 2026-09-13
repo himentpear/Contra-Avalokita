@@ -282,6 +282,14 @@ func _solve_arm(id: String, upper_bone: Bone2D, fore_bone: Bone2D, hand_bone: Bo
 		joint = joint.lerp(pelvis_pos, retract)
 		end = end.lerp(pelvis_pos, retract)
 	
+	# Arm Reach Safety Clamp: preserve anatomical reach fuse
+	var upper_len := fore_bone.position.length()
+	var fore_len := hand_bone.position.length()
+	var max_reach := (upper_len + fore_len) * 0.98
+	var arm_delta := end - origin
+	if arm_delta.length() > max_reach and arm_delta.length_squared() > 0.001:
+		end = origin + arm_delta.normalized() * max_reach
+	
 	var u := (joint - origin).normalized()
 	if u.length_squared() < 0.001: u = Vector2.DOWN
 	var v := (end - joint).normalized()

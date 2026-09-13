@@ -66,6 +66,7 @@ screen_atmosphere = NodePath("../ScreenFX/ScreenAtmosphere")
 [node name="BackgroundWorld" type="Node2D" parent="World" unique_id=344041757]
 
 [node name="FarBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=1259646847]
+texture_filter = 2
 z_index = -90
 scroll_scale = Vector2(0.12, 1)
 
@@ -144,6 +145,7 @@ width = 1.5
 default_color = Color(0.1, 0.12, 0.14, 1)
 
 [node name="GameplayWorld" type="Node2D" parent="World" unique_id=925805585]
+texture_filter = 0
 
 [node name="StaticGeometry" type="Node2D" parent="World/GameplayWorld" unique_id=1732468009]
 

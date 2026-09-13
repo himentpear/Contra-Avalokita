@@ -120,8 +120,8 @@ func _get_score_system() -> Node:
 
 func _ready() -> void:
 	super._ready()
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	font = preload("res://assets/fonts/fusion-pixel-12px-proportional-zh_hans.otf")
+	apply_render_policies()
 	
 	if gameplay_world != null and (player != null or gameplay_world.has_node("Player")):
 		_setup_from_scene_tree()
@@ -650,7 +650,7 @@ func trigger_camera_shake(dir: Vector2, amp: float, duration: float = 0.08) -> v
 	camera_shake_amp = amp
 	camera_shake_duration = maxf(duration, 0.001)
 	camera_shake_timer = camera_shake_duration
-	camera_shake_offset = (camera_shake_dir * amp).round()
+	camera_shake_offset = camera_shake_dir * amp
 	if camera: camera.offset = camera_shake_offset
 
 func _process(delta: float) -> void:
@@ -662,14 +662,14 @@ func _process(delta: float) -> void:
 	# Camera tracking
 	if is_instance_valid(player) and is_instance_valid(camera):
 		var target_x := player.global_position.x
-		camera.global_position.x = round(lerpf(camera.global_position.x, target_x, 1.0 - exp(-12.0 * delta)))
+		camera.global_position.x = lerpf(camera.global_position.x, target_x, 1.0 - exp(-12.0 * delta))
 		camera.global_position.y = camera_center_y
 		
 		if camera_shake_enabled and camera_shake_timer > 0.0:
 			camera_shake_timer = maxf(0.0, camera_shake_timer - delta)
 			var p: float = camera_shake_timer / camera_shake_duration
 			var offset_val: float = cos((camera_shake_duration - camera_shake_timer) * 55.0) * camera_shake_amp * p
-			camera_shake_offset = (camera_shake_dir * offset_val).round()
+			camera_shake_offset = camera_shake_dir * offset_val
 			camera.offset = camera_shake_offset
 		else:
 			camera_shake_offset = Vector2.ZERO
