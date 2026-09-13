@@ -39,11 +39,22 @@ var pending_jump_source := MudMovementAssist.JumpSource.NONE
 @export var wall_hang_duration := 0.24
 @export var wall_stick_speed := 18.0
 @export var wall_grab_upward_limit := 85.0
+@export var wall_climb_jump_velocity := 245.0
+@export var wall_climb_detach_velocity := 55.0
 @export var wall_jump_horizontal_speed := 185.0
 @export var wall_jump_vertical_speed := 238.0
+@export var wall_kick_horizontal_velocity := 260.0
+@export var wall_kick_velocity := 205.0
 @export var wall_push_duration := 0.075
 @export var wall_release_duration := 0.14
-@export var wall_regrab_cooldown := 0.18
+@export_range(0.0, 0.30, 0.005) var wall_coyote_time := 0.12
+@export_range(0.0, 0.30, 0.005) var wall_detach_time := 0.14
+@export_range(0.0, 0.12, 0.005) var wall_detach_grace := 0.06
+@export_range(0.0, 0.30, 0.005) var wall_jump_control_lock_time := 0.10
+@export_range(0.0, 1.0, 0.05) var wall_jump_air_control := 0.25
+@export_range(0.0, 1.0, 0.01) var wall_input_deadzone := 0.10
+@export_range(0.0, 1.0, 0.01) var same_wall_reset_time := 0.40
+@export var wall_climb_decay := PackedFloat32Array([1.00, 0.75, 0.45, 0.0])
 @export_group("Wall IK")
 @export var wall_max_foot_lag := 7.0
 @export var wall_min_foot_below_hip := 5.0
@@ -53,6 +64,18 @@ var wall_side := 0.0
 var wall_action_time := 0.0
 var wall_hang_left := 0.0
 var wall_regrab_left := 0.0
+var wall_coyote_left := 0.0
+var wall_detach_left := 0.0
+var wall_jump_control_lock_left := 0.0
+var wall_detach_grace_left := 0.0
+var wall_coyote_side := 0.0
+var wall_coyote_collider_id := 0
+var same_wall_jump_count := 0
+var same_wall_collider_id := 0
+var same_wall_side := 0.0
+var same_wall_reset_left := 0.0
+var pending_wall_jump_kind: StringName = &"Standard"
+var pending_wall_launch := Vector2.ZERO
 var wall_surface_x := INF
 var wall_hand_anchor_y := 0.0
 var wall_foot_anchor_y := 0.0
@@ -88,7 +111,74 @@ func _contact_wall_side() -> float:
 	return -signf(normal.x)
 
 func _can_hold_wall(side: float) -> bool:
-	return side != 0.0 and move_intent * side > 0.1 and wall_regrab_left <= 0.0
+	return side != 0.0 and move_intent * side > wall_input_deadzone and wall_detach_left <= 0.0
+
+func _contact_wall_collider_id(side: float) -> int:
+	if side == 0.0:
+		return 0
+	for i in get_slide_collision_count():
+		var collision := get_slide_collision(i)
+		var normal := collision.get_normal()
+		if absf(normal.x) >= 0.7 and is_equal_approx(-signf(normal.x), side):
+			var collider := collision.get_collider()
+			if is_instance_valid(collider):
+				return collider.get_instance_id()
+	return 0
+
+func _same_wall_matches(collider_id: int, side: float) -> bool:
+	if same_wall_side == 0.0:
+		return false
+	if collider_id != 0 and same_wall_collider_id != 0:
+		return collider_id == same_wall_collider_id
+	return is_equal_approx(side, same_wall_side)
+
+func _reset_same_wall_tracking(collider_id := 0, side := 0.0) -> void:
+	same_wall_jump_count = 0
+	same_wall_collider_id = collider_id
+	same_wall_side = side
+	same_wall_reset_left = same_wall_reset_time if side != 0.0 else 0.0
+
+func _reset_wall_runtime() -> void:
+	wall_side = 0.0
+	wall_hang_left = 0.0
+	wall_regrab_left = 0.0
+	wall_coyote_left = 0.0
+	wall_detach_left = 0.0
+	wall_jump_control_lock_left = 0.0
+	wall_detach_grace_left = 0.0
+	wall_coyote_side = 0.0
+	wall_coyote_collider_id = 0
+	pending_wall_jump_kind = &"Standard"
+	pending_wall_launch = Vector2.ZERO
+	_reset_same_wall_tracking()
+	_set_wall_action(&"None")
+
+func _update_wall_memory(delta: float, grounded: bool) -> void:
+	wall_regrab_left = maxf(0.0, wall_regrab_left - delta)
+	wall_detach_left = maxf(0.0, wall_detach_left - delta)
+	wall_jump_control_lock_left = maxf(0.0, wall_jump_control_lock_left - delta)
+	if grounded:
+		wall_coyote_left = 0.0
+		wall_coyote_side = 0.0
+		wall_coyote_collider_id = 0
+		_reset_same_wall_tracking()
+		return
+
+	var side := _contact_wall_side()
+	if side != 0.0 and wall_detach_left <= 0.0:
+		var collider_id := _contact_wall_collider_id(side)
+		wall_coyote_left = wall_coyote_time
+		wall_coyote_side = side
+		wall_coyote_collider_id = collider_id
+		if same_wall_side == 0.0 or not _same_wall_matches(collider_id, side):
+			_reset_same_wall_tracking(collider_id, side)
+		else:
+			same_wall_reset_left = same_wall_reset_time
+	else:
+		wall_coyote_left = maxf(0.0, wall_coyote_left - delta)
+		same_wall_reset_left = maxf(0.0, same_wall_reset_left - delta)
+		if same_wall_reset_left <= 0.0:
+			_reset_same_wall_tracking()
 
 func _capture_wall_surface(side: float) -> void:
 	for i in get_slide_collision_count():
@@ -124,7 +214,6 @@ func _enter_wall_hang(side: float) -> void:
 
 
 func _update_wall_before_move(delta: float) -> void:
-	wall_regrab_left = maxf(0.0, wall_regrab_left - delta)
 	wall_action_time += delta
 	if is_on_floor():
 		wall_side = 0.0
@@ -134,9 +223,11 @@ func _update_wall_before_move(delta: float) -> void:
 	if wall_action == &"WallPush":
 		velocity = Vector2(wall_side * wall_stick_speed, 0.0)
 		if wall_action_time >= wall_push_duration:
-			var launch := Vector2(-wall_side * wall_jump_horizontal_speed, -wall_jump_vertical_speed)
+			var launch := pending_wall_launch
 			velocity = launch
-			wall_regrab_left = wall_regrab_cooldown
+			wall_detach_left = wall_detach_time
+			wall_regrab_left = wall_detach_time
+			wall_jump_control_lock_left = wall_jump_control_lock_time
 			_set_wall_action(&"WallRelease")
 			wall_jumped.emit(launch)
 		return
@@ -146,7 +237,13 @@ func _update_wall_before_move(delta: float) -> void:
 		return
 
 	var side := _contact_wall_side()
-	if not _can_hold_wall(side):
+	var wants_away := side != 0.0 and move_intent * side < -wall_input_deadzone
+	if is_wall_attached() and wants_away:
+		wall_detach_grace_left += delta
+	else:
+		wall_detach_grace_left = 0.0
+	var within_detach_grace := is_wall_attached() and wants_away and wall_detach_grace_left < wall_detach_grace
+	if not _can_hold_wall(side) and not within_detach_grace:
 		if is_wall_attached():
 			_set_wall_action(&"None")
 		return
@@ -188,9 +285,40 @@ func _update_wall_after_move() -> void:
 	if _can_hold_wall(side) and velocity.y >= -wall_grab_upward_limit:
 		_enter_wall_hang(side)
 
+func _can_start_wall_jump() -> bool:
+	return wall_detach_left <= 0.0 and (is_wall_attached() or wall_coyote_left > 0.0)
+
 func _start_wall_jump() -> void:
-	if not is_wall_attached() or wall_side == 0.0:
+	if not _can_start_wall_jump():
 		return
+	var launch_side := wall_side if is_wall_attached() and wall_side != 0.0 else wall_coyote_side
+	if launch_side == 0.0:
+		return
+	var collider_id := _contact_wall_collider_id(launch_side)
+	if collider_id == 0:
+		collider_id = wall_coyote_collider_id
+	if same_wall_side == 0.0 or not _same_wall_matches(collider_id, launch_side):
+		_reset_same_wall_tracking(collider_id, launch_side)
+
+	var input_relation := move_intent * launch_side
+	wall_side = launch_side
+	facing = launch_side
+	if input_relation > wall_input_deadzone:
+		pending_wall_jump_kind = &"Climb"
+		var decay := 1.0
+		if not wall_climb_decay.is_empty():
+			var decay_index := mini(same_wall_jump_count, wall_climb_decay.size() - 1)
+			decay = wall_climb_decay[decay_index]
+		pending_wall_launch = Vector2(-launch_side * wall_climb_detach_velocity, -wall_climb_jump_velocity * decay)
+		same_wall_jump_count += 1
+	elif input_relation < -wall_input_deadzone:
+		pending_wall_jump_kind = &"Kick"
+		pending_wall_launch = Vector2(-launch_side * wall_kick_horizontal_velocity, -wall_kick_velocity)
+	else:
+		pending_wall_jump_kind = &"Standard"
+		pending_wall_launch = Vector2(-launch_side * wall_jump_horizontal_speed, -wall_jump_vertical_speed)
+	same_wall_reset_left = same_wall_reset_time
+	wall_coyote_left = 0.0
 	movement_assist.suppress_ground_departure()
 	movement_assist.jump_buffer_remaining = 0.0
 	velocity = Vector2(wall_side * wall_stick_speed, 0.0)
@@ -707,10 +835,7 @@ func die() -> void:
 	landing_left = 0.0
 	air_time = 0.0
 	jump_phase = &"Grounded"
-	wall_side = 0.0
-	wall_hang_left = 0.0
-	wall_regrab_left = 0.0
-	_set_wall_action(&"None")
+	_reset_wall_runtime()
 	pose_composer.base_pose.clear()
 	jump_requested = false
 	pending_jump_source = MudMovementAssist.JumpSource.NONE
@@ -782,10 +907,7 @@ func revive(animated: bool = false) -> void:
 	landing_left = 0.0
 	air_time = 0.0
 	jump_phase = &"Grounded"
-	wall_side = 0.0
-	wall_hang_left = 0.0
-	wall_regrab_left = 0.0
-	_set_wall_action(&"None")
+	_reset_wall_runtime()
 	pose_composer.base_pose.clear()
 	move_intent = 0.0
 	jump_requested = false
@@ -923,6 +1045,7 @@ func _physics_process(delta: float) -> void:
 	var grounded := is_on_floor()
 	var allow_coyote_departure := reaction_state not in [&"HeavyHit", &"Knockdown"] and wall_action == &"None"
 	movement_assist.observe_grounded(grounded, allow_coyote_departure)
+	_update_wall_memory(delta, grounded)
 
 	if player_controlled:
 		var input_direction := Input.get_axis("move_left", "move_right")
@@ -961,11 +1084,13 @@ func _physics_process(delta: float) -> void:
 		atk_mult = guard_movement_multiplier
 	if reaction_state in [&"HeavyHit", &"Knockdown"]:
 		atk_mult *= 0.35
-	velocity.x = move_toward(velocity.x, move_intent * move_speed * atk_mult, acceleration * delta)
-	if move_intent != 0 and not is_attacking() and not is_blocking(): facing = signf(move_intent)
+	var horizontal_acceleration := acceleration * (wall_jump_air_control if wall_jump_control_lock_left > 0.0 else 1.0)
+	velocity.x = move_toward(velocity.x, move_intent * move_speed * atk_mult, horizontal_acceleration * delta)
+	if move_intent != 0 and not is_attacking() and not is_blocking() and wall_action == &"None": facing = signf(move_intent)
 	if not grounded: velocity.y += gravity * movement_assist.get_gravity_multiplier() * delta
 	_update_wall_before_move(delta)
-	if jump_requested and is_wall_attached():
+	var wall_jump_requested := jump_requested or movement_assist.has_buffered_jump()
+	if wall_jump_requested and _can_start_wall_jump():
 		_start_wall_jump()
 	elif jump_squat_left <= 0:
 		_try_start_assisted_jump(grounded)

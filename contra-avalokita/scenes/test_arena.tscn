@@ -553,7 +553,7 @@ width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
 [node name="StaircaseStep1" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=387237103]
-position = Vector2(2952, 48)
+position = Vector2(3067, 54)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep1" unique_id=1952882418]
 shape = SubResource("RectangleShape2D_plat_64")
@@ -570,7 +570,7 @@ width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
 [node name="StaircaseStep2" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1505576473]
-position = Vector2(3032, 80)
+position = Vector2(2661, 68)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep2" unique_id=13075682]
 shape = SubResource("RectangleShape2D_plat_64")
@@ -587,7 +587,7 @@ width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
 [node name="StaircaseStep3" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1214784985]
-position = Vector2(3112, 112)
+position = Vector2(2923, 146)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep3" unique_id=876755265]
 shape = SubResource("RectangleShape2D_plat_64")
@@ -887,18 +887,18 @@ position = Vector2(400, 136)
 z_index = 45
 scroll_scale = Vector2(1.1, 1)
 
+[node name="Column1" parent="World/ForegroundWorld/NearForeground" unique_id=545032566 instance=ExtResource("8_col")]
+position = Vector2(1308, 7)
+
 [node name="ForegroundPipes" parent="World/ForegroundWorld/NearForeground" unique_id=2093904741 instance=ExtResource("9_pipe")]
 position = Vector2(1400, 0)
+
+[node name="Column2" parent="World/ForegroundWorld/NearForeground" unique_id=1248922997 instance=ExtResource("8_col")]
+position = Vector2(1577, 12)
 
 [node name="FrontOccluders" type="Parallax2D" parent="World/ForegroundWorld" unique_id=2043171089]
 z_index = 65
 scroll_scale = Vector2(1.22, 1)
-
-[node name="Column1" parent="World/ForegroundWorld/FrontOccluders" unique_id=545032566 instance=ExtResource("8_col")]
-position = Vector2(1308, 7)
-
-[node name="Column2" parent="World/ForegroundWorld/FrontOccluders" unique_id=1248922997 instance=ExtResource("8_col")]
-position = Vector2(2800, 0)
 
 [node name="Lighting" type="Node2D" parent="World" unique_id=1097732201]
 

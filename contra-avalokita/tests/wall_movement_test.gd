@@ -132,8 +132,9 @@ func run() -> void:
 			break
 	check(saw_release, "WallPush transitions into WallRelease after the compression frames")
 	check(actor.anim_player.current_animation == &"Wall/Release", "WallRelease is driven by the editable Wall/Release AnimationPlayer clip")
-	check(actor.velocity.x < -actor.wall_jump_horizontal_speed * 0.75, "WallJump pushes away from the wall")
-	check(actor.velocity.y < -actor.wall_jump_vertical_speed * 0.75, "WallJump launches upward")
+	check(actor.pending_wall_jump_kind == &"Climb", "Toward-wall input selects Wall Climb Jump")
+	check(actor.velocity.x < -actor.wall_climb_detach_velocity * 0.75, "Wall Climb Jump applies a small away-from-wall detach")
+	check(actor.velocity.y < -actor.wall_climb_jump_velocity * 0.75, "First Wall Climb Jump launches upward at full strength")
 	check(actor.wall_regrab_left > 0.0, "WallJump opens a re-grab cooldown")
 	check(actor.jump_phase == &"WallRelease", "Wall release exposes its animation phase")
 	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side > 0.0, "WallRelease preserves the forward knee pole before returning to the airborne pose")
