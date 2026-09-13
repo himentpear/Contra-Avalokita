@@ -7206,6 +7206,18 @@ libraries/Wall = ExtResource("9_wall_anims")
 [node name="Visual" type="Node2D" parent="." unique_id=1034548773]
 z_index = 10
 
+[node name="LocalFXBehind" type="Node2D" parent="Visual"]
+z_index = -10
+z_as_relative = false
+
+[node name="LocalFXBody" type="Node2D" parent="Visual"]
+z_index = 10
+z_as_relative = false
+
+[node name="LocalFXFront" type="Node2D" parent="Visual"]
+z_index = 26
+z_as_relative = false
+
 [node name="MudBodyRenderer" type="Node2D" parent="Visual" unique_id=1110512731]
 script = ExtResource("2_i42qa")
 

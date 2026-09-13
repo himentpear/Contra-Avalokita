@@ -1,6 +1,26 @@
 class_name LevelRoot
 extends Node2D
 
+## Global 2D Scene Architecture Root
+##
+## ARCHITECTURAL SAFETY RULES:
+## 1. DirectionalLight2D Safety Rule:
+##    DirectionalLight2D must NOT be used when strict domain isolation depends only on
+##    range_item_cull_mask. Background/Game/Foreground isolation must use appropriately
+##    scoped PointLight2D nodes unless a deliberate global directional light is intended
+##    and audited for layer/z ranges.
+##
+## 2. Parallax Vertical Policy:
+##    X axis uses depth parallax (0.12x Far .. 1.22x Occluders).
+##    Y axis currently remains 1.0 across all parallax layers to maintain stable platform/horizon
+##    alignment during vertical camera motion. If a future vertical shaft/level requires vertical-depth
+##    parallax, it must be explicitly overridden per level.
+##
+## 3. LightMask & CanvasModulate Policy:
+##    CanvasItem.light_mask controls interaction with Light2D (via range_item_cull_mask).
+##    It does NOT bypass CanvasModulate. Bit 6 (32) is designated for EMISSIVE_VISUAL / SPECIAL_FX
+##    artwork and dedicated lighting interactions, not CanvasModulate exclusion.
+
 @export_group("Domain References")
 @export var world: Node2D
 @export var background_world: Node2D
@@ -47,7 +67,26 @@ func _resolve_domain_references() -> void:
 	if not player and gameplay_world:
 		player = gameplay_world.get_node_or_null("Player") as MudCharacter
 
-## Centralized VFX Spawning API
+## Spawns a character-attached effect that rigidly inherits the actor's transform
+func spawn_character_fx(character: Node2D, effect: Node2D, local_channel: VFXRouter.LocalChannel, local_offset: Vector2 = Vector2.ZERO) -> Node2D:
+	if runtime_fx:
+		return runtime_fx.spawn_character_fx(character, effect, local_channel, local_offset)
+	if character:
+		character.add_child(effect)
+		effect.position = local_offset
+		return effect
+	add_child(effect)
+	return effect
+
+## Spawns a world-space runtime effect that remains independent of actors
+func spawn_world_fx(effect: Node2D, world_channel: VFXRouter.WorldChannel, global_pos: Vector2) -> Node2D:
+	if runtime_fx:
+		return runtime_fx.spawn_world_fx(effect, world_channel, global_pos)
+	add_child(effect)
+	effect.global_position = global_pos
+	return effect
+
+## Centralized VFX Spawning API (legacy / unified)
 func spawn_fx(effect: Node2D, channel: VFXRouter.Channel, world_position: Vector2, parent_to_target: Node2D = null) -> Node2D:
 	if runtime_fx:
 		return runtime_fx.spawn_fx(effect, channel, world_position, parent_to_target)
@@ -62,6 +101,8 @@ func spawn_light_flash(world_position: Vector2, color: Color = Color.WHITE, ener
 	flash.energy = energy
 	flash.initial_energy = energy
 	flash.duration = duration
+	if runtime_fx:
+		return runtime_fx.spawn_world_fx(flash, VFXRouter.WorldChannel.DYNAMIC_LIGHT, world_position)
 	return spawn_fx(flash, VFXRouter.Channel.DYNAMIC_LIGHT, world_position)
 
 ## Centralized Camera Shake API

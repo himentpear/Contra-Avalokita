@@ -7,6 +7,8 @@ extends Node2D
 @export var max_shake_offset := Vector2(24.0, 16.0)
 @export var trauma_decay := 1.8
 @export var max_roll_degrees := 1.5
+@export var lock_y := false
+@export var fixed_y := 0.0
 
 var trauma := 0.0
 var shake_dir := Vector2.RIGHT
@@ -48,7 +50,10 @@ func _process(delta: float) -> void:
 	if is_instance_valid(follow_target):
 		var target_pos := follow_target.global_position
 		camera.global_position.x = round(lerpf(camera.global_position.x, target_pos.x, 1.0 - exp(-follow_speed * delta)))
-		camera.global_position.y = round(lerpf(camera.global_position.y, clampf(target_pos.y - 20.0, camera.limit_top + 180.0, camera.limit_bottom - 180.0), 1.0 - exp(-follow_speed * 0.5 * delta)))
+		if lock_y:
+			camera.global_position.y = fixed_y
+		else:
+			camera.global_position.y = round(lerpf(camera.global_position.y, clampf(target_pos.y - 20.0, camera.limit_top + 180.0, camera.limit_bottom - 180.0), 1.0 - exp(-follow_speed * 0.5 * delta)))
 	
 	# 2. Directed Shake calculation
 	var current_offset := Vector2.ZERO

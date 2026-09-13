@@ -1,4 +1,4 @@
-extends Node2D
+extends LevelRoot
 
 const CHARACTER := preload("res://scenes/mud_character.tscn")
 const DUMMY := preload("res://scripts/training_dummy.gd")
@@ -23,7 +23,7 @@ const TEST_KILL_Y := 480.0
 @export var camera_shake_enabled := false
 @export_group("")
 
-# Node references
+# Node references & domain aliases
 var world_node: Node2D
 var background_node: Node2D
 var geometry_node: Node2D
@@ -36,8 +36,7 @@ var item_console: PanelContainer
 var item_gallery: Control
 var camera: Camera2D
 
-# Actors & Entities
-var player: MudCharacter
+# Actors & Entities (player is inherited from LevelRoot)
 var dummy: Node2D # Persistent dummy for backward compatibility
 var stationary_dummy: CharacterBody2D
 var blocking_dummy: CharacterBody2D
@@ -91,7 +90,7 @@ func _enter_tree() -> void:
 	bind("crowd", [KEY_T])
 	bind("shake_toggle", [KEY_C])
 	
-	# Teleport hotkeys: 1-6 (numpad or top row with modifier/direct)
+	# Teleport hotkeys: 1-6
 	bind("tp_zone_1", [KEY_1])
 	bind("tp_zone_2", [KEY_2])
 	bind("tp_zone_3", [KEY_3])
@@ -120,55 +119,174 @@ func _get_score_system() -> Node:
 	return get_tree().get_first_node_in_group(&"score_system") if is_inside_tree() else null
 
 func _ready() -> void:
+	super._ready()
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	font = preload("res://assets/fonts/fusion-pixel-12px-proportional-zh_hans.otf")
 	
-	_build_world_hierarchy()
-	_build_geometry()
-	_setup_checkpoints()
-	_spawn_actors()
-	_build_camera()
-	_build_ui()
+	if gameplay_world != null and (player != null or gameplay_world.has_node("Player")):
+		_setup_from_scene_tree()
+	else:
+		# Programmatic fallback when instantiated as standalone TestArena.new()
+		_build_world_hierarchy()
+		_build_geometry()
+		_setup_checkpoints()
+		_spawn_actors()
+		_build_camera()
+		_build_ui()
 	
 	var game := get_node_or_null("/root/Game")
-	if game and is_instance_valid(game.current_session) and game.current_session.has_method("set_player"):
+	if game and is_instance_valid(game.current_session) and game.current_session.has_method("set_player") and is_instance_valid(player):
 		game.current_session.set_player(player)
+
+func _setup_from_scene_tree() -> void:
+	world_node = world
+	background_node = background_world
+	if gameplay_world:
+		geometry_node = gameplay_world.get_node_or_null("StaticGeometry")
+		markers_node = gameplay_world.get_node_or_null("Markers")
+		actors_node = gameplay_world.get_node_or_null("TestActors")
+		checkpoints_node = gameplay_world.get_node_or_null("Checkpoints")
+	
+	checkpoints = [
+		Vector2(400, 136),   # 1: Baseline & Symmetry
+		Vector2(900, 62),    # 2: Coyote Steps & Gravity Drop
+		Vector2(1620, 126),  # 3: Gaps & Precision Array
+		Vector2(2952, 30),   # 4: Jump Buffer & Height Wall
+		Vector2(3452, 158),  # 5: Wall Mechanics Tower
+		Vector2(3780, 158),  # 6: Combat Arena & Knockback
+	]
+	
+	if actors_node:
+		dummy = actors_node.get_node_or_null("Dummy")
+		stationary_dummy = actors_node.get_node_or_null("StationaryDummy")
+		blocking_dummy = actors_node.get_node_or_null("BlockingDummy")
+		damage_dummy = actors_node.get_node_or_null("DamageDummy")
+		knockback_dummy = actors_node.get_node_or_null("KnockbackDummy")
+		ledge_dummy = actors_node.get_node_or_null("LedgeDummy")
+	
+	item_pickups.clear()
+	var pickups_container: Node = gameplay_world.get_node_or_null("ItemPickups") if gameplay_world else null
+	if pickups_container:
+		for child in pickups_container.get_children():
+			item_pickups.append(child)
+			if child.has_signal("collected") and not child.collected.is_connected(_on_item_collected):
+				child.collected.connect(_on_item_collected)
+	
+	if not player and gameplay_world:
+		player = gameplay_world.get_node_or_null("Player") as MudCharacter
+	if player:
+		player.movement_assist_debug = true
+	
+	if camera_rig and camera_rig.camera:
+		camera = camera_rig.camera
+	else:
+		camera = get_node_or_null("CameraRig/Camera2D") as Camera2D
+	
+	hud_layer = ui
+	if ui:
+		tactical_overlay = ui.get_node_or_null("HUD/TacticalOverlay") as Control
+		if tactical_overlay and not tactical_overlay.draw.is_connected(_on_tactical_overlay_draw):
+			tactical_overlay.draw.connect(_on_tactical_overlay_draw)
+		
+		item_console = ui.get_node_or_null("HUD/ItemConsole") as PanelContainer
+		_wire_item_console()
+		
+		item_gallery = ui.get_node_or_null("HUD/ItemGallery") as Control
+
+func _wire_item_console() -> void:
+	if not is_instance_valid(item_console): return
+	for i in COYOTE_ITEMS.size():
+		var cb := item_console.find_child("ItemCheck_%d" % i, true, false) as CheckBox
+		if cb and not cb.toggled.is_connected(_on_item_check_toggled.bind(i)):
+			cb.toggled.connect(_on_item_check_toggled.bind(i))
+	
+	var btn_reset := item_console.find_child("BtnReset", true, false) as Button
+	if btn_reset and not btn_reset.pressed.is_connected(_on_console_reset_pressed):
+		btn_reset.pressed.connect(_on_console_reset_pressed)
+		
+	var btn_all := item_console.find_child("BtnAll", true, false) as Button
+	if btn_all and not btn_all.pressed.is_connected(_on_console_all_pressed):
+		btn_all.pressed.connect(_on_console_all_pressed)
+
+func _on_item_check_toggled(active: bool, index: int) -> void:
+	if not is_instance_valid(player) or index < 0 or index >= COYOTE_ITEMS.size(): return
+	var item := COYOTE_ITEMS[index]
+	if active and not player.item_inventory.has(item.id):
+		player.obtain_item(item)
+	elif not active and player.item_inventory.has(item.id):
+		player.remove_item(item.id)
+
+func _on_console_reset_pressed() -> void:
+	if is_instance_valid(player):
+		player.item_inventory.clear()
+		_refresh_item_console_checks()
+
+func _on_console_all_pressed() -> void:
+	if is_instance_valid(player):
+		for item in COYOTE_ITEMS:
+			player.obtain_item(item)
+		_refresh_item_console_checks()
+
+func has_station_background() -> bool:
+	var bg_parent: Node = background_world if background_world else background_node
+	if not bg_parent:
+		return false
+	for s in bg_parent.find_children("*", "Sprite2D", true, false):
+		var sprite := s as Sprite2D
+		if sprite and sprite.texture and sprite.texture.resource_path.ends_with("stationBG.png"):
+			return true
+	for t in bg_parent.find_children("*", "TextureRect", true, false):
+		var tr := t as TextureRect
+		if tr and tr.texture and tr.texture.resource_path.ends_with("stationBG.png"):
+			return true
+	return false
 
 func _build_world_hierarchy() -> void:
 	world_node = Node2D.new()
 	world_node.name = "World"
 	add_child(world_node)
+	world = world_node
 	
 	background_node = Node2D.new()
-	background_node.name = "Background"
+	background_node.name = "BackgroundWorld"
 	world_node.add_child(background_node)
+	background_world = background_node
 	
-	var solid_bg := Polygon2D.new()
-	solid_bg.name = "SolidColor"
-	solid_bg.polygon = PackedVector2Array([
-		Vector2(-600, -1400), Vector2(4800, -1400),
-		Vector2(4800, 800), Vector2(-600, 800)
-	])
-	solid_bg.color = background_color
-	solid_bg.z_index = -100
-	background_node.add_child(solid_bg)
+	var far_bg := Parallax2D.new()
+	far_bg.name = "FarBackground"
+	far_bg.scroll_scale = Vector2(0.12, 1.0)
+	far_bg.z_index = -90
+	far_bg.repeat_size = Vector2(869, 0)
+	far_bg.repeat_times = 10
+	background_node.add_child(far_bg)
+	
+	var bg_sprite := Sprite2D.new()
+	bg_sprite.name = "StationBG"
+	bg_sprite.texture = preload("res://scenes/levels/stationBG.png")
+	bg_sprite.position = Vector2(0, -60)
+	bg_sprite.centered = false
+	far_bg.add_child(bg_sprite)
+	
+	gameplay_world = Node2D.new()
+	gameplay_world.name = "GameplayWorld"
+	world_node.add_child(gameplay_world)
 	
 	geometry_node = Node2D.new()
-	geometry_node.name = "Geometry"
-	world_node.add_child(geometry_node)
+	geometry_node.name = "StaticGeometry"
+	gameplay_world.add_child(geometry_node)
 	
 	markers_node = Node2D.new()
 	markers_node.name = "Markers"
 	markers_node.z_index = -2
-	world_node.add_child(markers_node)
+	gameplay_world.add_child(markers_node)
 	
 	actors_node = Node2D.new()
 	actors_node.name = "TestActors"
-	world_node.add_child(actors_node)
+	gameplay_world.add_child(actors_node)
 	
 	checkpoints_node = Node2D.new()
 	checkpoints_node.name = "Checkpoints"
-	world_node.add_child(checkpoints_node)
+	gameplay_world.add_child(checkpoints_node)
 
 func platform(center: Vector2, size: Vector2, col: Color = Color("707882"), edge_col: Color = Color("d4dae0")) -> StaticBody2D:
 	var body := StaticBody2D.new()
@@ -335,7 +453,7 @@ func _spawn_actors() -> void:
 	player = CHARACTER.instantiate()
 	player.name = "Player"
 	player.position = checkpoints[0]
-	world_node.add_child(player)
+	gameplay_world.add_child(player)
 	player.movement_assist_debug = true
 	
 	# 2. Legacy Dummy for punch_attack_test & compatibility
@@ -384,6 +502,8 @@ func spawn_item_pickups() -> void:
 	for pickup in item_pickups:
 		if is_instance_valid(pickup): pickup.queue_free()
 	item_pickups.clear()
+	var parent_node: Node = gameplay_world.get_node_or_null("ItemPickups") if gameplay_world else null
+	if not parent_node: parent_node = gameplay_world if gameplay_world else (world_node if world_node else self)
 	for i in COYOTE_ITEMS.size():
 		var pickup: Node = ITEM_PICKUP.new()
 		pickup.name = "ItemPickup_%02d" % (i + 1)
@@ -391,7 +511,7 @@ func spawn_item_pickups() -> void:
 		pickup.content_id = COYOTE_ITEMS[i].id
 		pickup.position = Vector2(80.0 + i * 48.0, 124.0)
 		pickup.collected.connect(_on_item_collected)
-		world_node.add_child(pickup)
+		parent_node.add_child(pickup)
 		item_pickups.append(pickup)
 
 func _on_item_collected(item: CoyoteItem) -> void:
@@ -632,12 +752,14 @@ func cycle_crowd() -> void:
 	for npc in crowd:
 		if is_instance_valid(npc): npc.queue_free()
 	crowd.clear()
+	var parent_node: Node = gameplay_world.get_node_or_null("Enemies") if gameplay_world else null
+	if not parent_node: parent_node = gameplay_world if gameplay_world else (world_node if world_node else self)
 	var count := [1, 9, 29][crowd_mode] as int
 	for i in count:
 		var npc := CHARACTER.instantiate() as MudCharacter
 		npc.player_controlled = false
 		npc.position = Vector2(60.0 + (i % 15) * 45.0, MAIN_SURFACE_Y - 2.0)
-		world_node.add_child(npc)
+		parent_node.add_child(npc)
 		npc.rig.time = i * 0.31
 		npc.rig.gait.phase = fposmod(i * 0.31, 1.0)
 		npc.body_renderer.mud_color = Color.from_hsv(0.18 + i * 0.005, 0.42, 0.45 + (i % 3) * 0.08)
@@ -655,7 +777,9 @@ func spawn_real_enemy() -> MudCharacter:
 	enemy.max_health = 45.0
 	var desired_x := player.position.x + player.facing * 140.0
 	enemy.position = Vector2(desired_x, MAIN_SURFACE_Y - 2.0)
-	world_node.add_child(enemy)
+	var parent_node: Node = gameplay_world.get_node_or_null("Enemies") if gameplay_world else null
+	if not parent_node: parent_node = gameplay_world if gameplay_world else (world_node if world_node else self)
+	parent_node.add_child(enemy)
 	enemy.body_renderer.mud_color = Color("87505a")
 	enemy.add_to_group(&"training_enemy")
 	if game and is_instance_valid(game.current_session) and is_instance_valid(game.current_session.combat_context):
@@ -680,7 +804,9 @@ func spawn_score_target() -> void:
 	scoring_enemy.max_health = 30.0
 	var spawn_x := clampf(player.position.x + player.facing * 65.0, 40.0, 840.0)
 	scoring_enemy.position = Vector2(spawn_x, player.position.y)
-	world_node.add_child(scoring_enemy)
+	var parent_node: Node = gameplay_world.get_node_or_null("Enemies") if gameplay_world else null
+	if not parent_node: parent_node = gameplay_world if gameplay_world else (world_node if world_node else self)
+	parent_node.add_child(scoring_enemy)
 	scoring_enemy.body_renderer.mud_color = Color("875f60")
 	scoring_enemy.weapons.equip(null)
 

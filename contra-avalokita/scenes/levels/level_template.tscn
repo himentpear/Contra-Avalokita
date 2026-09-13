@@ -42,13 +42,14 @@ ui = NodePath("UI")
 environment_controller = NodePath("LevelEnvironmentController")
 player = NodePath("World/GameplayWorld/Player")
 
-[node name="LevelEnvironmentController" type="Node" parent="." node_paths=PackedStringArray("canvas_modulate", "far_fx", "mid_fx", "near_fx", "atmospheric_overlay")]
+[node name="LevelEnvironmentController" type="Node" parent="." node_paths=PackedStringArray("canvas_modulate", "far_fx", "mid_fx", "gameplay_fx", "near_fx", "screen_atmosphere")]
 script = ExtResource("2_env")
 canvas_modulate = NodePath("../World/Lighting/GlobalLighting/CanvasModulate")
 far_fx = NodePath("../World/EnvironmentFX/FarFX")
 mid_fx = NodePath("../World/EnvironmentFX/MidFX")
+gameplay_fx = NodePath("../World/EnvironmentFX/GameplayWorldFX")
 near_fx = NodePath("../World/EnvironmentFX/NearFX")
-atmospheric_overlay = NodePath("../World/EnvironmentFX/AtmosphericOverlay")
+screen_atmosphere = NodePath("../ScreenFX/ScreenAtmosphere")
 
 [node name="World" type="Node2D" parent="."]
 
@@ -162,42 +163,33 @@ scroll_scale = Vector2(0.12, 1)
 z_index = -45
 scroll_scale = Vector2(0.5, 1)
 
+[node name="GameplayWorldFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = 12
+scroll_scale = Vector2(1, 1)
+
 [node name="NearFX" type="Parallax2D" parent="World/EnvironmentFX"]
 z_index = 50
 scroll_scale = Vector2(1.1, 1)
 
-[node name="AtmosphericOverlay" type="Polygon2D" parent="World/EnvironmentFX"]
-z_index = 80
-color = Color(0.06, 0.08, 0.1, 0.08)
-polygon = PackedVector2Array(-1000, -600, 2600, -600, 2600, 600, -1000, 600)
-
-[node name="RuntimeFX" type="Node2D" parent="." node_paths=PackedStringArray("character_fx_behind", "character_fx_body", "character_fx_front", "combat_fx", "projectile_fx", "world_transient_fx", "dynamic_lights")]
+[node name="RuntimeFX" type="Node2D" parent="." node_paths=PackedStringArray("world_transient_fx", "projectile_fx", "detached_character_fx", "combat_fx", "dynamic_lights")]
 script = ExtResource("3_vfx")
-character_fx_behind = NodePath("CharacterFXBehind")
-character_fx_body = NodePath("CharacterFXBody")
-character_fx_front = NodePath("CharacterFXFront")
-combat_fx = NodePath("CombatFX")
-projectile_fx = NodePath("ProjectileFX")
 world_transient_fx = NodePath("WorldTransientFX")
+projectile_fx = NodePath("ProjectileFX")
+detached_character_fx = NodePath("DetachedCharacterFX")
+combat_fx = NodePath("CombatFX")
 dynamic_lights = NodePath("../World/Lighting/DynamicLights")
 
-[node name="CharacterFXBehind" type="Node2D" parent="RuntimeFX"]
-z_index = -5
-
-[node name="CharacterFXBody" type="Node2D" parent="RuntimeFX"]
-z_index = 5
-
-[node name="CharacterFXFront" type="Node2D" parent="RuntimeFX"]
-z_index = 25
-
-[node name="CombatFX" type="Node2D" parent="RuntimeFX"]
-z_index = 30
+[node name="WorldTransientFX" type="Node2D" parent="RuntimeFX"]
+z_index = 16
 
 [node name="ProjectileFX" type="Node2D" parent="RuntimeFX"]
-z_index = 20
+z_index = 22
 
-[node name="WorldTransientFX" type="Node2D" parent="RuntimeFX"]
-z_index = 15
+[node name="DetachedCharacterFX" type="Node2D" parent="RuntimeFX"]
+z_index = 27
+
+[node name="CombatFX" type="Node2D" parent="RuntimeFX"]
+z_index = 32
 
 [node name="CameraRig" type="Node2D" parent="." node_paths=PackedStringArray("camera", "follow_target")]
 script = ExtResource("4_cam")
@@ -225,6 +217,15 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
+
+[node name="ScreenAtmosphere" type="ColorRect" parent="ScreenFX"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.08, 0.1, 0.05)
 
 [node name="DamageOverlay" type="ColorRect" parent="ScreenFX"]
 visible = false

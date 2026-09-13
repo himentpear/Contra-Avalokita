@@ -19,7 +19,7 @@ func run() -> void:
 	await physics_frame
 
 	check(arena.player is MudCharacter and arena.player.player_controlled, "Formal arena owns the controllable player")
-	check(arena.background_node.get_child_count() == 1 and arena.background_node.get_child(0) is Polygon2D, "Arena background is one solid-color field")
+	check(arena.background_node != null and arena.has_station_background(), "Arena background uses res://scenes/levels/stationBG.png")
 	check(is_equal_approx(arena.camera.position.y, 0.0), "Camera framing is centered at Y=0")
 	check(is_instance_valid(arena.dummy) and arena.dummy.has_method("receive_hit"), "Formal arena contains the persistent training dummy")
 	check(arena.item_pickups.size() == 5, "Formal arena contains all five item acquisition stations")

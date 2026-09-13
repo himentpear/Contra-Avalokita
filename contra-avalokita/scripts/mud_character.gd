@@ -448,6 +448,20 @@ func _on_punch_area_entered(area: Area2D) -> void:
 
 @onready var visual: Node2D = $Visual
 @onready var pose_root: Node2D = $Visual/PoseRoot
+@onready var local_fx_behind: Node2D = $Visual/LocalFXBehind
+@onready var local_fx_body: Node2D = $Visual/LocalFXBody
+@onready var local_fx_front: Node2D = $Visual/LocalFXFront
+
+func get_local_fx_socket(channel: StringName) -> Node2D:
+	match channel:
+		&"Behind", &"BEHIND", &"LOCAL_BEHIND":
+			return local_fx_behind
+		&"Body", &"BODY", &"LOCAL_BODY":
+			return local_fx_body
+		&"Front", &"FRONT", &"LOCAL_FRONT":
+			return local_fx_front
+	return local_fx_body
+
 @onready var anim_player: AnimationPlayer = $AnimationPlayer
 @onready var skeleton: Skeleton2D = $Visual/PoseRoot/Skeleton2D
 @onready var body_renderer: MudBodyRenderer = $Visual/MudBodyRenderer

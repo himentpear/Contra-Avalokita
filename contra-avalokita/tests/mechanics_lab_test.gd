@@ -21,9 +21,7 @@ func run() -> void:
 	
 	# 1. World & Background Hierarchy
 	check(arena.world_node != null, "World hierarchy node exists")
-	check(arena.background_node != null and arena.background_node.get_child_count() == 1, "Background node contains exactly 1 flat solid-color field")
-	var bg = arena.background_node.get_child(0)
-	check(bg is Polygon2D and bg.color == Color("111318"), "Background uses flat color #111318 without environmental art")
+	check(arena.background_node != null and arena.has_station_background(), "Arena background uses res://scenes/levels/stationBG.png")
 	
 	# 2. Checkpoints & Teleport
 	check(arena.checkpoints.size() == 6, "Arena contains exactly 6 dedicated zone checkpoints")
