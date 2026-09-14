@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://addons/rotobone/v3/tests/rotobone_mud_character_test.tscn" id="1_workspace"]
+
+[node name="RotoBoneMudCharacterTest" instance=ExtResource("1_workspace")]

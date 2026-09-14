@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "source_scene": "res://scenes/mud_character.tscn",
+  "skeleton_path": "Visual/PoseRoot/Skeleton2D",
+  "semantic_map": {
+    "hips":{"bone":"Pelvis","path":"Pelvis"},
+    "spine":{"bone":"SpineLower","path":"Pelvis/SpineLower"},
+    "chest":{"bone":"SpineUpper","path":"Pelvis/SpineLower/SpineUpper"},
+    "head":{"bone":"Head","path":"Pelvis/Torso/Head"},
+    "upper_arm_l":{"bone":"UpperArmFront","path":"Pelvis/Torso/UpperArmFront"},
+    "lower_arm_l":{"bone":"ForearmFront","path":"Pelvis/Torso/UpperArmFront/ForearmFront"},
+    "hand_l":{"bone":"HandFront","path":"Pelvis/Torso/UpperArmFront/ForearmFront/HandFront"},
+    "upper_arm_r":{"bone":"UpperArmBack","path":"Pelvis/Torso/UpperArmBack"},
+    "lower_arm_r":{"bone":"ForearmBack","path":"Pelvis/Torso/UpperArmBack/ForearmBack"},
+    "hand_r":{"bone":"HandBack","path":"Pelvis/Torso/UpperArmBack/ForearmBack/HandBack"},
+    "upper_leg_l":{"bone":"ThighFront","path":"Pelvis/ThighFront"},
+    "lower_leg_l":{"bone":"ShinFront","path":"Pelvis/ThighFront/ShinFront"},
+    "foot_l":{"bone":"FootFront","path":"Pelvis/ThighFront/ShinFront/FootFront"},
+    "upper_leg_r":{"bone":"ThighBack","path":"Pelvis/ThighBack"},
+    "lower_leg_r":{"bone":"ShinBack","path":"Pelvis/ThighBack/ShinBack"},
+    "foot_r":{"bone":"FootBack","path":"Pelvis/ThighBack/ShinBack/FootBack"}
+  },
+  "hierarchy": [
+    {"name":"Pelvis","path":"Pelvis","children":[
+      {"name":"Torso","path":"Pelvis/Torso","children":[
+        {"name":"Head","path":"Pelvis/Torso/Head","children":[]},
+        {"name":"UpperArmFront","path":"Pelvis/Torso/UpperArmFront","children":[{"name":"ForearmFront","path":"Pelvis/Torso/UpperArmFront/ForearmFront","children":[{"name":"HandFront","path":"Pelvis/Torso/UpperArmFront/ForearmFront/HandFront","children":[]}]}]},
+        {"name":"UpperArmBack","path":"Pelvis/Torso/UpperArmBack","children":[{"name":"ForearmBack","path":"Pelvis/Torso/UpperArmBack/ForearmBack","children":[{"name":"HandBack","path":"Pelvis/Torso/UpperArmBack/ForearmBack/HandBack","children":[]}]}]}
+      ]},
+      {"name":"ThighFront","path":"Pelvis/ThighFront","children":[{"name":"ShinFront","path":"Pelvis/ThighFront/ShinFront","children":[{"name":"FootFront","path":"Pelvis/ThighFront/ShinFront/FootFront","children":[]}]}]},
+      {"name":"ThighBack","path":"Pelvis/ThighBack","children":[{"name":"ShinBack","path":"Pelvis/ThighBack/ShinBack","children":[{"name":"FootBack","path":"Pelvis/ThighBack/ShinBack/FootBack","children":[]}]}]},
+      {"name":"SpineLower","path":"Pelvis/SpineLower","children":[{"name":"SpineUpper","path":"Pelvis/SpineLower/SpineUpper","children":[]}]}
+    ]}
+  ]
+}

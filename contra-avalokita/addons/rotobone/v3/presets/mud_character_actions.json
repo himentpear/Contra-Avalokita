@@ -1,0 +1,20 @@
+{
+  "schema_version": 3,
+  "character": "Mud Character",
+  "template_scene": "res://scenes/mud_character.tscn",
+  "actions": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Run",
+    "jump": "Jump",
+    "fall": "Fall",
+    "land": "Land",
+    "wall_slide": "Wall/Slide",
+    "slash": "Blade/Attack_1",
+    "thrust": "Blade/Attack_2",
+    "roll": "",
+    "hurt": "",
+    "death": ""
+  },
+  "excluded_actions": ["shooting", "ledge_grab", "ledge_climb", "air_spin", "dash", "slide", "punch", "jab"]
+}

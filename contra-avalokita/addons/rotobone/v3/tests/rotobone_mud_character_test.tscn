@@ -1,0 +1,48 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="1_mud"]
+[ext_resource type="Script" path="res://addons/rotobone/v3/tests/rotobone_mud_character_test.gd" id="2_test"]
+[ext_resource type="Script" path="res://addons/rotobone/v3/editor/viewport_overlay.gd" id="3_overlay"]
+[ext_resource type="Texture2D" path="res://assets/2D-Pixel-Art-Character-Template/2D-Pixel-Art-Character-Template/Idle/Player Idle 48x48.png" id="4_reference"]
+[ext_resource type="Script" path="res://addons/rotobone/v3/editor/timeline_overlay.gd" id="5_timeline"]
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_output"]
+
+[node name="RotoBoneMudCharacterTest" type="Node2D"]
+script = ExtResource("2_test")
+
+[node name="WorkspaceBackdrop" type="ColorRect" parent="."]
+offset_right = 512.0
+offset_bottom = 320.0
+mouse_filter = 2
+color = Color(0.055, 0.063, 0.086, 1)
+
+[node name="MudCharacterInstance" parent="." instance=ExtResource("1_mud")]
+process_mode = 4
+position = Vector2(256, 205)
+
+[node name="RotoBoneAnchor" type="Marker2D" parent="."]
+position = Vector2(256, 205)
+gizmo_extents = 20.0
+
+[node name="ReferenceOverlay" type="Node2D" parent="."]
+z_index = 20
+script = ExtResource("3_overlay")
+reference_texture = ExtResource("4_reference")
+hframes = 10
+frame = 1
+onion_skin = true
+anchor_path = NodePath("../RotoBoneAnchor")
+
+[node name="KeyframeMarkerLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 144.0
+offset_top = 244.0
+offset_right = 368.0
+offset_bottom = 304.0
+mouse_filter = 1
+script = ExtResource("5_timeline")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries/RotoBone = SubResource("AnimationLibrary_output")
