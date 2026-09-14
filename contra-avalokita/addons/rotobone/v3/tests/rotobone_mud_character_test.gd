@@ -7,6 +7,9 @@ var _workspace := Workspace.new()
 
 
 func _ready() -> void:
+	var runtime_weapon_slots := get_node_or_null("MudCharacterInstance/Visual/WeaponSlots") as Node2D
+	if runtime_weapon_slots != null:
+		runtime_weapon_slots.visible = false
 	_workspace.load_catalog()
 	var timeline := get_node_or_null("KeyframeMarkerLayer") as RotoBoneTimelineOverlay
 	if timeline != null and _workspace.profiles.size() > 1:

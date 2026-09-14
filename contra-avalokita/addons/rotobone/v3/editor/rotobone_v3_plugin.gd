@@ -106,7 +106,10 @@ func _on_asset_action_changed(action: Dictionary) -> void:
 	if texture != null:
 		overlay.hframes = maxi(1, texture.get_width() / frame_width)
 		overlay.vframes = maxi(1, texture.get_height() / frame_height)
-	overlay.pivot_px = Vector2(frame_width * 0.5, frame_height)
+	overlay.pivot_px = Vector2(
+		float(action.get("pivot_x", frame_width * 0.5)),
+		float(action.get("pivot_y", frame_height))
+	)
 	overlay.frame = 0
 
 

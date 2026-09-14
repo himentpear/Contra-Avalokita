@@ -4,6 +4,7 @@ const Adapter := preload("res://addons/rotobone/v3/core/mud_character_adapter.gd
 const Workspace := preload("res://addons/rotobone/v3/core/rotobone_workspace.gd")
 const Baker := preload("res://addons/rotobone/v3/animation/pose_baker.gd")
 const Marker := preload("res://addons/rotobone/v3/animation/keyframe_marker.gd")
+const SwordPreview := preload("res://addons/rotobone/v3/editor/sword_preview.gd")
 
 const EXPECTED_ACTIONS := ["idle", "walk", "run", "jump", "fall", "land", "wall_slide", "slash", "thrust", "roll", "hurt", "death"]
 const FORBIDDEN_ACTIONS := ["shooting", "ledge_grab", "ledge_climb", "air_spin", "dash", "slide", "punch", "jab"]
@@ -34,6 +35,8 @@ func _run() -> void:
 	_check(viewport_overlay != null and viewport_overlay.show_rig_guides, "ReferenceOverlay shows depth and spine guides")
 	var pose_guard := scene.get_node_or_null("RotoBonePoseGuard") as RotoBonePoseContractGuard
 	_check(pose_guard != null and pose_guard.rotation_only, "rotation-only pose guard exists")
+	var sword_preview := scene.get_node_or_null("SwordPreview") as SwordPreview
+	_check(sword_preview != null and sword_preview.sync_to_hand(), "editor sword preview follows HandFront")
 	var timeline := scene.get_node_or_null("KeyframeMarkerLayer") as RotoBoneTimelineOverlay
 	_check(timeline != null, "KeyframeMarkerLayer exists")
 	_check(timeline != null and timeline.profile != null and not timeline.profile.markers.is_empty(), "timeline renders marker data")
@@ -118,6 +121,7 @@ func _run() -> void:
 				_check(placeholder.track_get_interpolation_type(track) == Animation.INTERPOLATION_CUBIC_ANGLE, "rotation interpolation is smooth and angle-safe: %s" % placeholder_name)
 				_check(placeholder.track_get_key_count(track) == expected_frames, "every marked frame has a bone key: %s" % placeholder_name)
 		_check(_animation_has_pose_variation(placeholder_library.get_animation(&"Walk")), "mapped placeholders sample real source pose variation")
+		_validate_sword_attack_reference(placeholder_library.get_animation(&"Sword Attack"))
 	var names: Array[String] = []
 	for profile in workspace.profiles:
 		names.append(String(profile.animation_name))
@@ -211,6 +215,38 @@ func _animation_has_pose_variation(animation: Animation) -> bool:
 			if not is_equal_approx(first_value, float(animation.track_get_key_value(track, key_index))):
 				return true
 	return false
+
+
+func _validate_sword_attack_reference(animation: Animation) -> void:
+	var pose: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://addons/rotobone/v3/presets/sword_attack_pose.json"))
+	_check(pose is Dictionary and pose.get("frames", 0) == 6, "Sword Attack pose data matches the six-frame reference")
+	if not pose is Dictionary:
+		return
+	var targets: Array = pose.get("hand_targets", [])
+	var weapon_angles: Array = pose.get("weapon_world_angles_degrees", [])
+	for frame_index in 6:
+		var pelvis_rotation := _rotation_key(animation, "Skeleton2D/Pelvis:rotation", frame_index)
+		var torso_rotation := _rotation_key(animation, "Skeleton2D/Pelvis/Torso:rotation", frame_index)
+		var upper_rotation := _rotation_key(animation, "UpperArmFront:rotation", frame_index)
+		var forearm_rotation := _rotation_key(animation, "UpperArmFront/ForearmFront:rotation", frame_index)
+		var hand_rotation := _rotation_key(animation, "UpperArmFront/ForearmFront/HandFront:rotation", frame_index)
+		var upper_global := pelvis_rotation + torso_rotation + upper_rotation
+		var forearm_global := upper_global + forearm_rotation
+		var grip_delta := Vector2(0, 12).rotated(upper_global) + Vector2(0, 12).rotated(forearm_global)
+		var target_data: Array = targets[frame_index]
+		var expected_grip := Vector2(float(target_data[0]), float(target_data[1]))
+		_check(grip_delta.distance_to(expected_grip) < 0.02, "Sword Attack F%02d grip matches the reference target" % (frame_index + 1))
+		var actual_weapon_angle := forearm_global + hand_rotation
+		var expected_weapon_angle := deg_to_rad(float(weapon_angles[frame_index]))
+		_check(absf(angle_difference(actual_weapon_angle, expected_weapon_angle)) < 0.001, "Sword Attack F%02d blade angle matches the reference" % (frame_index + 1))
+
+
+func _rotation_key(animation: Animation, path_suffix: String, key_index: int) -> float:
+	for track in animation.get_track_count():
+		if String(animation.track_get_path(track)).ends_with(path_suffix):
+			return float(animation.track_get_key_value(track, key_index))
+	push_error("Missing Sword Attack track: " + path_suffix)
+	return 0.0
 
 
 func _bones(skeleton: Skeleton2D) -> Array[Bone2D]:

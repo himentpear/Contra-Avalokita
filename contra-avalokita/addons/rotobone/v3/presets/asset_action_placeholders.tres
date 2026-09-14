@@ -7049,7 +7049,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.06, -0.07236261, 0.144, 0.1574546, 0.09263148, 0.06]
+"values": [0.05235988, -0.08726646, 0.13962634, 0.20943952, 0.12217305, 0.05235988]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -7061,7 +7061,7 @@ tracks/1/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+"values": [0.0, -0.10471976, -0.17453292, 0.20943952, 0.27925268, 0.06981317]
 }
 tracks/2/type = "value"
 tracks/2/imported = false
@@ -7073,7 +7073,7 @@ tracks/2/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-0.048, 0.057890087, -0.1152, -0.12596367, -0.07410519, -0.048]
+"values": [-0.05235988, 0.13962634, -0.10471976, -0.17453292, -0.10471976, -0.05235988]
 }
 tracks/3/type = "value"
 tracks/3/imported = false
@@ -7085,7 +7085,7 @@ tracks/3/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.09, 0.63689655, -1.754, -1.1001822, -0.43210375, 0.09]
+"values": [0.3250613, 2.222166, 3.0223587, -0.43284974, 0.018283192, -1.3685135]
 }
 tracks/4/type = "value"
 tracks/4/imported = false
@@ -7097,7 +7097,7 @@ tracks/4/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-1.25, -1.5227236, -0.75, -0.762727, -1.0868425, -1.25]
+"values": [1.459455, 1.3431405, 1.2820797, -1.7241747, -1.1371977, 1.6194265]
 }
 tracks/5/type = "value"
 tracks/5/imported = false
@@ -7109,7 +7109,7 @@ tracks/5/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.72, -1.4981681, 1.45, 2.520909, 1.9469439, 0.72]
+"values": [0.7811176, 0.030071797, -1.0406728, 0.4815084, 0.8571151, 0.70901805]
 }
 tracks/6/type = "value"
 tracks/6/imported = false
@@ -7121,7 +7121,7 @@ tracks/6/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.31, 0.1776374, 0.394, 0.40745458, 0.3426315, 0.31]
+"values": [0.31415927, 0.17453292, 0.38397244, 0.4537856, 0.34906584, 0.31415927]
 }
 tracks/7/type = "value"
 tracks/7/imported = false
@@ -7133,7 +7133,7 @@ tracks/7/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-0.65, -0.7018184, -0.76, -0.82363635, -0.8673685, -0.9]
+"values": [-0.6632251, -0.6981317, -0.75049156, -0.80285144, -0.83775806, -0.7330383]
 }
 tracks/8/type = "value"
 tracks/8/imported = false
@@ -7157,7 +7157,7 @@ tracks/9/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-0.604978, -0.5515823, -0.7252198, -0.7420195, -0.64932156, -0.604978]
+"values": [0.61086524, 0.55850536, 0.6981317, 0.80285144, 0.75049156, 0.61086524]
 }
 tracks/10/type = "value"
 tracks/10/imported = false
@@ -7169,7 +7169,7 @@ tracks/10/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.625739, 0.7147335, 0.8316596, 0.8287261, 0.68823093, 0.625739]
+"values": [-0.34906584, -0.27925268, -0.43633232, -0.5235988, -0.4537856, -0.34906584]
 }
 tracks/11/type = "value"
 tracks/11/imported = false
@@ -7181,7 +7181,7 @@ tracks/11/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-0.080762, -0.09078765, -0.25044, -0.24416178, -0.13154116, -0.080762]
+"values": [-0.08726646, -0.08726646, -0.17453292, -0.20943952, -0.13962634, -0.08726646]
 }
 tracks/12/type = "value"
 tracks/12/imported = false
@@ -7193,7 +7193,7 @@ tracks/12/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-0.117914, -0.13212419, -0.1092566, -0.12969302, -0.118276864, -0.117914]
+"values": [-0.13962634, -0.17453292, -0.10471976, -0.13962634, -0.12217305, -0.13962634]
 }
 tracks/13/type = "value"
 tracks/13/imported = false
@@ -7205,7 +7205,7 @@ tracks/13/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.576447, 0.82962984, 0.5376828, 0.54286206, 0.5544586, 0.576447]
+"values": [0.5235988, 0.7330383, 0.4886922, 0.5235988, 0.4886922, 0.5235988]
 }
 tracks/14/type = "value"
 tracks/14/imported = false
@@ -7217,7 +7217,7 @@ tracks/14/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-0.518533, -0.625144, -0.572427, -0.57062364, -0.52881324, -0.518533]
+"values": [-0.4886922, -0.61086524, -0.5235988, -0.55850536, -0.5235988, -0.4886922]
 }
 tracks/15/type = "value"
 tracks/15/imported = false
@@ -7229,7 +7229,7 @@ tracks/15/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+"values": [0.017453292, -0.034906585, 0.05235988, 0.06981317, 0.05235988, 0.017453292]
 }
 tracks/16/type = "value"
 tracks/16/imported = false
@@ -7241,7 +7241,7 @@ tracks/16/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+"values": [0.017453292, -0.034906585, 0.05235988, 0.06981317, 0.05235988, 0.017453292]
 }
 
 [sub_resource type="Animation" id="Animation_miyv8"]

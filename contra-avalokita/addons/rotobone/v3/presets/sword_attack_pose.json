@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "reference_sprite": "res://assets/2D-Pixel-Art-Character-Template/2D-Pixel-Art-Character-Template/Sword Attack/player sword atk 64x64.png",
+  "frame_rate": 12.0,
+  "frames": 6,
+  "rotations_degrees": {
+    "Pelvis": [3, -5, 8, 12, 7, 3],
+    "Torso": [0, -6, -10, 12, 16, 4],
+    "Head": [-3, 8, -6, -10, -6, -3],
+    "UpperArmBack": [18, 10, 22, 26, 20, 18],
+    "ForearmBack": [-38, -40, -43, -46, -48, -42],
+    "HandBack": [0, 0, 0, 0, 0, 0],
+    "ThighFront": [35, 32, 40, 46, 43, 35],
+    "ShinFront": [-20, -16, -25, -30, -26, -20],
+    "FootFront": [-5, -5, -10, -12, -8, -5],
+    "ThighBack": [-8, -10, -6, -8, -7, -8],
+    "ShinBack": [30, 42, 28, 30, 28, 30],
+    "FootBack": [-28, -35, -30, -32, -30, -28],
+    "SpineLower": [1, -2, 3, 4, 3, 1],
+    "SpineUpper": [1, -2, 3, 4, 3, 1]
+  },
+  "hand_targets": [[-16, 8], [-8, -17], [9, -17], [12, 10], [3, 20], [7, 15]],
+  "elbow_signs": [-1, -1, -1, 1, 1, -1],
+  "weapon_world_angles_degrees": [150, -165, -175, -72, 8, 62]
+}

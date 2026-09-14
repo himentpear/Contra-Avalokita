@@ -2,6 +2,7 @@ extends SceneTree
 
 const CATALOG_PATH := "res://addons/rotobone/v3/presets/asset_action_catalog.json"
 const OUTPUT_PATH := "res://addons/rotobone/v3/presets/asset_action_placeholders.tres"
+const SWORD_ATTACK_POSE_PATH := "res://addons/rotobone/v3/presets/sword_attack_pose.json"
 const TEMPLATE_PATH := "res://scenes/mud_character.tscn"
 const FPS := 12.0
 const LOOP_ACTIONS := [
@@ -37,12 +38,16 @@ func _build() -> void:
 	var base_rotations: Array[float] = []
 	for bone in bones:
 		base_rotations.append(bone.rotation)
+	var pose_overrides := {}
+	var sword_attack_pose: Variant = JSON.parse_string(FileAccess.get_file_as_string(SWORD_ATTACK_POSE_PATH))
+	if sword_attack_pose is Dictionary:
+		pose_overrides["Sword Attack"] = sword_attack_pose
 
 	var library := AnimationLibrary.new()
 	for action in catalog.get("actions", []):
 		if not action is Dictionary:
 			continue
-		var animation := _build_animation(action, mud, source_player, skeleton, bones, base_rotations)
+		var animation := _build_animation(action, mud, source_player, skeleton, bones, base_rotations, pose_overrides.get(String(action.get("folder", "")), {}))
 		library.add_animation(StringName(action.get("folder", "Unnamed")), animation)
 	var error := ResourceSaver.save(library, OUTPUT_PATH)
 	if error != OK:
@@ -60,7 +65,8 @@ func _build_animation(
 	source_player: AnimationPlayer,
 	skeleton: Skeleton2D,
 	bones: Array[Bone2D],
-	base_rotations: Array[float]
+	base_rotations: Array[float],
+	pose_override: Dictionary
 ) -> Animation:
 	var animation := Animation.new()
 	var folder := String(action.get("folder", "Unnamed"))
@@ -88,7 +94,9 @@ func _build_animation(
 	var source_length := source_player.get_animation(source_name).length if has_source else 0.0
 	for frame_index in frame_count:
 		_restore_rotations(bones, base_rotations)
-		if has_source:
+		if not pose_override.is_empty():
+			_apply_pose_override(pose_override, frame_index, skeleton, bones)
+		elif has_source:
 			var divisor := float(frame_count) if animation.loop_mode == Animation.LOOP_LINEAR else float(maxi(1, frame_count - 1))
 			var source_time := minf(source_length, frame_index / divisor * source_length)
 			source_player.play(source_name)
@@ -100,6 +108,49 @@ func _build_animation(
 			animation.track_insert_key(tracks[bone_index], key_time, bones[bone_index].rotation)
 	_restore_rotations(bones, base_rotations)
 	return animation
+
+
+func _apply_pose_override(pose: Dictionary, frame_index: int, skeleton: Skeleton2D, bones: Array[Bone2D]) -> void:
+	var bones_by_name := {}
+	for bone in bones:
+		bones_by_name[String(bone.name)] = bone
+	var rotations: Dictionary = pose.get("rotations_degrees", {})
+	for bone_name in rotations:
+		if not bones_by_name.has(bone_name):
+			continue
+		var values: Array = rotations[bone_name]
+		if frame_index < values.size():
+			(bones_by_name[bone_name] as Bone2D).rotation = deg_to_rad(float(values[frame_index]))
+
+	var targets: Array = pose.get("hand_targets", [])
+	var signs: Array = pose.get("elbow_signs", [])
+	if frame_index < targets.size() and frame_index < signs.size():
+		var target_data: Array = targets[frame_index]
+		var target := Vector2(float(target_data[0]), float(target_data[1]))
+		_solve_front_arm(target, float(signs[frame_index]), bones_by_name)
+
+	var weapon_angles: Array = pose.get("weapon_world_angles_degrees", [])
+	if frame_index < weapon_angles.size() and bones_by_name.has("HandFront"):
+		var hand := bones_by_name["HandFront"] as Bone2D
+		hand.global_rotation = skeleton.global_rotation + deg_to_rad(float(weapon_angles[frame_index]))
+
+
+func _solve_front_arm(target_delta: Vector2, bend_sign: float, bones_by_name: Dictionary) -> void:
+	var upper := bones_by_name.get("UpperArmFront") as Bone2D
+	var forearm := bones_by_name.get("ForearmFront") as Bone2D
+	var hand := bones_by_name.get("HandFront") as Bone2D
+	if upper == null or forearm == null or hand == null:
+		return
+	var upper_length := forearm.position.length()
+	var forearm_length := hand.position.length()
+	var distance := clampf(target_delta.length(), 0.001, upper_length + forearm_length - 0.001)
+	var target_angle := target_delta.angle()
+	var shoulder_offset := acos(clampf((distance * distance + upper_length * upper_length - forearm_length * forearm_length) / (2.0 * distance * upper_length), -1.0, 1.0))
+	var upper_segment_angle := target_angle + signf(bend_sign) * shoulder_offset
+	var elbow_delta := Vector2.from_angle(upper_segment_angle) * upper_length
+	var forearm_segment_angle := (target_delta - elbow_delta).angle()
+	upper.global_rotation = upper_segment_angle - PI * 0.5
+	forearm.global_rotation = forearm_segment_angle - PI * 0.5
 
 
 func _restore_rotations(bones: Array[Bone2D], rotations: Array[float]) -> void:
