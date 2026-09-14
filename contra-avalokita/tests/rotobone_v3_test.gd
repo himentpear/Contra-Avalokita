@@ -36,6 +36,9 @@ func _run() -> void:
 	_check(timeline != null and timeline.profile != null and not timeline.profile.markers.is_empty(), "timeline renders marker data")
 	var output_player := scene.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	_check(output_player != null, "workspace AnimationPlayer exists")
+	_check(output_player != null and output_player.has_animation_library(&"AssetActions"), "workspace AnimationPlayer exposes the AssetActions library")
+	var placeholder_library := output_player.get_animation_library(&"AssetActions") if output_player != null else null
+	_check(placeholder_library != null and placeholder_library.get_animation_list().size() == 36, "AssetActions contains 36 placeholder animations")
 	_check(_count_type(scene, "Skeleton2D") == 1, "workspace contains exactly the source scene skeleton")
 	var action_list := scene.get_node_or_null("ActionCatalogPanel/Margin/VBox/ActionList") as ItemList
 	_check(action_list != null and action_list.item_count == 36, "test scene displays all 36 asset action folders")
@@ -66,6 +69,16 @@ func _run() -> void:
 		_check(texture != null and frame_width > 0 and frame_height > 0 and texture.get_width() % frame_width == 0 and texture.get_height() % frame_height == 0, "sprite grid is valid for %s" % action.get("folder", ""))
 	catalog_folders.sort()
 	_check(catalog_folders == disk_folders, "catalog mirrors every action folder on disk")
+	var placeholder_names: Array[String] = []
+	if placeholder_library != null:
+		for placeholder_name in placeholder_library.get_animation_list():
+			placeholder_names.append(String(placeholder_name))
+	placeholder_names.sort()
+	_check(placeholder_names == catalog_folders, "placeholder animation names mirror the asset catalog")
+	if placeholder_library != null:
+		for placeholder_name in placeholder_library.get_animation_list():
+			var placeholder := placeholder_library.get_animation(placeholder_name)
+			_check(placeholder.length > 0.0 and is_equal_approx(placeholder.step, 1.0 / 12.0) and placeholder.get_track_count() == 0, "placeholder is empty and editable on a 12 FPS grid: %s" % placeholder_name)
 	var names: Array[String] = []
 	for profile in workspace.profiles:
 		names.append(String(profile.animation_name))

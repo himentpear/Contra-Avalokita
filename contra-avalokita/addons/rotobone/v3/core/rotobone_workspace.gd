@@ -71,6 +71,10 @@ func asset_action_index_for_profile(animation_name: StringName) -> int:
 	return -1
 
 
+func placeholder_animation_name(action: Dictionary) -> StringName:
+	return StringName("AssetActions/%s" % String(action.get("folder", "")))
+
+
 func select_profile(index: int) -> void:
 	if index < 0 or index >= profiles.size():
 		return

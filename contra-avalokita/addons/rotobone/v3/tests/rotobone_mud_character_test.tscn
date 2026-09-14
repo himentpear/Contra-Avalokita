@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="1_mud"]
 [ext_resource type="Script" path="res://addons/rotobone/v3/tests/rotobone_mud_character_test.gd" id="2_test"]
 [ext_resource type="Script" path="res://addons/rotobone/v3/editor/viewport_overlay.gd" id="3_overlay"]
 [ext_resource type="Texture2D" path="res://assets/2D-Pixel-Art-Character-Template/2D-Pixel-Art-Character-Template/Idle/Player Idle 48x48.png" id="4_reference"]
 [ext_resource type="Script" path="res://addons/rotobone/v3/editor/timeline_overlay.gd" id="5_timeline"]
+[ext_resource type="AnimationLibrary" path="res://addons/rotobone/v3/presets/asset_action_placeholders.tres" id="6_asset_actions"]
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_output"]
 
@@ -45,6 +46,7 @@ mouse_filter = 1
 script = ExtResource("5_timeline")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries/AssetActions = ExtResource("6_asset_actions")
 libraries/RotoBone = SubResource("AnimationLibrary_output")
 
 [node name="ActionCatalogPanel" type="PanelContainer" parent="."]

@@ -3,6 +3,7 @@
   "character": "Mud Character",
   "template_scene": "res://scenes/mud_character.tscn",
   "asset_action_catalog": "res://addons/rotobone/v3/presets/asset_action_catalog.json",
+  "placeholder_library": "res://addons/rotobone/v3/presets/asset_action_placeholders.tres",
   "actions": {
     "idle": "Idle",
     "walk": "Walk",

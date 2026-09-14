@@ -85,6 +85,13 @@ func _on_asset_action_selected(index: int) -> void:
 
 func _on_asset_action_changed(action: Dictionary) -> void:
 	_dock.set_asset_action(action)
+	var output_player := _find_output_player()
+	if output_player != null:
+		var placeholder := _workspace.placeholder_animation_name(action)
+		if output_player.has_animation(placeholder):
+			output_player.assigned_animation = placeholder
+			output_player.seek(0.0, true)
+			output_player.pause()
 	var root := EditorInterface.get_edited_scene_root()
 	if root == null:
 		return

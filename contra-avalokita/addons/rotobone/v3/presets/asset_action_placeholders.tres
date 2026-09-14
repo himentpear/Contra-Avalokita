@@ -1,0 +1,233 @@
+[gd_resource type="AnimationLibrary" load_steps=37 format=3]
+
+[sub_resource type="Animation" id="Animation_air_spin"]
+resource_name = "Air Spin"
+step = 0.0833333
+length = 0.5
+
+[sub_resource type="Animation" id="Animation_climb_back"]
+resource_name = "Climb (facing back of player)"
+step = 0.0833333
+length = 0.333333
+
+[sub_resource type="Animation" id="Animation_climb_side"]
+resource_name = "Climb (facing side of player)"
+step = 0.0833333
+length = 0.333333
+
+[sub_resource type="Animation" id="Animation_crouch_idle"]
+resource_name = "Crouch-Idle"
+step = 0.0833333
+length = 0.833333
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_crouch_walk"]
+resource_name = "Crouch-Walk"
+step = 0.0833333
+length = 0.833333
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_dash"]
+resource_name = "Dash"
+step = 0.0833333
+length = 0.75
+
+[sub_resource type="Animation" id="Animation_death"]
+resource_name = "Death"
+step = 0.0833333
+length = 0.833333
+
+[sub_resource type="Animation" id="Animation_hurt"]
+resource_name = "Hurt-Damaged"
+step = 0.0833333
+length = 0.333333
+
+[sub_resource type="Animation" id="Animation_idle"]
+resource_name = "Idle"
+step = 0.0833333
+length = 0.833333
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_jump"]
+resource_name = "Jump"
+step = 0.0833333
+length = 0.25
+
+[sub_resource type="Animation" id="Animation_katana_air"]
+resource_name = "Katana Air Attack"
+step = 0.0833333
+length = 0.75
+
+[sub_resource type="Animation" id="Animation_katana_sheathe"]
+resource_name = "Katana Attack-Sheathe"
+step = 0.0833333
+length = 0.833333
+
+[sub_resource type="Animation" id="Animation_katana_continuous"]
+resource_name = "Katana Continuous Attack"
+step = 0.0833333
+length = 0.75
+
+[sub_resource type="Animation" id="Animation_katana_run"]
+resource_name = "Katana Run"
+step = 0.0833333
+length = 0.666667
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_katana_run_attack"]
+resource_name = "Katana Run Attack"
+step = 0.0833333
+length = 0.666667
+
+[sub_resource type="Animation" id="Animation_katana_walk"]
+resource_name = "Katana walk"
+step = 0.0833333
+length = 0.833333
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_land"]
+resource_name = "Land"
+step = 0.0833333
+length = 0.75
+
+[sub_resource type="Animation" id="Animation_ledge"]
+resource_name = "Ledge Grab-Climb"
+step = 0.0833333
+length = 0.416667
+
+[sub_resource type="Animation" id="Animation_pull"]
+resource_name = "Pull"
+step = 0.0833333
+length = 0.5
+
+[sub_resource type="Animation" id="Animation_punch"]
+resource_name = "Punch"
+step = 0.0833333
+length = 0.666667
+
+[sub_resource type="Animation" id="Animation_punch_cross"]
+resource_name = "Punch Cross"
+step = 0.0833333
+length = 0.583333
+
+[sub_resource type="Animation" id="Animation_punch_jab"]
+resource_name = "Punch Jab"
+step = 0.0833333
+length = 0.833333
+
+[sub_resource type="Animation" id="Animation_push"]
+resource_name = "Push"
+step = 0.0833333
+length = 0.833333
+
+[sub_resource type="Animation" id="Animation_push_idle"]
+resource_name = "PushPull (idle state)"
+step = 0.0833333
+length = 0.666667
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_roll"]
+resource_name = "Roll"
+step = 0.0833333
+length = 0.583333
+
+[sub_resource type="Animation" id="Animation_run"]
+resource_name = "Run"
+step = 0.0833333
+length = 0.666667
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_shoot_run"]
+resource_name = "Shooting (running and aiming)"
+step = 0.0833333
+length = 0.666667
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_shoot_two_handed"]
+resource_name = "Shooting (two-handed)"
+step = 0.0833333
+length = 0.833333
+
+[sub_resource type="Animation" id="Animation_slide"]
+resource_name = "Slide"
+step = 0.0833333
+length = 0.666667
+
+[sub_resource type="Animation" id="Animation_sword_attack"]
+resource_name = "Sword Attack"
+step = 0.0833333
+length = 0.5
+
+[sub_resource type="Animation" id="Animation_sword_idle"]
+resource_name = "Sword Idle"
+step = 0.0833333
+length = 0.833333
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_sword_run"]
+resource_name = "Sword Run"
+step = 0.0833333
+length = 0.666667
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_sword_stab"]
+resource_name = "Sword Stab"
+step = 0.0833333
+length = 0.583333
+
+[sub_resource type="Animation" id="Animation_walk"]
+resource_name = "Walk"
+step = 0.0833333
+length = 0.666667
+loop_mode = 1
+
+[sub_resource type="Animation" id="Animation_wall_land"]
+resource_name = "Wall Land"
+step = 0.0833333
+length = 0.5
+
+[sub_resource type="Animation" id="Animation_wall_slide"]
+resource_name = "Wall Slide"
+step = 0.0833333
+length = 0.25
+loop_mode = 1
+
+[resource]
+_data = {
+&"Air Spin": SubResource("Animation_air_spin"),
+&"Climb (facing back of player)": SubResource("Animation_climb_back"),
+&"Climb (facing side of player)": SubResource("Animation_climb_side"),
+&"Crouch-Idle": SubResource("Animation_crouch_idle"),
+&"Crouch-Walk": SubResource("Animation_crouch_walk"),
+&"Dash": SubResource("Animation_dash"),
+&"Death": SubResource("Animation_death"),
+&"Hurt-Damaged": SubResource("Animation_hurt"),
+&"Idle": SubResource("Animation_idle"),
+&"Jump": SubResource("Animation_jump"),
+&"Katana Air Attack": SubResource("Animation_katana_air"),
+&"Katana Attack-Sheathe": SubResource("Animation_katana_sheathe"),
+&"Katana Continuous Attack": SubResource("Animation_katana_continuous"),
+&"Katana Run": SubResource("Animation_katana_run"),
+&"Katana Run Attack": SubResource("Animation_katana_run_attack"),
+&"Katana walk": SubResource("Animation_katana_walk"),
+&"Land": SubResource("Animation_land"),
+&"Ledge Grab-Climb": SubResource("Animation_ledge"),
+&"Pull": SubResource("Animation_pull"),
+&"Punch": SubResource("Animation_punch"),
+&"Punch Cross": SubResource("Animation_punch_cross"),
+&"Punch Jab": SubResource("Animation_punch_jab"),
+&"Push": SubResource("Animation_push"),
+&"PushPull (idle state)": SubResource("Animation_push_idle"),
+&"Roll": SubResource("Animation_roll"),
+&"Run": SubResource("Animation_run"),
+&"Shooting (running and aiming)": SubResource("Animation_shoot_run"),
+&"Shooting (two-handed)": SubResource("Animation_shoot_two_handed"),
+&"Slide": SubResource("Animation_slide"),
+&"Sword Attack": SubResource("Animation_sword_attack"),
+&"Sword Idle": SubResource("Animation_sword_idle"),
+&"Sword Run": SubResource("Animation_sword_run"),
+&"Sword Stab": SubResource("Animation_sword_stab"),
+&"Walk": SubResource("Animation_walk"),
+&"Wall Land": SubResource("Animation_wall_land"),
+&"Wall Slide": SubResource("Animation_wall_slide")
+}
