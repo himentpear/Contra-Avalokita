@@ -1,0 +1,7 @@
+# Stable headless regression suite.
+# Keep visual capture / preview scripts out of this manifest.
+res://tests/smoke_test.gd
+res://tests/hitstop_manager_test.gd
+res://tests/movement_assist_test.gd
+res://tests/wall_movement_test.gd
+res://tests/ocean_wave_scene_test.gd

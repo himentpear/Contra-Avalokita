@@ -1,0 +1,44 @@
+name: Godot Headless CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: headless-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  headless-tests:
+    name: Godot 4.7 headless regression suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Godot 4.7
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.0
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify Godot runtime
+        run: godot --version
+
+      - name: Run headless regression suite
+        run: bash contra-avalokita/ci/run_headless_tests.sh
