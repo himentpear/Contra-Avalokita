@@ -4,6 +4,7 @@ const VIRTUAL_SIZE := Vector2(640.0, 360.0)
 const IMPACT_COUNT := 4
 
 @onready var sea_body: ColorRect = $SeaBody
+@onready var hud_panel: ColorRect = $HUD/Panel
 @onready var debug_label: Label = $HUD/DebugLabel
 
 var ocean_time := 0.0
@@ -13,6 +14,7 @@ var roughness := 0.75
 var highlight_intensity := 0.90
 var foam_px := 2.0
 var _material: ShaderMaterial
+var _hud_visible := true
 
 var impacts: Array[Vector4] = [
 	Vector4(-10.0, 99.0, 0.0, 0.08),
@@ -62,7 +64,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_SPACE:
 				add_impact(VIRTUAL_SIZE.x * 0.5, 8.0, 64.0)
 			KEY_H:
-				$HUD.visible = not $HUD.visible
+				_hud_visible = not _hud_visible
+				hud_panel.visible = _hud_visible
+				debug_label.visible = _hud_visible
 
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
