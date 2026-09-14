@@ -15,6 +15,7 @@ var _dock: RotoBoneV3Dock
 func _enter_tree() -> void:
 	_dock = Dock.new()
 	_dock.animation_selected.connect(_on_animation_selected)
+	_dock.asset_action_selected.connect(_on_asset_action_selected)
 	_dock.time_requested.connect(_workspace.set_time)
 	_dock.marker_requested.connect(_on_marker_requested)
 	_dock.bake_requested.connect(_on_bake_requested)
@@ -22,6 +23,7 @@ func _enter_tree() -> void:
 	_workspace.template_status_changed.connect(_dock.set_template_status)
 	_workspace.profile_changed.connect(_dock.set_profile)
 	_workspace.time_changed.connect(_dock.set_time)
+	_workspace.asset_action_changed.connect(_on_asset_action_changed)
 
 	_dock_host = EditorDock.new()
 	_dock_host.title = "RotoBone v3"
@@ -61,6 +63,7 @@ func _refresh_workspace() -> void:
 		return
 	_workspace.initialize(EditorInterface.get_edited_scene_root())
 	_dock.set_profiles(_workspace.profiles)
+	_dock.set_asset_actions(_workspace.asset_actions)
 	if _workspace.active_profile != null:
 		_dock.set_profile(_workspace.active_profile)
 		_dock.set_time(_workspace.current_time)
@@ -68,6 +71,36 @@ func _refresh_workspace() -> void:
 
 func _on_animation_selected(index: int) -> void:
 	_workspace.select_profile(index)
+	if _workspace.active_profile != null:
+		var asset_index := _workspace.asset_action_index_for_profile(_workspace.active_profile.animation_name)
+		if asset_index >= 0:
+			_dock.select_asset_action(asset_index)
+			_workspace.select_asset_action(asset_index)
+
+
+func _on_asset_action_selected(index: int) -> void:
+	_workspace.select_asset_action(index)
+	_dock.select_asset_action(index)
+
+
+func _on_asset_action_changed(action: Dictionary) -> void:
+	_dock.set_asset_action(action)
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null:
+		return
+	var overlay := _find_overlay(root)
+	if overlay == null:
+		return
+	var texture_path := String(action.get("reference_sprite", ""))
+	var texture := load(texture_path) as Texture2D if not texture_path.is_empty() else null
+	overlay.reference_texture = texture
+	var frame_width := maxi(1, int(action.get("frame_width", 48)))
+	var frame_height := maxi(1, int(action.get("frame_height", 48)))
+	if texture != null:
+		overlay.hframes = maxi(1, texture.get_width() / frame_width)
+		overlay.vframes = maxi(1, texture.get_height() / frame_height)
+	overlay.pivot_px = Vector2(frame_width * 0.5, frame_height)
+	overlay.frame = 0
 
 
 func _on_marker_requested(type: int) -> void:

@@ -8,16 +8,18 @@ RotoBone v3 is an editor workflow layered over the existing `res://scenes/mud_ch
 2. Open `res://tests/rotobone_mud_character_test.tscn`.
 3. Use the narrow **RotoBone v3** dock on the right. It should report `Mud Character · template detected`.
 4. Select Idle, Walk, Run, Jump, Fall, Land, Wall Slide, Attack / Slash, Thrust, Roll, Hurt, or Death.
-5. Select and rotate existing Bone2D nodes under `MudCharacterInstance/Visual/PoseRoot/Skeleton2D` in the 2D editor.
-6. Move `RotoBoneAnchor` to align the sprite reference. The overlay intentionally follows this Marker2D; editor-only canvas offsets are not used.
-7. Click a marker button to add a Contact (`○`), Extreme (`△`), Breakdown (`□`), or Impact (`✕`) marker at the current time.
-8. Click **Bake Pose** to write rotation keys into the wrapper scene's `AnimationPlayer`, under the `RotoBone` animation library.
+5. Use **Asset action directory** to browse every action folder shipped under the pixel-art template. Selecting an entry switches the reference overlay and, when mapped, selects its canonical RotoBone profile.
+6. Select and rotate existing Bone2D nodes under `MudCharacterInstance/Visual/PoseRoot/Skeleton2D` in the 2D editor.
+7. Move `RotoBoneAnchor` to align the sprite reference. The overlay intentionally follows this Marker2D; editor-only canvas offsets are not used.
+8. Click a marker button to add a Contact (`○`), Extreme (`△`), Breakdown (`□`), or Impact (`✕`) marker at the current time.
+9. Click **Bake Pose** to write rotation keys into the wrapper scene's `AnimationPlayer`, under the `RotoBone` animation library.
 
 ## Data flow and safety contract
 
 - `RotoBoneMudCharacterAdapter` loads or finds the PackedScene instance, then detects its `CharacterBody2D`, `Skeleton2D`, and source `AnimationPlayer` by type.
 - `RotoBoneSemanticBoneMapper` derives the hierarchy and semantic roles without changing nodes. The checked-in result is `addons/rotobone/v3/core/mud_character_bone_map.json`; `write_mapping()` can regenerate it after an intentional source-rig update.
 - `RotoBoneAnimationProfile` holds the canonical action name, source clip, duration, reference sprite, and markers.
+- `asset_action_catalog.json` mirrors all 36 action folders in the source asset pack. Each row records its primary sprite sheet, cell dimensions, canonical action, source AnimationPlayer clip, and whether the mapping is direct, reference-only, or excluded.
 - `RotoBonePoseBaker` targets only the wrapper `AnimationPlayer`. It emits Bone2D `rotation` value tracks and, only when explicitly requested by API, a root `position` track.
 - `Bone2D.rest`, bone length, hierarchy, Bone2D position, and scale are read-only. Temporary IK may be used while posing, but the baker never serializes IK state or scale.
 - The original `mud_character.tscn` remains the single skeleton template. Profiles for Roll, Hurt, and Death are available for authoring even though the source scene currently has no matching reusable clip.

@@ -37,6 +37,8 @@ func _run() -> void:
 	var output_player := scene.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	_check(output_player != null, "workspace AnimationPlayer exists")
 	_check(_count_type(scene, "Skeleton2D") == 1, "workspace contains exactly the source scene skeleton")
+	var action_list := scene.get_node_or_null("ActionCatalogPanel/Margin/VBox/ActionList") as ItemList
+	_check(action_list != null and action_list.item_count == 36, "test scene displays all 36 asset action folders")
 
 	var adapter := Adapter.new()
 	_check(adapter.bind_instance(mud_instance), "adapter detects CharacterBody2D, Skeleton2D, and AnimationPlayer")
@@ -49,6 +51,21 @@ func _run() -> void:
 
 	var workspace := Workspace.new()
 	_check(workspace.load_catalog() == OK, "animation catalog loads")
+	_check(workspace.asset_actions.size() == 36, "asset action catalog loads")
+	var disk_folders := Array(DirAccess.get_directories_at("res://assets/2D-Pixel-Art-Character-Template/2D-Pixel-Art-Character-Template"))
+	disk_folders.erase("Tilemap (Super Basic)")
+	disk_folders.sort()
+	var catalog_folders: Array[String] = []
+	for action in workspace.asset_actions:
+		catalog_folders.append(String(action.get("folder", "")))
+		var reference_path := String(action.get("reference_sprite", ""))
+		_check(FileAccess.file_exists(reference_path), "reference sprite exists for %s" % action.get("folder", ""))
+		var texture := load(reference_path) as Texture2D
+		var frame_width := int(action.get("frame_width", 0))
+		var frame_height := int(action.get("frame_height", 0))
+		_check(texture != null and frame_width > 0 and frame_height > 0 and texture.get_width() % frame_width == 0 and texture.get_height() % frame_height == 0, "sprite grid is valid for %s" % action.get("folder", ""))
+	catalog_folders.sort()
+	_check(catalog_folders == disk_folders, "catalog mirrors every action folder on disk")
 	var names: Array[String] = []
 	for profile in workspace.profiles:
 		names.append(String(profile.animation_name))
@@ -59,6 +76,15 @@ func _run() -> void:
 	_check(Marker.SYMBOLS[Marker.MarkerType.CONTACT] == "○" and Marker.SYMBOLS[Marker.MarkerType.IMPACT] == "✕", "marker symbols are stable")
 	for index in 9:
 		_check(adapter.available_animations().has(String(workspace.profiles[index].source_animation)), "source clip exists for %s" % workspace.profiles[index].animation_name)
+	var sword_stab_index := _asset_index(workspace.asset_actions, "Sword Stab")
+	workspace.select_asset_action(sword_stab_index)
+	_check(workspace.active_profile.animation_name == &"thrust", "Sword Stab maps to the thrust profile")
+	_check(workspace.asset_actions[sword_stab_index].source_animation == "Blade/Attack_2", "Sword Stab maps to Blade/Attack_2")
+	var wall_slide_index := _asset_index(workspace.asset_actions, "Wall Slide")
+	workspace.select_asset_action(wall_slide_index)
+	_check(workspace.active_profile.animation_name == &"wall_slide", "Wall Slide maps to the wall_slide profile")
+	var dash_index := _asset_index(workspace.asset_actions, "Dash")
+	_check(workspace.asset_actions[dash_index].mapping == "excluded" and workspace.asset_actions[dash_index].canonical_action == "", "excluded folders do not expand the v3 action set")
 
 	var snapshot := _snapshot_skeleton(adapter.skeleton)
 	var pelvis := adapter.skeleton.get_node("Pelvis") as Bone2D
@@ -114,6 +140,13 @@ func _count_type(node: Node, type_name: StringName) -> int:
 	for child in node.get_children():
 		total += _count_type(child, type_name)
 	return total
+
+
+func _asset_index(actions: Array[Dictionary], folder: String) -> int:
+	for index in actions.size():
+		if actions[index].get("folder", "") == folder:
+			return index
+	return -1
 
 
 func _bones(skeleton: Skeleton2D) -> Array[Bone2D]:

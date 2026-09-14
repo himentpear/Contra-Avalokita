@@ -12,7 +12,7 @@
 script = ExtResource("2_test")
 
 [node name="WorkspaceBackdrop" type="ColorRect" parent="."]
-offset_right = 512.0
+offset_right = 920.0
 offset_bottom = 320.0
 mouse_filter = 2
 color = Color(0.055, 0.063, 0.086, 1)
@@ -46,3 +46,34 @@ script = ExtResource("5_timeline")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries/RotoBone = SubResource("AnimationLibrary_output")
+
+[node name="ActionCatalogPanel" type="PanelContainer" parent="."]
+offset_left = 528.0
+offset_top = 16.0
+offset_right = 904.0
+offset_bottom = 304.0
+
+[node name="Margin" type="MarginContainer" parent="ActionCatalogPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="ActionCatalogPanel/Margin"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ActionCatalogPanel/Margin/VBox"]
+layout_mode = 2
+text = "Asset Action Directory · 36 folders"
+theme_override_font_sizes/font_size = 16
+
+[node name="Hint" type="Label" parent="ActionCatalogPanel/Margin/VBox"]
+layout_mode = 2
+text = "folder → canonical action · mapping"
+theme_override_colors/font_color = Color(0.65, 0.69, 0.78, 1)
+
+[node name="ActionList" type="ItemList" parent="ActionCatalogPanel/Margin/VBox"]
+custom_minimum_size = Vector2(350, 224)
+layout_mode = 2
+size_flags_vertical = 3

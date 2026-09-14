@@ -3,6 +3,7 @@ class_name RotoBoneV3Dock
 extends VBoxContainer
 
 signal animation_selected(index: int)
+signal asset_action_selected(index: int)
 signal time_requested(time: float)
 signal marker_requested(type: int)
 signal bake_requested
@@ -12,6 +13,8 @@ const Timeline := preload("res://addons/rotobone/v3/editor/timeline_overlay.gd")
 
 var status_label: Label
 var animation_select: OptionButton
+var asset_action_select: OptionButton
+var asset_mapping_label: Label
 var time_spin: SpinBox
 var opacity_slider: HSlider
 var frame_spin: SpinBox
@@ -31,8 +34,35 @@ func set_profiles(profiles: Array[RotoBoneAnimationProfile]) -> void:
 		if profile.animation_name == &"slash":
 			title = "Attack / Slash"
 		animation_select.add_item(title)
+		animation_select.set_item_metadata(animation_select.item_count - 1, String(profile.animation_name))
 	if not profiles.is_empty():
 		animation_select.select(0)
+
+
+func set_asset_actions(actions: Array[Dictionary]) -> void:
+	asset_action_select.clear()
+	for action in actions:
+		asset_action_select.add_item(String(action.get("folder", "Unnamed")))
+	if not actions.is_empty():
+		asset_action_select.select(0)
+		set_asset_action(actions[0])
+
+
+func select_asset_action(index: int) -> void:
+	if index >= 0 and index < asset_action_select.item_count:
+		asset_action_select.select(index)
+
+
+func set_asset_action(action: Dictionary) -> void:
+	var canonical := String(action.get("canonical_action", ""))
+	var source := String(action.get("source_animation", ""))
+	var mapping := String(action.get("mapping", "excluded"))
+	if mapping == "excluded":
+		asset_mapping_label.text = "Excluded from v3 authoring"
+	elif source.is_empty():
+		asset_mapping_label.text = "%s → %s (new clip)" % [mapping.capitalize(), canonical]
+	else:
+		asset_mapping_label.text = "%s → %s → %s" % [mapping.capitalize(), canonical, source]
 
 
 func set_template_status(_ready: bool, message: String) -> void:
@@ -43,6 +73,10 @@ func set_template_status(_ready: bool, message: String) -> void:
 func set_profile(profile: RotoBoneAnimationProfile) -> void:
 	timeline.set_profile(profile)
 	time_spin.max_value = profile.duration
+	for index in animation_select.item_count:
+		if StringName(animation_select.get_item_metadata(index)) == profile.animation_name:
+			animation_select.select(index)
+			break
 
 
 func set_time(value: float) -> void:
@@ -69,6 +103,17 @@ func _build_ui() -> void:
 	animation_select.tooltip_text = "Canonical mud_character action profile"
 	animation_select.item_selected.connect(func(index: int) -> void: animation_selected.emit(index))
 	add_child(animation_select)
+	var asset_label := Label.new()
+	asset_label.text = "Asset action directory"
+	add_child(asset_label)
+	asset_action_select = OptionButton.new()
+	asset_action_select.tooltip_text = "Reference folders under the 2D Pixel Art Character Template"
+	asset_action_select.item_selected.connect(func(index: int) -> void: asset_action_selected.emit(index))
+	add_child(asset_action_select)
+	asset_mapping_label = Label.new()
+	asset_mapping_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	asset_mapping_label.add_theme_color_override("font_color", Color("aab2c4"))
+	add_child(asset_mapping_label)
 	time_spin = SpinBox.new()
 	time_spin.step = 0.001
 	time_spin.suffix = " s"
