@@ -32,7 +32,7 @@ func run() -> void:
 		check(is_equal_approx(float(material.get_shader_parameter("amplitude_px")), 8.0), "Medium preset starts at an 8px wave amplitude")
 
 		ocean.add_impact(320.0, 6.0, 48.0)
-		var impact := material.get_shader_parameter("impact0") as Vector4
+		var impact: Vector4 = material.get_shader_parameter("impact0")
 		check(is_equal_approx(impact.x, 0.5) and is_equal_approx(impact.y, 0.0), "Local disturbance injection normalizes screen X and resets impact age")
 
 		ocean.set_preset(&"storm")
