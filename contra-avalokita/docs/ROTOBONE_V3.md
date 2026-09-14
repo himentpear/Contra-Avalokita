@@ -14,7 +14,13 @@ RotoBone v3 is an editor workflow layered over the existing `res://scenes/mud_ch
 8. Click a marker button to add a Contact (`○`), Extreme (`△`), Breakdown (`□`), or Impact (`✕`) marker at the current time.
 9. Click **Bake Pose** to write rotation keys into the wrapper scene's `AnimationPlayer`, under the `RotoBone` animation library.
 
-The wrapper `AnimationPlayer` also exposes an editable `AssetActions` library. It contains one empty placeholder animation for each of the 36 asset folders. Placeholder lengths are initialized from the sprite-sheet frame count at 12 FPS, and obvious cycles are configured to loop. Add Bone2D rotation tracks there when authoring directly; this external library belongs to the RotoBone workspace and never modifies the source character's animation libraries.
+The wrapper `AnimationPlayer` also exposes an editable `AssetActions` library. It contains one animation for each of the 36 asset folders. Placeholder lengths are initialized from the sprite-sheet frame count at 12 FPS, obvious cycles are configured to loop, and every sprite frame appears as an `F01…Fn` marker. All 17 existing Bone2D rotation tracks have a key at every marked frame. Mapped actions start from sampled source poses; actions without a source clip start from the neutral pose. Rotation tracks use cubic-angle interpolation for smooth, wrap-safe transitions. This external library belongs to the RotoBone workspace and never modifies the source character's animation libraries.
+
+Regenerate the derived library after changing the asset catalog with:
+
+```powershell
+godot --headless --path . --script res://addons/rotobone/v3/tools/build_asset_action_placeholders.gd
+```
 
 ## Data flow and safety contract
 

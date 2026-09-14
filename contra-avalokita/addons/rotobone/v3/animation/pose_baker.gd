@@ -56,7 +56,8 @@ func _insert_value(animation: Animation, path: NodePath, time: float, value: Var
 	if track < 0:
 		track = animation.add_track(Animation.TYPE_VALUE)
 		animation.track_set_path(track, path)
-		animation.track_set_interpolation_type(track, Animation.INTERPOLATION_LINEAR)
+		var interpolation := Animation.INTERPOLATION_CUBIC_ANGLE if String(path).ends_with(":rotation") else Animation.INTERPOLATION_CUBIC
+		animation.track_set_interpolation_type(track, interpolation)
 	animation.track_insert_key(track, time, value)
 
 

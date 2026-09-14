@@ -70,6 +70,9 @@ func _run() -> void:
 	catalog_folders.sort()
 	_check(catalog_folders == disk_folders, "catalog mirrors every action folder on disk")
 	var placeholder_names: Array[String] = []
+	var actions_by_folder := {}
+	for action in workspace.asset_actions:
+		actions_by_folder[String(action.get("folder", ""))] = action
 	if placeholder_library != null:
 		for placeholder_name in placeholder_library.get_animation_list():
 			placeholder_names.append(String(placeholder_name))
@@ -78,7 +81,17 @@ func _run() -> void:
 	if placeholder_library != null:
 		for placeholder_name in placeholder_library.get_animation_list():
 			var placeholder := placeholder_library.get_animation(placeholder_name)
-			_check(placeholder.length > 0.0 and is_equal_approx(placeholder.step, 1.0 / 12.0) and placeholder.get_track_count() == 0, "placeholder is empty and editable on a 12 FPS grid: %s" % placeholder_name)
+			var action: Dictionary = actions_by_folder.get(String(placeholder_name), {})
+			var texture := load(String(action.get("reference_sprite", ""))) as Texture2D
+			var expected_frames := (texture.get_width() / int(action.get("frame_width", 48))) * (texture.get_height() / int(action.get("frame_height", 48)))
+			_check(placeholder.length > 0.0 and is_equal_approx(placeholder.step, 1.0 / 12.0), "animation uses a 12 FPS grid: %s" % placeholder_name)
+			_check(placeholder.get_marker_names().size() == expected_frames and placeholder.get_marker_names()[0] == &"F01", "every sprite frame has a named marker: %s" % placeholder_name)
+			_check(placeholder.get_track_count() == 17, "all existing bones have editable tracks: %s" % placeholder_name)
+			for track in placeholder.get_track_count():
+				_check(String(placeholder.track_get_path(track)).ends_with(":rotation"), "placeholder track is rotation-only: %s" % placeholder_name)
+				_check(placeholder.track_get_interpolation_type(track) == Animation.INTERPOLATION_CUBIC_ANGLE, "rotation interpolation is smooth and angle-safe: %s" % placeholder_name)
+				_check(placeholder.track_get_key_count(track) == expected_frames, "every marked frame has a bone key: %s" % placeholder_name)
+		_check(_animation_has_pose_variation(placeholder_library.get_animation(&"Walk")), "mapped placeholders sample real source pose variation")
 	var names: Array[String] = []
 	for profile in workspace.profiles:
 		names.append(String(profile.animation_name))
@@ -111,6 +124,7 @@ func _run() -> void:
 		for track in animation.get_track_count():
 			var path := String(animation.track_get_path(track))
 			_check(path.ends_with(":rotation") and not ":rest" in path and not ":scale" in path, "baked track is rotation-only: %s" % path)
+			_check(animation.track_get_interpolation_type(track) == Animation.INTERPOLATION_CUBIC_ANGLE, "baked rotation interpolation is smooth")
 
 	pelvis.rotation = 0.0
 	adapter.clear()
@@ -160,6 +174,17 @@ func _asset_index(actions: Array[Dictionary], folder: String) -> int:
 		if actions[index].get("folder", "") == folder:
 			return index
 	return -1
+
+
+func _animation_has_pose_variation(animation: Animation) -> bool:
+	for track in animation.get_track_count():
+		if animation.track_get_key_count(track) < 2:
+			continue
+		var first_value := float(animation.track_get_key_value(track, 0))
+		for key_index in range(1, animation.track_get_key_count(track)):
+			if not is_equal_approx(first_value, float(animation.track_get_key_value(track, key_index))):
+				return true
+	return false
 
 
 func _bones(skeleton: Skeleton2D) -> Array[Bone2D]:
