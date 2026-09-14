@@ -8,6 +8,7 @@ const HealthComponent = preload("res://scripts/components/health_component.gd")
 const CombatComponent = preload("res://scripts/components/combat_component.gd")
 const AnimationController = preload("res://scripts/components/animation_controller.gd")
 const SDFBodyComponent = preload("res://scripts/components/sdf_body_component.gd")
+const CharacterStateComponent = preload("res://scripts/components/character_state_component.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -30,6 +31,7 @@ var health_component: HealthComponent
 var combat_component: CombatComponent
 var animation_controller: AnimationController
 var sdf_body_component: SDFBodyComponent
+var character_state_component: CharacterStateComponent
 
 var air_time: float:
 	get: return movement_component.air_time if movement_component else 0.0
@@ -190,7 +192,12 @@ var health: float:
 	set(v):
 		_health = v
 		if health_component: health_component.health = v
-var state: StringName = &"Idle"
+var _state: StringName = &"Idle"
+var state: StringName:
+	get: return character_state_component.locomotion_state if character_state_component else _state
+	set(v):
+		_state = v
+		if character_state_component: character_state_component.locomotion_state = v
 var attack_time: float:
 	get: return combat_component.attack_time if combat_component else 0.0
 	set(v): if combat_component: combat_component.attack_time = v
@@ -522,6 +529,15 @@ func _ready() -> void:
 		comp_root.name = "Components"
 		add_child(comp_root)
 
+	if has_node("Components/CharacterStateComponent"):
+		character_state_component = $Components/CharacterStateComponent
+	elif has_node("CharacterStateComponent"):
+		character_state_component = $CharacterStateComponent
+	else:
+		character_state_component = CharacterStateComponent.new()
+		character_state_component.name = "CharacterStateComponent"
+		comp_root.add_child(character_state_component)
+
 	if has_node("Components/HealthComponent"):
 		health_component = $Components/HealthComponent
 	elif has_node("HealthComponent"):
@@ -542,7 +558,7 @@ func _ready() -> void:
 		movement_component = MovementComponent.new()
 		movement_component.name = "MovementComponent"
 		comp_root.add_child(movement_component)
-	movement_component.setup(self)
+	movement_component.setup(self, character_state_component)
 	movement_component.movement_state_changed.connect(func(s: StringName) -> void: transition(s))
 	movement_component.landed.connect(func(impact: float, hard: bool) -> void:
 		landed.emit(impact, hard)
@@ -569,7 +585,7 @@ func _ready() -> void:
 		combat_component = CombatComponent.new()
 		combat_component.name = "CombatComponent"
 		comp_root.add_child(combat_component)
-	combat_component.setup(self)
+	combat_component.setup(self, character_state_component)
 	combat_component.attack_duration = _attack_duration
 	combat_component.allow_air_attack = _allow_air_attack
 	combat_component.attack_movement_multiplier = _attack_movement_multiplier

@@ -28,25 +28,103 @@ signal hit_flash_changed(amount: float, color: Color)
 @export var hit_flash_color := Color.WHITE
 
 var character: CharacterBody2D
+var state_component: Node
 var punch_hit_targets: Array[int] = []
 var punch_hitbox: Area2D
 var punch_collision_shape: CollisionShape2D
 
-var combo_stage := 0
-var combo_queued := false
-var action_state: StringName = &"None"
-var attack_time := 0.0
-var attack_requested := false
+var _combo_stage := 0
+var combo_stage: int:
+	get: return state_component.combo_stage if state_component else _combo_stage
+	set(v):
+		if state_component: state_component.combo_stage = v
+		else: _combo_stage = v
+
+var _combo_queued := false
+var combo_queued: bool:
+	get: return state_component.combo_queued if state_component else _combo_queued
+	set(v):
+		if state_component: state_component.combo_queued = v
+		else: _combo_queued = v
+
+var _action_state: StringName = &"None"
+var action_state: StringName:
+	get: return state_component.action_state if state_component else _action_state
+	set(v):
+		if state_component: state_component.action_state = v
+		else: _action_state = v
+
+var _attack_time := 0.0
+var attack_time: float:
+	get: return state_component.attack_time if state_component else _attack_time
+	set(v):
+		if state_component: state_component.attack_time = v
+		else: _attack_time = v
+
+var _attack_requested := false
+var attack_requested: bool:
+	get: return state_component.attack_requested if state_component else _attack_requested
+	set(v):
+		if state_component: state_component.attack_requested = v
+		else: _attack_requested = v
+
 var block_requested := false
 
-var reaction_state: StringName = &"None"
-var reaction_time := 0.0
-var reaction_duration := 0.0
-var reaction_direction := Vector2.RIGHT
-var reaction_intensity := 1.0
-var reaction_region: StringName = &"UPPER_TORSO"
-var reaction_impact_local := Vector2.ZERO
-var reaction_push_offset := Vector2.ZERO
+var _reaction_state: StringName = &"None"
+var reaction_state: StringName:
+	get: return state_component.reaction_state if state_component else _reaction_state
+	set(v):
+		if state_component: state_component.reaction_state = v
+		else: _reaction_state = v
+
+var _reaction_time := 0.0
+var reaction_time: float:
+	get: return state_component.reaction_time if state_component else _reaction_time
+	set(v):
+		if state_component: state_component.reaction_time = v
+		else: _reaction_time = v
+
+var _reaction_duration := 0.0
+var reaction_duration: float:
+	get: return state_component.reaction_duration if state_component else _reaction_duration
+	set(v):
+		if state_component: state_component.reaction_duration = v
+		else: _reaction_duration = v
+
+var _reaction_direction := Vector2.RIGHT
+var reaction_direction: Vector2:
+	get: return state_component.reaction_direction if state_component else _reaction_direction
+	set(v):
+		if state_component: state_component.reaction_direction = v
+		else: _reaction_direction = v
+
+var _reaction_intensity := 1.0
+var reaction_intensity: float:
+	get: return state_component.reaction_intensity if state_component else _reaction_intensity
+	set(v):
+		if state_component: state_component.reaction_intensity = v
+		else: _reaction_intensity = v
+
+var _reaction_region: StringName = &"UPPER_TORSO"
+var reaction_region: StringName:
+	get: return state_component.reaction_region if state_component else _reaction_region
+	set(v):
+		if state_component: state_component.reaction_region = v
+		else: _reaction_region = v
+
+var _reaction_impact_local := Vector2.ZERO
+var reaction_impact_local: Vector2:
+	get: return state_component.reaction_impact_local if state_component else _reaction_impact_local
+	set(v):
+		if state_component: state_component.reaction_impact_local = v
+		else: _reaction_impact_local = v
+
+var _reaction_push_offset := Vector2.ZERO
+var reaction_push_offset: Vector2:
+	get: return state_component.reaction_push_offset if state_component else _reaction_push_offset
+	set(v):
+		if state_component: state_component.reaction_push_offset = v
+		else: _reaction_push_offset = v
 
 var local_time_scale := 1.0
 var hit_flash_remaining := 0.0
@@ -66,8 +144,9 @@ var _upper_arm_back_bone: Bone2D
 var _forearm_back_bone: Bone2D
 var _hand_back_bone: Bone2D
 
-func setup(p_character: CharacterBody2D) -> void:
+func setup(p_character: CharacterBody2D, p_state_component: Node = null) -> void:
 	character = p_character
+	state_component = p_state_component
 	if not punch_hitbox:
 		punch_hitbox = Area2D.new()
 		punch_hitbox.name = "PunchHitbox"

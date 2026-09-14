@@ -59,9 +59,24 @@ signal jump_executed(source: MudMovementAssist.JumpSource)
 
 # Runtime state
 var character: CharacterBody2D
-var air_time := 0.0
+var state_component: Node
+
+var _air_time := 0.0
+var air_time: float:
+	get: return state_component.air_time if state_component else _air_time
+	set(v):
+		if state_component: state_component.air_time = v
+		else: _air_time = v
+
 var last_air_velocity_y := 0.0
-var jump_phase: StringName = &"Grounded"
+
+var _jump_phase: StringName = &"Grounded"
+var jump_phase: StringName:
+	get: return state_component.jump_phase if state_component else _jump_phase
+	set(v):
+		if state_component: state_component.jump_phase = v
+		else: _jump_phase = v
+
 var jump_squat_left := 0.0
 var landing_left := 0.0
 var landing_animation: StringName = &""
@@ -70,11 +85,41 @@ var movement_assist := MudMovementAssist.new()
 var item_inventory := MudItemInventory.new()
 var pending_jump_source := MudMovementAssist.JumpSource.NONE
 
-var wall_action: StringName = &"None"
-var wall_side := 0.0
-var wall_action_time := 0.0
-var wall_hang_left := 0.0
-var wall_regrab_left := 0.0
+var _wall_action: StringName = &"None"
+var wall_action: StringName:
+	get: return state_component.wall_action if state_component else _wall_action
+	set(v):
+		if state_component: state_component.wall_action = v
+		else: _wall_action = v
+
+var _wall_side := 0.0
+var wall_side: float:
+	get: return state_component.wall_side if state_component else _wall_side
+	set(v):
+		if state_component: state_component.wall_side = v
+		else: _wall_side = v
+
+var _wall_action_time := 0.0
+var wall_action_time: float:
+	get: return state_component.wall_action_time if state_component else _wall_action_time
+	set(v):
+		if state_component: state_component.wall_action_time = v
+		else: _wall_action_time = v
+
+var _wall_hang_left := 0.0
+var wall_hang_left: float:
+	get: return state_component.wall_hang_left if state_component else _wall_hang_left
+	set(v):
+		if state_component: state_component.wall_hang_left = v
+		else: _wall_hang_left = v
+
+var _wall_regrab_left := 0.0
+var wall_regrab_left: float:
+	get: return state_component.wall_regrab_left if state_component else _wall_regrab_left
+	set(v):
+		if state_component: state_component.wall_regrab_left = v
+		else: _wall_regrab_left = v
+
 var wall_coyote_left := 0.0
 var wall_detach_left := 0.0
 var wall_jump_control_lock_left := 0.0
@@ -85,23 +130,79 @@ var same_wall_jump_count := 0
 var same_wall_collider_id := 0
 var same_wall_side := 0.0
 var same_wall_reset_left := 0.0
-var pending_wall_jump_kind: StringName = &"Standard"
+
+var _pending_wall_jump_kind: StringName = &"Standard"
+var pending_wall_jump_kind: StringName:
+	get: return state_component.pending_wall_jump_kind if state_component else _pending_wall_jump_kind
+	set(v):
+		if state_component: state_component.pending_wall_jump_kind = v
+		else: _pending_wall_jump_kind = v
+
 var pending_wall_launch := Vector2.ZERO
-var wall_surface_x := INF
-var wall_hand_anchor_y := 0.0
-var wall_foot_anchor_y := 0.0
-var wall_slide_scrape_offset := 0.0
-var wall_front_knee_sign := 0.0
-var wall_back_knee_sign := 0.0
+
+var _wall_surface_x := INF
+var wall_surface_x: float:
+	get: return state_component.wall_surface_x if state_component else _wall_surface_x
+	set(v):
+		if state_component: state_component.wall_surface_x = v
+		else: _wall_surface_x = v
+
+var _wall_hand_anchor_y := 0.0
+var wall_hand_anchor_y: float:
+	get: return state_component.wall_hand_anchor_y if state_component else _wall_hand_anchor_y
+	set(v):
+		if state_component: state_component.wall_hand_anchor_y = v
+		else: _wall_hand_anchor_y = v
+
+var _wall_foot_anchor_y := 0.0
+var wall_foot_anchor_y: float:
+	get: return state_component.wall_foot_anchor_y if state_component else _wall_foot_anchor_y
+	set(v):
+		if state_component: state_component.wall_foot_anchor_y = v
+		else: _wall_foot_anchor_y = v
+
+var _wall_slide_scrape_offset := 0.0
+var wall_slide_scrape_offset: float:
+	get: return state_component.wall_slide_scrape_offset if state_component else _wall_slide_scrape_offset
+	set(v):
+		if state_component: state_component.wall_slide_scrape_offset = v
+		else: _wall_slide_scrape_offset = v
+
+var _wall_front_knee_sign := 0.0
+var wall_front_knee_sign: float:
+	get: return state_component.wall_front_knee_sign if state_component else _wall_front_knee_sign
+	set(v):
+		if state_component: state_component.wall_front_knee_sign = v
+		else: _wall_front_knee_sign = v
+
+var _wall_back_knee_sign := 0.0
+var wall_back_knee_sign: float:
+	get: return state_component.wall_back_knee_sign if state_component else _wall_back_knee_sign
+	set(v):
+		if state_component: state_component.wall_back_knee_sign = v
+		else: _wall_back_knee_sign = v
 
 var facing := 1.0
 var move_intent := 0.0
 var jump_requested := false
-var land_time := 0.0
-var current_movement_state: StringName = &"Idle"
 
-func setup(p_character: CharacterBody2D) -> void:
+var _land_time := 0.0
+var land_time: float:
+	get: return state_component.land_time if state_component else _land_time
+	set(v):
+		if state_component: state_component.land_time = v
+		else: _land_time = v
+
+var _current_movement_state: StringName = &"Idle"
+var current_movement_state: StringName:
+	get: return state_component.locomotion_state if state_component else _current_movement_state
+	set(v):
+		if state_component: state_component.locomotion_state = v
+		else: _current_movement_state = v
+
+func setup(p_character: CharacterBody2D, p_state_component: Node = null) -> void:
 	character = p_character
+	state_component = p_state_component
 	movement_assist.configure(base_coyote_time, base_jump_buffer_time)
 	if not item_inventory.changed.is_connected(_recompute_movement_modifiers):
 		item_inventory.changed.connect(_recompute_movement_modifiers)
