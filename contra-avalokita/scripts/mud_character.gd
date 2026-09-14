@@ -5,6 +5,7 @@ const HitEvent = preload("res://scripts/hit_event.gd")
 const IntentComponentScript = preload("res://gameplay/components/movement/intent_component.gd")
 const MovementComponent = preload("res://scripts/components/movement_component.gd")
 const HealthComponent = preload("res://scripts/components/health_component.gd")
+const CombatComponent = preload("res://scripts/components/combat_component.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -24,6 +25,7 @@ signal jump_executed(source: MudMovementAssist.JumpSource)
 @export var movement_assist_debug := false
 var movement_component: MovementComponent
 var health_component: HealthComponent
+var combat_component: CombatComponent
 
 var air_time: float:
 	get: return movement_component.air_time if movement_component else 0.0
@@ -170,8 +172,12 @@ func update_jump_animation() -> void:
 @export var score_profile: EnemyScoreProfile
 @export var score_credit_enabled := false
 @export var score_combat_power := 1.0
-var score_life_id := 0
-var score_attack_serial := 0
+var score_life_id: int:
+	get: return combat_component.score_life_id if combat_component else 0
+	set(v): if combat_component: combat_component.score_life_id = v
+var score_attack_serial: int:
+	get: return combat_component.score_attack_serial if combat_component else 0
+	set(v): if combat_component: combat_component.score_attack_serial = v
 @export var player_controlled := true
 var intent_component: IntentComponent = IntentComponentScript.new()
 @export var move_speed := 105.0
@@ -179,10 +185,25 @@ var intent_component: IntentComponent = IntentComponentScript.new()
 @export var acceleration := 700.0
 @export var gravity := 650.0
 @export var jump_velocity := -245.0
-@export var attack_duration := 0.62
+@export var attack_duration := 0.62:
+	get: return combat_component.attack_duration if combat_component else _attack_duration
+	set(v):
+		_attack_duration = v
+		if combat_component: combat_component.attack_duration = v
+var _attack_duration := 0.62
 @export var max_health := 100.0
-@export var allow_air_attack := true
-@export_range(0.1,1.0) var attack_movement_multiplier := 1.0
+@export var allow_air_attack := true:
+	get: return combat_component.allow_air_attack if combat_component else _allow_air_attack
+	set(v):
+		_allow_air_attack = v
+		if combat_component: combat_component.allow_air_attack = v
+var _allow_air_attack := true
+@export_range(0.1,1.0) var attack_movement_multiplier := 1.0:
+	get: return combat_component.attack_movement_multiplier if combat_component else _attack_movement_multiplier
+	set(v):
+		_attack_movement_multiplier = v
+		if combat_component: combat_component.attack_movement_multiplier = v
+var _attack_movement_multiplier := 1.0
 var _health := 100.0
 var health: float:
 	get: return health_component.health if health_component else _health
@@ -190,7 +211,9 @@ var health: float:
 		_health = v
 		if health_component: health_component.health = v
 var state: StringName = &"Idle"
-var attack_time := 0.0
+var attack_time: float:
+	get: return combat_component.attack_time if combat_component else 0.0
+	set(v): if combat_component: combat_component.attack_time = v
 var _facing := 1.0
 var facing: float:
 	get: return movement_component.facing if movement_component else _facing
@@ -212,20 +235,64 @@ var land_time: float:
 		_land_time = v
 		if movement_component: movement_component.land_time = v
 var jump_requested := false
-var attack_requested := false
-@export var punch_animations := PackedStringArray(["Punch/Attack_1", "Punch/Attack_2", "Punch/Attack_3"])
-@export var punch_windows: Array[Vector2] = [Vector2(0.06, 0.18), Vector2(0.08, 0.22), Vector2(0.10, 0.26)]
-@export var punch_damages: Array[float] = [7.0, 9.0, 12.0]
-@export var punch_impacts: Array[float] = [0.50, 0.75, 1.30]
-@export var punch_combo_buffer_start := 0.12
-@export var enable_camera_shake := false
-var punch_hit_targets: Array[int] = []
-var punch_hitbox: Area2D
-var punch_collision_shape: CollisionShape2D
+var attack_requested: bool:
+	get: return combat_component.attack_requested if combat_component else _attack_requested
+	set(v):
+		_attack_requested = v
+		if combat_component: combat_component.attack_requested = v
+var _attack_requested := false
+@export var punch_animations := PackedStringArray(["Punch/Attack_1", "Punch/Attack_2", "Punch/Attack_3"]):
+	get: return combat_component.punch_animations if combat_component else _punch_animations
+	set(v):
+		_punch_animations = v
+		if combat_component: combat_component.punch_animations = v
+var _punch_animations := PackedStringArray(["Punch/Attack_1", "Punch/Attack_2", "Punch/Attack_3"])
+@export var punch_windows: Array[Vector2] = [Vector2(0.06, 0.18), Vector2(0.08, 0.22), Vector2(0.10, 0.26)]:
+	get: return combat_component.punch_windows if combat_component else _punch_windows
+	set(v):
+		_punch_windows = v
+		if combat_component: combat_component.punch_windows = v
+var _punch_windows: Array[Vector2] = [Vector2(0.06, 0.18), Vector2(0.08, 0.22), Vector2(0.10, 0.26)]
+@export var punch_damages: Array[float] = [7.0, 9.0, 12.0]:
+	get: return combat_component.punch_damages if combat_component else _punch_damages
+	set(v):
+		_punch_damages = v
+		if combat_component: combat_component.punch_damages = v
+var _punch_damages: Array[float] = [7.0, 9.0, 12.0]
+@export var punch_impacts: Array[float] = [0.50, 0.75, 1.30]:
+	get: return combat_component.punch_impacts if combat_component else _punch_impacts
+	set(v):
+		_punch_impacts = v
+		if combat_component: combat_component.punch_impacts = v
+var _punch_impacts: Array[float] = [0.50, 0.75, 1.30]
+@export var punch_combo_buffer_start := 0.12:
+	get: return combat_component.punch_combo_buffer_start if combat_component else _punch_combo_buffer_start
+	set(v):
+		_punch_combo_buffer_start = v
+		if combat_component: combat_component.punch_combo_buffer_start = v
+var _punch_combo_buffer_start := 0.12
+@export var enable_camera_shake := false:
+	get: return combat_component.enable_camera_shake if combat_component else _enable_camera_shake
+	set(v):
+		_enable_camera_shake = v
+		if combat_component: combat_component.enable_camera_shake = v
+var _enable_camera_shake := false
+var punch_hit_targets: Array[int]:
+	get: return combat_component.punch_hit_targets if combat_component else []
+var punch_hitbox: Area2D:
+	get: return combat_component.punch_hitbox if combat_component else null
+var punch_collision_shape: CollisionShape2D:
+	get: return combat_component.punch_collision_shape if combat_component else null
 
-var combo_stage := 0
-var combo_queued := false
-var action_state: StringName = &"None"
+var combo_stage: int:
+	get: return combat_component.combo_stage if combat_component else 0
+	set(v): if combat_component: combat_component.combo_stage = v
+var combo_queued: bool:
+	get: return combat_component.combo_queued if combat_component else false
+	set(v): if combat_component: combat_component.combo_queued = v
+var action_state: StringName:
+	get: return combat_component.action_state if combat_component else &"None"
+	set(v): if combat_component: combat_component.action_state = v
 var pose_composer: MudPoseComposer
 
 @export var max_stability := 100.0
@@ -247,36 +314,83 @@ func damage(amount: float) -> void:
 func heal(amount: float) -> void:
 	if health_component: health_component.heal(amount)
 
-var reaction_state: StringName = &"None"
-var reaction_time := 0.0
-var reaction_duration := 0.0
-var reaction_direction := Vector2.RIGHT
-var reaction_intensity := 1.0
-var reaction_region: StringName = &"UPPER_TORSO"
-var reaction_impact_local := Vector2.ZERO
-var local_time_scale := 1.0
+var reaction_state: StringName:
+	get: return combat_component.reaction_state if combat_component else &"None"
+	set(v): if combat_component: combat_component.reaction_state = v
+var reaction_time: float:
+	get: return combat_component.reaction_time if combat_component else 0.0
+	set(v): if combat_component: combat_component.reaction_time = v
+var reaction_duration: float:
+	get: return combat_component.reaction_duration if combat_component else 0.0
+	set(v): if combat_component: combat_component.reaction_duration = v
+var reaction_direction: Vector2:
+	get: return combat_component.reaction_direction if combat_component else Vector2.RIGHT
+	set(v): if combat_component: combat_component.reaction_direction = v
+var reaction_intensity: float:
+	get: return combat_component.reaction_intensity if combat_component else 1.0
+	set(v): if combat_component: combat_component.reaction_intensity = v
+var reaction_region: StringName:
+	get: return combat_component.reaction_region if combat_component else &"UPPER_TORSO"
+	set(v): if combat_component: combat_component.reaction_region = v
+var reaction_impact_local: Vector2:
+	get: return combat_component.reaction_impact_local if combat_component else Vector2.ZERO
+	set(v): if combat_component: combat_component.reaction_impact_local = v
+var local_time_scale: float:
+	get: return combat_component.local_time_scale if combat_component else 1.0
+	set(v): if combat_component: combat_component.set_local_time_scale(v)
 @export_group("Hit Flash")
-@export_range(0.01, 0.30, 0.005) var hit_flash_duration := 0.090
-@export_range(0.0, 1.0, 0.05) var hit_flash_peak := 0.95
-@export var hit_flash_color := Color.WHITE
-var hit_flash_remaining := 0.0
-var _hit_flash_total := 0.0
-var _hit_flash_active_peak := 0.0
-var hit_drag_timer := 0.0
-var hit_drag_ratio := 0.40
-var reaction_push_offset := Vector2.ZERO
+@export_range(0.01, 0.30, 0.005) var hit_flash_duration := 0.090:
+	get: return combat_component.hit_flash_duration if combat_component else _hit_flash_duration
+	set(v):
+		_hit_flash_duration = v
+		if combat_component: combat_component.hit_flash_duration = v
+var _hit_flash_duration := 0.090
+@export_range(0.0, 1.0, 0.05) var hit_flash_peak := 0.95:
+	get: return combat_component.hit_flash_peak if combat_component else _hit_flash_peak
+	set(v):
+		_hit_flash_peak = v
+		if combat_component: combat_component.hit_flash_peak = v
+var _hit_flash_peak := 0.95
+@export var hit_flash_color := Color.WHITE:
+	get: return combat_component.hit_flash_color if combat_component else _hit_flash_color
+	set(v):
+		_hit_flash_color = v
+		if combat_component: combat_component.hit_flash_color = v
+var _hit_flash_color := Color.WHITE
+var hit_flash_remaining: float:
+	get: return combat_component.hit_flash_remaining if combat_component else 0.0
+	set(v): if combat_component: combat_component.hit_flash_remaining = v
+var hit_drag_timer: float:
+	get: return combat_component.hit_drag_timer if combat_component else 0.0
+	set(v): if combat_component: combat_component.hit_drag_timer = v
+var hit_drag_ratio: float:
+	get: return combat_component.hit_drag_ratio if combat_component else 0.40
+	set(v): if combat_component: combat_component.hit_drag_ratio = v
+var reaction_push_offset: Vector2:
+	get: return combat_component.reaction_push_offset if combat_component else Vector2.ZERO
+	set(v): if combat_component: combat_component.reaction_push_offset = v
 
 func has_reaction() -> bool:
-	return reaction_state != &"None" and reaction_time < reaction_duration
+	return combat_component.has_reaction() if combat_component else false
 
-var block_requested := false
-@export var guard_movement_multiplier := 0.45
+var block_requested: bool:
+	get: return combat_component.block_requested if combat_component else _block_requested
+	set(v):
+		_block_requested = v
+		if combat_component: combat_component.block_requested = v
+var _block_requested := false
+@export var guard_movement_multiplier := 0.45:
+	get: return combat_component.guard_movement_multiplier if combat_component else _guard_movement_multiplier
+	set(v):
+		_guard_movement_multiplier = v
+		if combat_component: combat_component.guard_movement_multiplier = v
+var _guard_movement_multiplier := 0.45
 
 func is_blocking() -> bool:
-	return block_requested and state != &"Dead" and not is_attacking() and reaction_state not in [&"HeavyHit", &"Knockdown"]
+	return combat_component.is_blocking() if combat_component else false
 
 func is_attacking() -> bool:
-	return action_state.begins_with("Attack")
+	return combat_component.is_attacking() if combat_component else false
 
 ## Unified local-time seam used by HitstopManager. Animation playback is manual
 ## in this character, while movement/combat/SDF all consume the scaled delta.
@@ -286,41 +400,16 @@ func set_local_time_scale(scale: float) -> void:
 		anim_player.speed_scale = local_time_scale
 
 func attack_animation() -> StringName:
-	if is_armed():
-		if weapons.current.weapon_class == "blade" and combo_stage < weapons.current.attack_animations.size():
-			return StringName(weapons.current.attack_animations[combo_stage])
-		return &"Attack"
-	if combo_stage < punch_animations.size():
-		var punch_name := StringName(punch_animations[combo_stage])
-		if anim_player and anim_player.has_animation(punch_name):
-			return punch_name
-	return &"Attack"
+	return combat_component.attack_animation() if combat_component else &"Attack"
+
+func attack() -> void:
+	if combat_component: combat_component.attack()
 
 func start_attack(stage: int = 0) -> void:
-	score_attack_serial += 1
-	combo_stage = stage
-	combo_queued = false
-	attack_time = 0.0
-	action_state = StringName("Attack%d" % (stage+1))
-	attack_duration = anim_player.get_animation(attack_animation()).length
-	if is_armed():
-		weapons.current.begin_attack(stage)
-	else:
-		punch_hit_targets.clear()
-		if punch_hitbox:
-			punch_hitbox.monitoring = false
+	if combat_component: combat_component.start_attack(stage)
 
 func cancel_attack_pose() -> void:
-	action_state = &"None"
-	combo_stage = 0
-	combo_queued = false
-	attack_requested = false
-	if punch_hitbox:
-		punch_hitbox.set_deferred("monitoring", false)
-	if weapons and weapons.current:
-		weapons.current.active = false
-		if weapons.current.hitbox:
-			weapons.current.hitbox.set_deferred("monitoring", false)
+	if combat_component: combat_component.cancel_attack_pose()
 
 func clear_transient_pose_state(clear_reaction := true) -> void:
 	cancel_attack_pose()
@@ -342,119 +431,19 @@ func clear_transient_pose_state(clear_reaction := true) -> void:
 		body_renderer.impact_bulge_height = 0.0
 
 func get_arm_extension_ratio(back_arm := false) -> float:
-	var upper: Bone2D = _upper_arm_back_bone if back_arm else _upper_arm_front_bone
-	var lower: Bone2D = _forearm_back_bone if back_arm else _forearm_front_bone
-	var hand: Bone2D = _hand_back_bone if back_arm else _hand_front_bone
-	if not is_instance_valid(upper) or not is_instance_valid(lower) or not is_instance_valid(hand):
-		return 0.0
-	var parent := upper.get_parent() as Node2D
-	if not parent:
-		return 0.0
-	var reach := lower.position.length() + hand.position.length()
-	return parent.to_local(hand.global_position).distance_to(upper.position) / maxf(reach, 0.001)
+	return combat_component.get_arm_extension_ratio(back_arm) if combat_component else 0.0
 
 func advance_attack(delta: float) -> void:
-	var rate := 1.0
-	if hit_drag_timer > 0.0:
-		hit_drag_timer = maxf(0.0, hit_drag_timer - delta)
-		rate = 1.0 - hit_drag_ratio
-	attack_time += delta * rate
-	if attack_time < attack_duration: return
-	var max_stages := weapons.current.attack_animations.size() if is_armed() and weapons.current.weapon_class == "blade" else punch_animations.size()
-	if combo_queued and combo_stage + 1 < max_stages:
-		start_attack(combo_stage + 1)
-	else:
-		combo_stage = 0
-		combo_queued = false
-		action_state = &"None"
-		if punch_hitbox:
-			punch_hitbox.monitoring = false
+	if combat_component: combat_component.advance_attack(delta)
 
 func calculate_punch_reach() -> float:
-	var shoulder: Bone2D = _upper_arm_back_bone if combo_stage == 1 and is_instance_valid(_upper_arm_back_bone) else _upper_arm_front_bone
-	var fist: Bone2D = _hand_back_bone if combo_stage == 1 and is_instance_valid(_hand_back_bone) else _hand_front_bone
-	if not is_instance_valid(shoulder) or not is_instance_valid(fist):
-		return 1.0
-	var dist: float = (fist.global_position - shoulder.global_position).length()
-	return clampf(dist / 28.0, 0.0, 1.0)
+	return combat_component.calculate_punch_reach() if combat_component else 1.0
 
-func _update_punch_attack(_delta: float) -> void:
-	if not punch_hitbox: return
-	var window := punch_windows[combo_stage] if combo_stage < punch_windows.size() else Vector2(0.08, 0.20)
-	var reach := calculate_punch_reach()
-	var req_reach: float = 0.55 if combo_stage == 2 else 0.80
-	var active := is_attacking() and not is_armed() and attack_time >= window.x and attack_time <= window.y and reach >= req_reach
-	punch_hitbox.monitoring = active
-	
-	var active_bone: Bone2D = _hand_back_bone if combo_stage == 1 and is_instance_valid(_hand_back_bone) else _hand_front_bone
-	if is_instance_valid(active_bone):
-		punch_hitbox.global_position = active_bone.global_position + Vector2(facing * 4.0, 0.0)
-	else:
-		punch_hitbox.global_position = global_position + Vector2(facing * 35.0, -32.0)
-		
-	if not active: return
-	for area in punch_hitbox.get_overlapping_areas():
-		_on_punch_area_entered(area)
+func _update_punch_attack(delta: float) -> void:
+	if combat_component: combat_component.update_punch_attack(delta)
 
 func _on_punch_area_entered(area: Area2D) -> void:
-	if not is_attacking() or is_armed(): return
-	var owner_node = area.get_meta("owner_character", null)
-	if owner_node == self: return
-	var id := area.get_instance_id()
-	if punch_hit_targets.has(id): return
-	punch_hit_targets.append(id)
-	var dmg: float = punch_damages[combo_stage] if combo_stage < punch_damages.size() else 8.0
-	var event := HitEvent.new()
-	event.attacker = self
-	event.attack_name = attack_animation()
-	event.attack_token = score_attack_serial
-	event.damage = dmg
-	event.direction = Vector2(facing, 0.0)
-	event.attacker_velocity = velocity
-	event.weapon_type = &"punch"
-	event.impact = punch_impacts[combo_stage] if combo_stage < punch_impacts.size() else 1.0
-	event.hit_index = punch_hit_targets.size() - 1
-	event.impact_point = punch_hitbox.global_position
-	if combo_stage == 0:
-		event.hit_type = &"LightHit"
-		event.poise_damage = 12.0
-		event.impact_force = 55.0
-		event.hit_region = &"HEAD"
-		event.target_push_distance = 1.8
-		event.attacker_drag_ratio = 0.35
-		event.camera_shake_strength = 0.0
-	elif combo_stage == 1:
-		event.hit_type = &"LightHit"
-		event.poise_damage = 18.0
-		event.impact_force = 90.0
-		event.hit_region = &"UPPER_TORSO"
-		event.target_push_distance = 2.5
-		event.attacker_drag_ratio = 0.40
-		event.camera_shake_strength = 0.0
-	else:
-		event.hit_type = &"HeavyHit"
-		event.poise_damage = 35.0
-		event.impact_force = 135.0
-		event.hit_region = &"HEAD"
-		event.target_push_distance = 4.0
-		event.attacker_drag_ratio = 0.50
-		event.camera_shake_strength = 0.0
-
-	hit_drag_timer = 0.10
-	hit_drag_ratio = event.attacker_drag_ratio
-	impact_accent_offset = Vector2(-facing * 1.0, 0.0)
-
-	if enable_camera_shake:
-		var tree := get_tree()
-		if tree and tree.current_scene and tree.current_scene.has_method("trigger_camera_shake"):
-			tree.current_scene.call("trigger_camera_shake", event.direction, event.camera_shake_strength, 0.08)
-
-	if area.has_method("receive_hit"):
-		area.call("receive_hit", event)
-	elif area.get_parent() and area.get_parent().has_method("receive_hit"):
-		area.get_parent().call("receive_hit", event)
-	if splatter and is_instance_valid(area):
-		splatter.burst(area.global_position, 5)
+	if combat_component: combat_component._on_punch_area_entered(area)
 
 @onready var visual: Node2D = $Visual
 @onready var pose_root: Node2D = $Visual/PoseRoot
@@ -591,6 +580,34 @@ func _ready() -> void:
 	movement_component.unfallen_started.connect(func(duration: float) -> void: unfallen_started.emit(duration))
 	movement_component.unfallen_ended.connect(func() -> void: unfallen_ended.emit())
 	movement_component.jump_executed.connect(func(source: MudMovementAssist.JumpSource) -> void: jump_executed.emit(source))
+
+	if has_node("Components/CombatComponent"):
+		combat_component = $Components/CombatComponent
+	elif has_node("CombatComponent"):
+		combat_component = $CombatComponent
+	else:
+		combat_component = CombatComponent.new()
+		combat_component.name = "CombatComponent"
+		var comp_root := get_node_or_null("Components")
+		if comp_root:
+			comp_root.add_child(combat_component)
+		else:
+			add_child(combat_component)
+	combat_component.setup(self)
+	combat_component.attack_duration = _attack_duration
+	combat_component.allow_air_attack = _allow_air_attack
+	combat_component.attack_movement_multiplier = _attack_movement_multiplier
+	combat_component.guard_movement_multiplier = _guard_movement_multiplier
+	combat_component.punch_animations = _punch_animations
+	combat_component.punch_windows = _punch_windows
+	combat_component.punch_damages = _punch_damages
+	combat_component.punch_impacts = _punch_impacts
+	combat_component.punch_combo_buffer_start = _punch_combo_buffer_start
+	combat_component.enable_camera_shake = _enable_camera_shake
+	combat_component.hit_flash_duration = _hit_flash_duration
+	combat_component.hit_flash_peak = _hit_flash_peak
+	combat_component.hit_flash_color = _hit_flash_color
+
 	$Hurtbox.set_meta("owner_character", self)
 	weapons.owner_character = self
 	if weapons.current: weapons.current.set_meta("owner_character", self)
@@ -626,20 +643,6 @@ func _ready() -> void:
 		if _spine_lower_bone:
 			_spine_upper_bone = _spine_lower_bone.get_node_or_null("SpineUpper") as Bone2D
 		assert(is_instance_valid(_spine_lower_bone) and is_instance_valid(_spine_upper_bone), "Spine deformation bones must be authored in mud_character.tscn")
-	punch_hitbox = Area2D.new()
-	punch_hitbox.name = "PunchHitbox"
-	punch_hitbox.collision_layer = 0
-	punch_hitbox.collision_mask = 4
-	punch_hitbox.monitoring = false
-	punch_hitbox.monitorable = false
-	punch_hitbox.set_meta("owner_character", self)
-	punch_collision_shape = CollisionShape2D.new()
-	var punch_box := RectangleShape2D.new()
-	punch_box.size = Vector2(20, 16)
-	punch_collision_shape.shape = punch_box
-	punch_hitbox.add_child(punch_collision_shape)
-	punch_hitbox.area_entered.connect(_on_punch_area_entered)
-	add_child(punch_hitbox)
 	if death_controller:
 		death_controller.character = self
 	if anim_player:
@@ -889,11 +892,8 @@ func _physics_process(delta: float) -> void:
 		_sync_visual(delta)
 		return
 
-	if reaction_time < reaction_duration:
-		reaction_time += delta
-		if reaction_time >= reaction_duration:
-			reaction_state = &"None"
-			reaction_push_offset = Vector2.ZERO
+	if combat_component:
+		combat_component.advance_reaction(delta)
 
 	if health_component:
 		health_component.advance_stability(delta)
@@ -904,11 +904,8 @@ func _physics_process(delta: float) -> void:
 	var grounded := is_on_floor()
 	var allow_coyote_departure := reaction_state not in [&"HeavyHit", &"Knockdown"]
 
-	if not is_attacking():
-		if is_blocking():
-			action_state = &"Block"
-		elif action_state == &"Block":
-			action_state = &"None"
+	if combat_component:
+		combat_component.handle_block_input()
 
 	if grounded and state in [&"Walk",&"Run"] and anim_player.current_animation == get_state_animation(state):
 		movement_component.grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
@@ -925,14 +922,8 @@ func _physics_process(delta: float) -> void:
 	if reaction_state in [&"HeavyHit", &"Knockdown"]:
 		atk_mult *= 0.35
 
-	if attack_requested:
-		if not is_attacking() and (grounded or allow_air_attack):
-			start_attack()
-		elif is_attacking():
-			var buffer_start := weapons.current.combo_buffer_start if (is_armed() and weapons.current) else punch_combo_buffer_start
-			if attack_time >= attack_duration * buffer_start:
-				combo_queued = true
-	attack_requested = false
+	if combat_component:
+		combat_component.handle_attack_input(grounded)
 
 	var is_atk_or_blk := is_attacking() or is_blocking()
 	movement_component.physics_step(delta, atk_mult, allow_coyote_departure, is_atk_or_blk, state)
@@ -1172,51 +1163,21 @@ func receive_hit(hit_data: Variant) -> void:
 
 
 func _request_confirmed_hitstop(event: HitEvent) -> void:
-	trigger_hit_flash(event)
-	var manager := get_node_or_null("/root/HitstopManager")
-	if manager:
-		manager.request_hitstop(event)
-
+	if combat_component:
+		combat_component.request_confirmed_hitstop(event)
 
 func _clear_managed_hitstop() -> void:
-	var manager := get_node_or_null("/root/HitstopManager")
-	if manager:
-		manager.clear_actor_stop(self)
-	else:
-		set_local_time_scale(1.0)
-
+	if combat_component:
+		combat_component.clear_managed_hitstop()
 
 func trigger_hit_flash(event: HitData = null) -> void:
-	var authored_impact := event.impact if event else 1.0
-	var intensity := hit_flash_peak * clampf(0.65 + authored_impact * 0.25, 0.65, 1.0)
-	if event and event.is_blocked:
-		intensity *= 0.70
-	if event and (event.is_critical or event.is_kill or event.is_armor_break or event.is_parry):
-		intensity = hit_flash_peak
-	var duration_scale := clampf(0.85 + authored_impact * 0.15, 0.85, 1.15)
-	var duration := hit_flash_duration * duration_scale
-	hit_flash_remaining = maxf(hit_flash_remaining, duration)
-	_hit_flash_total = maxf(_hit_flash_total, hit_flash_remaining)
-	_hit_flash_active_peak = maxf(_hit_flash_active_peak, intensity)
-	if body_renderer:
-		body_renderer.set_hit_flash(_hit_flash_active_peak, hit_flash_color)
-
+	if combat_component:
+		combat_component.trigger_hit_flash(event)
 
 func _update_hit_flash(delta: float) -> void:
-	if hit_flash_remaining <= 0.0:
-		return
-	hit_flash_remaining = maxf(0.0, hit_flash_remaining - delta)
-	var weight := pow(hit_flash_remaining / maxf(_hit_flash_total, 0.001), 0.65)
-	if body_renderer:
-		body_renderer.set_hit_flash(_hit_flash_active_peak * weight, hit_flash_color)
-	if hit_flash_remaining == 0.0:
-		_hit_flash_total = 0.0
-		_hit_flash_active_peak = 0.0
-
+	if combat_component:
+		combat_component.update_hit_flash(delta)
 
 func _clear_hit_flash() -> void:
-	hit_flash_remaining = 0.0
-	_hit_flash_total = 0.0
-	_hit_flash_active_peak = 0.0
-	if body_renderer:
-		body_renderer.set_hit_flash(0.0, hit_flash_color)
+	if combat_component:
+		combat_component.clear_hit_flash()
