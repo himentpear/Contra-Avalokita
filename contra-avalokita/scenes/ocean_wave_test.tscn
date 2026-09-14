@@ -1,48 +1,33 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene format=3 uid="uid://by4kqha07ghqv"]
 
-[ext_resource type="Script" path="res://scripts/ocean_wave_test.gd" id="1_controller"]
-[ext_resource type="Shader" path="res://shaders/ocean_black_wave.gdshader" id="2_ocean"]
+[ext_resource type="Script" uid="uid://bfimxedlv28dw" path="res://scripts/ocean_wave_test.gd" id="1_controller"]
+[ext_resource type="Shader" uid="uid://b3fie5cgssgbv" path="res://shaders/ocean_black_wave.gdshader" id="2_ocean"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ocean"]
 shader = ExtResource("2_ocean")
-shader_parameter/virtual_size = Vector2(640, 360)
-shader_parameter/horizon_y = 0.6
-shader_parameter/amplitude_px = 8.0
-shader_parameter/wave_speed = 0.65
-shader_parameter/wave_scale = 1.0
-shader_parameter/roughness = 0.75
-shader_parameter/foam_px = 2.0
-shader_parameter/highlight_intensity = 0.9
-shader_parameter/pixel_step = 1.0
-shader_parameter/u_time = 0.0
-shader_parameter/shallow_color = Color(0.055, 0.06, 0.068, 1)
-shader_parameter/deep_color = Color(0.004, 0.005, 0.008, 1)
-shader_parameter/ridge_color = Color(0.32, 0.34, 0.37, 1)
-shader_parameter/highlight_color = Color(0.86, 0.87, 0.9, 1)
-shader_parameter/impact0 = Vector4(-10, 99, 0, 0.08)
-shader_parameter/impact1 = Vector4(-10, 99, 0, 0.08)
-shader_parameter/impact2 = Vector4(-10, 99, 0, 0.08)
-shader_parameter/impact3 = Vector4(-10, 99, 0, 0.08)
 
-[node name="OceanWaveTest" type="Node2D"]
+[node name="OceanWaveTest" type="Node2D" unique_id=2111141457]
 script = ExtResource("1_controller")
 
-[node name="Backdrop" type="ColorRect" parent="."]
+[node name="Backdrop" type="ColorRect" parent="." unique_id=1879231836]
+visible = false
 offset_right = 640.0
 offset_bottom = 360.0
 mouse_filter = 2
 color = Color(0, 0, 0, 1)
 
-[node name="SeaBody" type="ColorRect" parent="."]
+[node name="SeaBody" type="ColorRect" parent="." unique_id=321327152]
+visible = false
 material = SubResource("ShaderMaterial_ocean")
 offset_right = 640.0
 offset_bottom = 360.0
 mouse_filter = 2
 
-[node name="HUD" type="CanvasLayer" parent="."]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=352613656]
 layer = 10
 
-[node name="Panel" type="ColorRect" parent="HUD"]
+[node name="Panel" type="ColorRect" parent="HUD" unique_id=168039461]
+visible = false
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 246.0
@@ -50,14 +35,19 @@ offset_bottom = 104.0
 mouse_filter = 2
 color = Color(0, 0, 0, 0.68)
 
-[node name="DebugLabel" type="Label" parent="HUD"]
+[node name="DebugLabel" type="Label" parent="HUD" unique_id=1394813491]
+visible = false
 offset_left = 14.0
 offset_top = 12.0
 offset_right = 244.0
 offset_bottom = 102.0
-mouse_filter = 2
 theme_override_colors/font_color = Color(0.78, 0.8, 0.83, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
 theme_override_constants/shadow_offset_x = 1
 theme_override_constants/shadow_offset_y = 1
-text = "BLACK OCEAN / FRONT VIEW\n1 Calm   2 Medium   3 Storm   H HUD\nQ/E amplitude\nA/D speed\nZ/C roughness\nLMB / Space disturbance"
+text = "BLACK OCEAN / FRONT VIEW
+1 Calm   2 Medium   3 Storm   H HUD
+Q/E amplitude
+A/D speed
+Z/C roughness
+LMB / Space disturbance"

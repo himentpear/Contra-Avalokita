@@ -1,15 +1,15 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bhdxbr7je0wnp"]
 
-[ext_resource type="Script" path="res://scripts/mud_character.gd" id="1_8oefo"]
-[ext_resource type="Script" path="res://scripts/mud_body_renderer.gd" id="2_i42qa"]
-[ext_resource type="Script" path="res://scripts/mud_eye_controller.gd" id="3_wr2lk"]
-[ext_resource type="Script" path="res://scripts/equipment_manager.gd" id="4_cgwm4"]
-[ext_resource type="Script" path="res://scripts/weapon_manager.gd" id="5_ldqmi"]
-[ext_resource type="Script" path="res://scripts/mud_pixel_splatter.gd" id="6_lpyrd"]
-[ext_resource type="Script" path="res://scripts/mud_death_controller.gd" id="7_ovnsc"]
-[ext_resource type="Script" path="res://scripts/mud_pixel_ascension.gd" id="8_ascend"]
-[ext_resource type="AnimationLibrary" path="res://resources/wall_animation_library.tres" id="9_wall_anims"]
-[ext_resource type="Script" path="res://scripts/mud_pose_reference_validator.gd" id="10_cgwm4"]
+[ext_resource type="Script" uid="uid://dc580gft0xnpn" path="res://scripts/mud_character.gd" id="1_8oefo"]
+[ext_resource type="Script" uid="uid://33h26n0pyi4b" path="res://scripts/mud_body_renderer.gd" id="2_i42qa"]
+[ext_resource type="Script" uid="uid://ba04ehr4sff46" path="res://scripts/mud_eye_controller.gd" id="3_wr2lk"]
+[ext_resource type="Script" uid="uid://kgefwktyyy3o" path="res://scripts/equipment_manager.gd" id="4_cgwm4"]
+[ext_resource type="Script" uid="uid://8ajlurpifbhx" path="res://scripts/weapon_manager.gd" id="5_ldqmi"]
+[ext_resource type="Script" uid="uid://b6puxsuxcvhlw" path="res://scripts/mud_pixel_splatter.gd" id="6_lpyrd"]
+[ext_resource type="Script" uid="uid://bnocja0d1sjnh" path="res://scripts/mud_death_controller.gd" id="7_ovnsc"]
+[ext_resource type="Script" uid="uid://dwbnsywpwp26d" path="res://scripts/mud_pixel_ascension.gd" id="8_ascend"]
+[ext_resource type="AnimationLibrary" uid="uid://coeygueddnrgu" path="res://resources/wall_animation_library.tres" id="9_wall_anims"]
+[ext_resource type="Script" uid="uid://b3gkan17ub6t4" path="res://scripts/mud_pose_reference_validator.gd" id="10_cgwm4"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ccx8a"]
 height = 74.0
@@ -7193,6 +7193,7 @@ script = ExtResource("1_8oefo")
 punch_animations = PackedStringArray("Punch/Attack_1", "Punch/Attack_2", "Punch/Attack_3")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1554441572]
+visible = false
 position = Vector2(0, -35)
 shape = SubResource("CapsuleShape2D_ccx8a")
 
@@ -7206,15 +7207,15 @@ libraries/Wall = ExtResource("9_wall_anims")
 [node name="Visual" type="Node2D" parent="." unique_id=1034548773]
 z_index = 10
 
-[node name="LocalFXBehind" type="Node2D" parent="Visual"]
+[node name="LocalFXBehind" type="Node2D" parent="Visual" unique_id=923122778]
 z_index = -10
 z_as_relative = false
 
-[node name="LocalFXBody" type="Node2D" parent="Visual"]
+[node name="LocalFXBody" type="Node2D" parent="Visual" unique_id=984148551]
 z_index = 10
 z_as_relative = false
 
-[node name="LocalFXFront" type="Node2D" parent="Visual"]
+[node name="LocalFXFront" type="Node2D" parent="Visual" unique_id=946224308]
 z_index = 26
 z_as_relative = false
 
@@ -7370,8 +7371,14 @@ collision_mask = 0
 monitoring = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=1806644889]
+visible = false
 position = Vector2(0, -35)
 shape = SubResource("CapsuleShape2D_u37ux")
 
 [node name="PoseValidation" type="Node" parent="." unique_id=309501750]
 script = ExtResource("10_cgwm4")
+
+[node name="RotoBoneAnchor" type="Marker2D" parent="." unique_id=621805669]
+gizmo_extents = 13.0
+metadata/rotobone_anchor = true
+metadata/rotobone_role = "reference_xy_origin"
