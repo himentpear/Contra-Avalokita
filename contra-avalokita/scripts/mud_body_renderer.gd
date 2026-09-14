@@ -1,7 +1,7 @@
 class_name MudBodyRenderer
 extends Node2D
-const SdfModifier = preload("res://scripts/sdf_modifier.gd")
-const SdfMorphProfile = preload("res://scripts/sdf_morph_profile.gd")
+const SdfModifier = preload("res://gameplay/character/sdf/sdf_modifier.gd")
+const SdfMorphProfile = preload("res://gameplay/character/sdf/sdf_morph_profile.gd")
 const MudModifierDebugOverlay = preload("res://scripts/mud_modifier_debug_overlay.gd")
 const MAX_SEGMENTS := 40
 const MAX_MODIFIERS := 16
@@ -10,6 +10,9 @@ const MAX_MODIFIERS := 16
 @export var render_bounds := Rect2(-80, -104, 160, 128)
 @export_range(0.5, 2.0) var edge_width := 1.0
 @export_range(0.0, 0.05) var surface_noise := 0.025
+@export_group("Hit Feedback")
+@export var hit_flash_color := Color.WHITE
+var hit_flash_amount := 0.0
 @export_group("Proportions")
 @export var head_radius := 8.2
 @export var body_radius := 9.0
@@ -89,6 +92,8 @@ var _bone_foot_front: Bone2D
 var _bone_thigh_back: Bone2D
 var _bone_shin_back: Bone2D
 var _bone_foot_back: Bone2D
+var _bone_spine_lower: Bone2D
+var _bone_spine_upper: Bone2D
 
 func _ready() -> void:
 	endpoints.resize(MAX_SEGMENTS)
@@ -205,6 +210,17 @@ func sync_depth_materials() -> void:
 		for uniform in shared_uniforms:
 			material.set_shader_parameter(uniform,shader_material.get_shader_parameter(uniform))
 
+func set_hit_flash(amount: float, color: Color = hit_flash_color) -> void:
+	hit_flash_amount = clampf(amount, 0.0, 1.0)
+	hit_flash_color = color
+	if not is_instance_valid(shader_material):
+		return
+	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
+	for material in depth_materials:
+		material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+		material.set_shader_parameter("hit_flash_color", hit_flash_color)
+
 func cache_bones(skeleton: Skeleton2D) -> void:
 	if not skeleton: return
 	_bone_pelvis = skeleton.get_node_or_null("Pelvis") as Bone2D
@@ -212,6 +228,9 @@ func cache_bones(skeleton: Skeleton2D) -> void:
 		_bone_torso = _bone_pelvis.get_node_or_null("Torso") as Bone2D
 		_bone_thigh_front = _bone_pelvis.get_node_or_null("ThighFront") as Bone2D
 		_bone_thigh_back = _bone_pelvis.get_node_or_null("ThighBack") as Bone2D
+		_bone_spine_lower = _bone_pelvis.get_node_or_null("SpineLower") as Bone2D
+		if _bone_spine_lower:
+			_bone_spine_upper = _bone_spine_lower.get_node_or_null("SpineUpper") as Bone2D
 	if _bone_torso:
 		_bone_head = _bone_torso.get_node_or_null("Head") as Bone2D
 		_bone_upper_arm_front = _bone_torso.get_node_or_null("UpperArmFront") as Bone2D
@@ -262,6 +281,14 @@ func _solve_arm(id: String, upper_bone: Bone2D, fore_bone: Bone2D, hand_bone: Bo
 		origin = origin.lerp(pelvis_pos, retract)
 		joint = joint.lerp(pelvis_pos, retract)
 		end = end.lerp(pelvis_pos, retract)
+	
+	# Arm Reach Safety Clamp: preserve anatomical reach fuse
+	var upper_len := fore_bone.position.length()
+	var fore_len := hand_bone.position.length()
+	var max_reach := (upper_len + fore_len) * 0.98
+	var arm_delta := end - origin
+	if arm_delta.length() > max_reach and arm_delta.length_squared() > 0.001:
+		end = origin + arm_delta.normalized() * max_reach
 	
 	var u := (joint - origin).normalized()
 	if u.length_squared() < 0.001: u = Vector2.DOWN
@@ -389,9 +416,13 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	var pelvis_pos := to_local(_bone_pelvis.global_position)
 	var torso_pos := to_local(_bone_torso.global_position)
 	var head_pos := to_local(_bone_head.global_position)
-	var abdomen_pos := pelvis_pos.lerp(torso_pos, 0.46)
+	var spine_l_pos := to_local(_bone_spine_lower.global_position) if _bone_spine_lower else pelvis_pos.lerp(torso_pos, 0.333)
+	var spine_u_pos := to_local(_bone_spine_upper.global_position) if _bone_spine_upper else pelvis_pos.lerp(torso_pos, 0.667)
+	var abdomen_pos := spine_l_pos.lerp(spine_u_pos, 0.5)
 	
 	auxiliary_points[&"Pelvis"] = pelvis_pos
+	auxiliary_points[&"SpineLower"] = spine_l_pos
+	auxiliary_points[&"SpineUpper"] = spine_u_pos
 	auxiliary_points[&"Torso"] = torso_pos
 	auxiliary_points[&"Abdomen"] = abdomen_pos
 	auxiliary_points[&"Head"] = head_pos
@@ -399,7 +430,7 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	auxiliary_points[&"Neck"] = torso_pos.lerp(head_pos, 0.5)
 	var body_direction := (head_pos - pelvis_pos).normalized()
 	if body_direction.length_squared() < 0.001: body_direction = Vector2.UP
-	for central_anchor in [&"Pelvis", &"Torso", &"Abdomen", &"Head", &"Chest", &"Neck"]:
+	for central_anchor in [&"Pelvis", &"SpineLower", &"SpineUpper", &"Torso", &"Abdomen", &"Head", &"Chest", &"Neck"]:
 		auxiliary_directions[central_anchor] = body_direction
 	
 	# 1. Back leg (depth -1.0)
@@ -414,8 +445,13 @@ func sync_skeleton(skeleton: Skeleton2D, _delta: float = 0.0) -> void:
 	if death_progress > 0.0:
 		torso_r = lerpf(body_radius * _effective_body_multiplier, body_radius * _effective_body_multiplier * 1.3, death_progress)
 		h_r = lerpf(head_radius * _effective_head_multiplier, head_radius * _effective_head_multiplier * 0.7, death_progress)
-	add_segment(pelvis_pos, abdomen_pos, torso_r, torso_r * 0.86, 0.0)
-	add_segment(abdomen_pos, torso_pos, torso_r * 0.86, torso_r, 0.0)
+	var r_pelvis := torso_r * 0.95
+	var r_spinel := torso_r * 0.95
+	var r_spineu := torso_r * 1.0
+	var r_chest  := torso_r * 1.0
+	add_segment(pelvis_pos, spine_l_pos, r_pelvis, r_spinel, 0.0)
+	add_segment(spine_l_pos, spine_u_pos, r_spinel, r_spineu, 0.0)
+	add_segment(spine_u_pos, torso_pos, r_spineu, r_chest, 0.0)
 	add_segment(torso_pos, head_pos, 4.0 * _effective_body_multiplier, 4.0 * _effective_body_multiplier, 0.0)
 	add_segment(head_pos + Vector2(0, -1), head_pos + Vector2(0, 1), h_r, h_r, 0.0)
 	
@@ -499,6 +535,8 @@ func _upload_segments() -> void:
 	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
 	shader_material.set_shader_parameter("impact_params", Vector4(impact_center.x, impact_center.y, impact_radius, impact_depth))
 	shader_material.set_shader_parameter("impact_bulge", Vector4(impact_bulge_center.x, impact_bulge_center.y, impact_bulge_radius, impact_bulge_height))
@@ -521,6 +559,8 @@ func sync(rig: MudRig) -> void:
 	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
 	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
+	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
 	shader_material.set_shader_parameter("impact_params", Vector4(impact_center.x, impact_center.y, impact_radius, impact_depth))
 	shader_material.set_shader_parameter("impact_bulge", Vector4(impact_bulge_center.x, impact_bulge_center.y, impact_bulge_radius, impact_bulge_height))

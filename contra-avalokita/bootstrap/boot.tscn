@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://bootstrap/boot.gd" id="1_boot"]
+[ext_resource type="Script" path="res://bootstrap/startup_config.gd" id="2_config"]
+
+[sub_resource type="Resource" id="StartupConfig_default"]
+script = ExtResource("2_config")
+initial_scene = "res://scenes/test_arena.tscn"
+
+[node name="Boot" type="Node"]
+script = ExtResource("1_boot")
+startup_config = SubResource("StartupConfig_default")

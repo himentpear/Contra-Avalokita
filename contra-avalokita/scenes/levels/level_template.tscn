@@ -1,0 +1,318 @@
+[gd_scene load_steps=12 format=3 uid="uid://d4mnvq7y4l1ab"]
+
+[ext_resource type="Script" path="res://scripts/rendering/level_root.gd" id="1_root"]
+[ext_resource type="Script" path="res://scripts/rendering/level_environment_controller.gd" id="2_env"]
+[ext_resource type="Script" path="res://scripts/rendering/vfx_router.gd" id="3_vfx"]
+[ext_resource type="Script" path="res://scripts/rendering/camera_fx_controller.gd" id="4_cam"]
+[ext_resource type="Script" path="res://scripts/rendering/render_debug_overlay.gd" id="5_dbg"]
+[ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="6_char"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
+size = Vector2(1600, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_l"]
+size = Vector2(32, 600)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_r"]
+size = Vector2(32, 600)
+
+[sub_resource type="Gradient" id="Gradient_light"]
+colors = PackedColorArray(1, 0.95, 0.85, 0.9, 1, 0.95, 0.85, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[node name="LevelTemplate" type="Node2D" node_paths=PackedStringArray("world", "background_world", "gameplay_world", "foreground_world", "lighting", "environment_fx", "runtime_fx", "camera_rig", "screen_fx", "ui", "environment_controller", "player")]
+script = ExtResource("1_root")
+world = NodePath("World")
+background_world = NodePath("World/BackgroundWorld")
+gameplay_world = NodePath("World/GameplayWorld")
+foreground_world = NodePath("World/ForegroundWorld")
+lighting = NodePath("World/Lighting")
+environment_fx = NodePath("World/EnvironmentFX")
+runtime_fx = NodePath("RuntimeFX")
+camera_rig = NodePath("CameraRig")
+screen_fx = NodePath("ScreenFX")
+ui = NodePath("UI")
+environment_controller = NodePath("LevelEnvironmentController")
+player = NodePath("World/GameplayWorld/Player")
+
+[node name="LevelEnvironmentController" type="Node" parent="." node_paths=PackedStringArray("canvas_modulate", "far_fx", "mid_fx", "gameplay_fx", "near_fx", "screen_atmosphere")]
+script = ExtResource("2_env")
+canvas_modulate = NodePath("../World/Lighting/GlobalLighting/CanvasModulate")
+far_fx = NodePath("../World/EnvironmentFX/FarFX")
+mid_fx = NodePath("../World/EnvironmentFX/MidFX")
+gameplay_fx = NodePath("../World/EnvironmentFX/GameplayWorldFX")
+near_fx = NodePath("../World/EnvironmentFX/NearFX")
+screen_atmosphere = NodePath("../ScreenFX/ScreenAtmosphere")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="BackgroundWorld" type="Node2D" parent="World"]
+
+[node name="FarBackground" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -90
+scroll_scale = Vector2(0.12, 1)
+
+[node name="VoidBackground" type="Polygon2D" parent="World/BackgroundWorld/FarBackground"]
+color = Color(0.05, 0.06, 0.08, 1)
+polygon = PackedVector2Array(-1000, -600, 2600, -600, 2600, 600, -1000, 600)
+
+[node name="DistantStructures" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -70
+scroll_scale = Vector2(0.25, 1)
+
+[node name="MidBackground" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -50
+scroll_scale = Vector2(0.5, 1)
+
+[node name="NearBackground" type="Parallax2D" parent="World/BackgroundWorld"]
+z_index = -25
+scroll_scale = Vector2(0.8, 1)
+
+[node name="GameplayWorld" type="Node2D" parent="World"]
+
+[node name="StaticGeometry" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="Floor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry"]
+position = Vector2(600, 160)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/Floor"]
+shape = SubResource("RectangleShape2D_floor")
+
+[node name="Visual" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/Floor"]
+light_mask = 4
+color = Color(0.2, 0.22, 0.26, 1)
+polygon = PackedVector2Array(-800, -16, 800, -16, 800, 16, -800, 16)
+
+[node name="LeftWall" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry"]
+position = Vector2(-200, -140)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/LeftWall"]
+shape = SubResource("RectangleShape2D_wall_l")
+
+[node name="RightWall" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry"]
+position = Vector2(1400, -140)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/RightWall"]
+shape = SubResource("RectangleShape2D_wall_r")
+
+[node name="DynamicGeometry" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="Platforms" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="InteractiveProps" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="Spawners" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="Pickups" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="Enemies" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="Player" parent="World/GameplayWorld" instance=ExtResource("6_char")]
+position = Vector2(200, 136)
+
+[node name="GameplayTriggers" type="Node2D" parent="World/GameplayWorld"]
+
+[node name="ForegroundWorld" type="Node2D" parent="World"]
+
+[node name="NearForeground" type="Parallax2D" parent="World/ForegroundWorld"]
+z_index = 45
+scroll_scale = Vector2(1.1, 1)
+
+[node name="FrontOccluders" type="Parallax2D" parent="World/ForegroundWorld"]
+z_index = 65
+scroll_scale = Vector2(1.22, 1)
+
+[node name="Lighting" type="Node2D" parent="World"]
+
+[node name="GlobalLighting" type="Node2D" parent="World/Lighting"]
+
+[node name="CanvasModulate" type="CanvasModulate" parent="World/Lighting/GlobalLighting"]
+color = Color(0.35, 0.38, 0.42, 1)
+
+[node name="BackgroundLights" type="Node2D" parent="World/Lighting"]
+
+[node name="GameplayLights" type="Node2D" parent="World/Lighting"]
+
+[node name="BaseGameplayLight" type="PointLight2D" parent="World/Lighting/GameplayLights"]
+position = Vector2(200, 50)
+color = Color(0.95, 0.95, 1, 1)
+energy = 0.8
+range_item_cull_mask = 12
+shadow_enabled = false
+texture = SubResource("GradientTexture2D_light")
+texture_scale = 3.0
+
+[node name="ForegroundLights" type="Node2D" parent="World/Lighting"]
+
+[node name="DynamicLights" type="Node2D" parent="World/Lighting"]
+
+[node name="EnvironmentFX" type="Node2D" parent="World"]
+
+[node name="FarFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = -85
+scroll_scale = Vector2(0.12, 1)
+
+[node name="MidFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = -45
+scroll_scale = Vector2(0.5, 1)
+
+[node name="GameplayWorldFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = 12
+scroll_scale = Vector2(1, 1)
+
+[node name="NearFX" type="Parallax2D" parent="World/EnvironmentFX"]
+z_index = 50
+scroll_scale = Vector2(1.1, 1)
+
+[node name="RuntimeFX" type="Node2D" parent="." node_paths=PackedStringArray("world_transient_fx", "projectile_fx", "detached_character_fx", "combat_fx", "dynamic_lights")]
+script = ExtResource("3_vfx")
+world_transient_fx = NodePath("WorldTransientFX")
+projectile_fx = NodePath("ProjectileFX")
+detached_character_fx = NodePath("DetachedCharacterFX")
+combat_fx = NodePath("CombatFX")
+dynamic_lights = NodePath("../World/Lighting/DynamicLights")
+
+[node name="WorldTransientFX" type="Node2D" parent="RuntimeFX"]
+z_index = 16
+
+[node name="ProjectileFX" type="Node2D" parent="RuntimeFX"]
+z_index = 22
+
+[node name="DetachedCharacterFX" type="Node2D" parent="RuntimeFX"]
+z_index = 27
+
+[node name="CombatFX" type="Node2D" parent="RuntimeFX"]
+z_index = 32
+
+[node name="CameraRig" type="Node2D" parent="." node_paths=PackedStringArray("camera", "follow_target")]
+script = ExtResource("4_cam")
+camera = NodePath("Camera2D")
+follow_target = NodePath("../World/GameplayWorld/Player")
+
+[node name="Camera2D" type="Camera2D" parent="CameraRig"]
+position = Vector2(200, 90)
+zoom = Vector2(1.25, 1.25)
+limit_left = -400
+limit_top = -500
+limit_right = 1600
+limit_bottom = 300
+position_smoothing_enabled = false
+
+[node name="ScreenFX" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="WorldPostFX" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="ScreenAtmosphere" type="ColorRect" parent="ScreenFX"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.08, 0.1, 0.05)
+
+[node name="DamageOverlay" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.8, 0.1, 0.1, 0)
+
+[node name="FlashOverlay" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Vignette" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.15)
+
+[node name="TransitionFX" type="ColorRect" parent="ScreenFX"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="HUD" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BossUI" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="InteractionUI" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DebugUI" type="Control" parent="UI" node_paths=PackedStringArray("level_root")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5_dbg")
+level_root = NodePath("../..")
+
+[node name="Menus" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

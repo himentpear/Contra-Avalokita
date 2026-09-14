@@ -14,6 +14,8 @@ uniform int modifier_count = 0;
 uniform vec2 bounds_size = vec2(160.0, 128.0);
 uniform vec2 bounds_origin = vec2(-80.0, -104.0);
 uniform vec4 mud_color : source_color = vec4(0.42, 0.49, 0.27, 1.0);
+uniform vec4 hit_flash_color : source_color = vec4(1.0);
+uniform float hit_flash_amount : hint_range(0.0, 1.0) = 0.0;
 uniform float edge_width : hint_range(0.5, 2.0) = 1.0;
 uniform float noise_strength : hint_range(0.0, 0.05) = 0.025;
 uniform vec4 impact_params = vec4(0.0, 0.0, 0.0, 0.0);
@@ -147,5 +149,6 @@ void fragment() {
 	if (owner_depth < -0.5) { shade *= 0.73; }
 	if (light > 0.94 && noise > 0.94 && d < -2.0) { shade = vec3(0.85, 0.9, 0.65); }
 	if (d > -edge_width) { shade = mud_color.rgb * 0.36; }
+	shade = mix(shade, hit_flash_color.rgb, hit_flash_amount);
 	COLOR = vec4(shade, 1.0);
 }

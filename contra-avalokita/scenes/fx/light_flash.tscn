@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://b8y4mlvq2k9dn"]
+
+[ext_resource type="Script" path="res://scripts/rendering/light_flash.gd" id="1_flash"]
+
+[sub_resource type="Gradient" id="Gradient_flash"]
+colors = PackedColorArray(1, 0.95, 0.8, 1, 1, 0.9, 0.7, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_flash"]
+gradient = SubResource("Gradient_flash")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[node name="LightFlash" type="PointLight2D"]
+color = Color(1, 0.92, 0.75, 1)
+energy = 2.5
+range_item_cull_mask = 12
+shadow_enabled = false
+texture = SubResource("GradientTexture2D_flash")
+texture_scale = 2.2
+script = ExtResource("1_flash")

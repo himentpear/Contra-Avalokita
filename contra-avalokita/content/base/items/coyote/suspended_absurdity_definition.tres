@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://content/base/items/coyote/suspended_absurdity.tres" id="2"]
+[resource]
+script = ExtResource("1")
+id = &"base:suspended_absurdity"
+content_type = &"item"
+display_name = "悬置的荒诞"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+resource = ExtResource("2")

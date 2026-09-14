@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CoyoteItem" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/coyote_item.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"base:dear_cruel_gravity"
+display_name = "致冷酷的重力"
+rarity = &"RARE"
+mechanical_text = "进入未堕状态后的前 0.06 秒，\n受到的重力降低 35%。"
+flavor_text = "谨致重力：你的传票已收到，但拒绝立即执行。"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+modifiers = {&"coyote_initial_gravity_duration": 0.06, &"coyote_initial_gravity_multiplier": 0.65}

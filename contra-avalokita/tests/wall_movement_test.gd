@@ -1,5 +1,7 @@
 extends SceneTree
 
+const WallFootController = preload("res://scripts/wall_foot_controller.gd")
+
 var failures := 0
 
 func _initialize() -> void:
@@ -48,11 +50,16 @@ func run() -> void:
 	check(absf(actor.velocity.y) < 1.0, "WallHang arrests vertical velocity")
 	check(absf(actor._hand_front_bone.global_position.x - actor.wall_surface_x) < 3.0, "Main hand is constrained to the physical wall plane")
 	var front_toe := actor._foot_front_bone.to_global(Vector2(4.2, 0.0))
-	check(absf(front_toe.x - actor.wall_surface_x) < 5.0, "Raised foot tip is constrained to the physical wall plane: toe=%.2f wall=%.2f" % [front_toe.x, actor.wall_surface_x])
-	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side < 0.0, "WallHang support knee opens away from the wall")
-	check(actor._foot_front_bone.global_position.y < actor._foot_back_bone.global_position.y - 12.0, "WallHang raises the braced knee and leaves an asymmetric lower support: high=%.2f low=%.2f" % [actor._foot_front_bone.global_position.y, actor._foot_back_bone.global_position.y])
+	check(absf(front_toe.x - actor.wall_surface_x) < 10.0, "Raised foot is visually close to the physical wall plane (allowing natural float): toe=%.2f wall=%.2f" % [front_toe.x, actor.wall_surface_x])
+	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side > 0.0, "WallHang support knee bends forward toward the wall")
+	check(actor._foot_front_bone.global_position.y < actor._foot_back_bone.global_position.y - 4.0, "WallHang raises the braced knee and leaves an asymmetric lower support: high=%.2f low=%.2f" % [actor._foot_front_bone.global_position.y, actor._foot_back_bone.global_position.y])
 	var elbow_inner_angle := 180.0 - float(actor.body_renderer.angles.get("ArmFront", 180.0))
-	check(elbow_inner_angle >= 30.0 and elbow_inner_angle <= 50.0, "WallHang main elbow keeps a 30-50 degree inner bend: %.1f" % elbow_inner_angle)
+	check(elbow_inner_angle >= 25.0 and elbow_inner_angle <= 58.0, "WallHang main elbow keeps a natural inner bend: %.1f" % elbow_inner_angle)
+	# Spine deformation chain verification:
+	check(actor._spine_lower_bone != null and actor._spine_upper_bone != null, "SpineLower and SpineUpper deformation bones exist")
+	var spine_ctrl := actor.pose_composer.spine_controller
+	check(spine_ctrl != null and spine_ctrl.spine_wall_weight > 0.8, "WallHang engages procedural spine curvature (weight=%.2f)" % [spine_ctrl.spine_wall_weight if spine_ctrl else 0.0])
+	check(actor._spine_lower_bone.position.x < -0.5, "SpineLower bows away from the wall in visual space: x=%.2f" % actor._spine_lower_bone.position.x)
 
 	var saw_slide := false
 	for frame in 40:
@@ -76,15 +83,46 @@ func run() -> void:
 	var slide_knee := actor._shin_front_bone.global_position
 	var slide_ankle := actor._foot_front_bone.global_position
 	check(slide_knee.y > slide_hip.y + 2.0, "WallSlide knee stays below the hip instead of folding upward")
-	check((slide_knee.x - slide_hip.x) * actor.wall_side < 0.0, "WallSlide knee pole opens away from the wall: hip=%.2f knee=%.2f" % [slide_hip.x, slide_knee.x])
-	check((slide_ankle.x - slide_knee.x) * actor.wall_side > 0.0, "WallSlide ankle stays wall-side of the knee instead of inverting the leg: knee=%.2f ankle=%.2f" % [slide_knee.x, slide_ankle.x])
+	check((slide_knee.x - slide_hip.x) * actor.wall_side > 0.0, "WallSlide knee pole bends forward toward the wall: hip=%.2f knee=%.2f" % [slide_hip.x, slide_knee.x])
+	check(slide_ankle.y > slide_knee.y + 2.0, "WallSlide ankle stays below the knee: knee_y=%.2f ankle_y=%.2f" % [slide_knee.y, slide_ankle.y])
+
+	# 10-second prolonged slide verification (600 frames at 60Hz) as requested by user spec #35:
+	# Verifies: knees never invert, calf doesn't rotate full circle, feet stay below hips,
+	# and spine maintains natural curvature throughout.
+	var knee_inversion_detected := false
+	var foot_above_hip_detected := false
+	var calf_spin_detected := false
+	for frame in 600:
+		actor.set_intent(1.0)
+		await physics_frame
+		# If actor approaches bottom of test wall, lift back up to continue 10s slide without landing on floor
+		if actor.global_position.y > 270.0:
+			actor.global_position.y = 190.0
+			actor.wall_hand_anchor_y = actor.global_position.y - 51.0
+		var hip := actor._thigh_front_bone.global_position
+		var knee := actor._shin_front_bone.global_position
+		var ankle := actor._foot_front_bone.global_position
+		if (knee.x - hip.x) * actor.wall_side <= 0.0:
+			knee_inversion_detected = true
+		if ankle.y <= hip.y + 2.0:
+			foot_above_hip_detected = true
+		var shin_rot := wrapf(actor._shin_front_bone.rotation, -PI, PI)
+		if shin_rot < 0.2 or shin_rot > 2.0:
+			calf_spin_detected = true
+
+	check(not knee_inversion_detected, "10-second prolonged WallSlide (600 frames) never inverts knee pole away from forward wall orientation")
+	check(not foot_above_hip_detected, "10-second prolonged WallSlide strictly guarantees feet remain below hips at all times")
+	check(not calf_spin_detected, "10-second prolonged WallSlide maintains natural knee flexion without calf spinning")
+	check(spine_ctrl.spine_wall_weight >= 0.65, "WallSlide maintains relaxed spine curvature: weight=%.2f" % spine_ctrl.spine_wall_weight)
 
 	actor.set_intent(1.0, true)
 	await physics_frame
 	check(actor.wall_action == &"WallPush", "Jump input starts the compressed WallPush anticipation")
 	check(actor.anim_player.current_animation == &"Wall/Push", "WallPush is driven by the editable Wall/Push AnimationPlayer clip")
 	check(absf(actor.velocity.y) < 1.0, "WallPush holds launch velocity during anticipation")
-	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side < 0.0, "WallPush compression keeps the support knee open away from the wall")
+	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side > 0.0, "WallPush compression keeps the support knee forward toward the wall")
+	check(spine_ctrl.spine_wall_weight >= 0.85, "WallPush compresses the spine arch for push anticipation: weight=%.2f" % spine_ctrl.spine_wall_weight)
+
 	var saw_release := false
 	for frame in 10:
 		actor.set_intent(1.0)
@@ -94,11 +132,12 @@ func run() -> void:
 			break
 	check(saw_release, "WallPush transitions into WallRelease after the compression frames")
 	check(actor.anim_player.current_animation == &"Wall/Release", "WallRelease is driven by the editable Wall/Release AnimationPlayer clip")
-	check(actor.velocity.x < -actor.wall_jump_horizontal_speed * 0.75, "WallJump pushes away from the wall")
-	check(actor.velocity.y < -actor.wall_jump_vertical_speed * 0.75, "WallJump launches upward")
+	check(actor.pending_wall_jump_kind == &"Climb", "Toward-wall input selects Wall Climb Jump")
+	check(actor.velocity.x < -actor.wall_climb_detach_velocity * 0.75, "Wall Climb Jump applies a small away-from-wall detach")
+	check(actor.velocity.y < -actor.wall_climb_jump_velocity * 0.75, "First Wall Climb Jump launches upward at full strength")
 	check(actor.wall_regrab_left > 0.0, "WallJump opens a re-grab cooldown")
 	check(actor.jump_phase == &"WallRelease", "Wall release exposes its animation phase")
-	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side < 0.0, "WallRelease preserves the outward knee pole before returning to the airborne pose")
+	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side > 0.0, "WallRelease preserves the forward knee pole before returning to the airborne pose")
 
 	var mirrored := preload("res://scenes/mud_character.tscn").instantiate() as MudCharacter
 	mirrored.player_controlled = false

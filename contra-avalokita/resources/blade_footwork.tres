@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="MudBladeFootwork" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="MudBladeFootwork" format=3 uid="uid://di5v4pk2s0m4w"]
 
-[ext_resource type="Script" path="res://scripts/mud_blade_footwork.gd" id="1"]
+[ext_resource type="Script" uid="uid://bxx57crvrqigy" path="res://scripts/mud_blade_footwork.gd" id="1"]
 
 [resource]
 script = ExtResource("1")

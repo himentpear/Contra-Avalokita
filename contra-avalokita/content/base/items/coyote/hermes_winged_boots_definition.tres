@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://content/base/items/coyote/hermes_winged_boots.tres" id="2"]
+[resource]
+script = ExtResource("1")
+id = &"base:hermes_winged_boots"
+content_type = &"item"
+display_name = "赫尔墨斯的翼靴"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+resource = ExtResource("2")

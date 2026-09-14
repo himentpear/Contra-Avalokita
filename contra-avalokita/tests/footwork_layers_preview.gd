@@ -46,7 +46,9 @@ func run() -> void:
 		check(is_equal_approx(a.pose_composer.lower_body_weight,pair[1]),"Wrong additive state weight")
 		var pelvis := a.skeleton.get_node("Pelvis") as Bone2D
 		var base: Transform2D = a.pose_composer.base_pose[pelvis]
-		check(absf(pelvis.position.x-base.origin.x-8.0*float(pair[1])) < .01,"Pelvis push must scale from base locomotion")
+		var root_base: Transform2D = a.pose_composer.base_pose[a.pose_root]
+		check(absf(pelvis.position.x-base.origin.x) < .01,"Pelvis must not own whole-body attack translation")
+		check(absf(a.pose_root.position.x-root_base.origin.x-8.0*float(pair[1])) < .01,"PoseRoot push must scale from base locomotion")
 		for side in ["Front","Back"]:
 			var shin := pelvis.get_node("Thigh%s/Shin%s" % [side,side]) as Bone2D
 			var foot := shin.get_node("Foot"+side) as Bone2D

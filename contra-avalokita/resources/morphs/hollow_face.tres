@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
 
-[ext_resource type="Script" path="res://scripts/sdf_modifier.gd" id="1_xenvi"]
-[ext_resource type="Script" path="res://scripts/sdf_morph_profile.gd" id="2_pqfnd"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_modifier.gd" id="1_xenvi"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_morph_profile.gd" id="2_pqfnd"]
 
-[sub_resource type="Resource" id="Resource_vikg1"]
+[sub_resource type="Resource" id="Resource_t7c51"]
 script = ExtResource("1_xenvi")
 id = &"FaceVoid"
 operation = 1
@@ -14,4 +14,4 @@ softness = 0.65
 [resource]
 script = ExtResource("2_pqfnd")
 id = &"HollowFace"
-modifiers = Array[ExtResource("1_xenvi")]([SubResource("Resource_vikg1")])
+modifiers = Array[ExtResource("1_xenvi")]([SubResource("Resource_t7c51")])

@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
+
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_modifier.gd" id="1_7i3ih"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_morph_profile.gd" id="2_rgu46"]
+
+[sub_resource type="Resource" id="Resource_3tq8v"]
+script = ExtResource("1_7i3ih")
+id = &"SpinePelvis"
+anchor = &"Pelvis"
+local_offset = Vector2(0, -8)
+radius = 2.6
+softness = 0.8
+depth = -1.0
+
+[sub_resource type="Resource" id="Resource_u3dke"]
+script = ExtResource("1_7i3ih")
+id = &"SpineAbdomen"
+anchor = &"Abdomen"
+local_offset = Vector2(0, -8.5)
+radius = 2.8
+softness = 0.8
+depth = -1.0
+
+[sub_resource type="Resource" id="Resource_ryrtw"]
+script = ExtResource("1_7i3ih")
+id = &"SpineChest"
+local_offset = Vector2(0, -8.5)
+radius = 2.7
+softness = 0.8
+depth = -1.0
+
+[sub_resource type="Resource" id="Resource_47bmh"]
+script = ExtResource("1_7i3ih")
+id = &"SpineNeck"
+anchor = &"Neck"
+local_offset = Vector2(0, -7)
+radius = 2.2
+softness = 0.7
+depth = -1.0
+
+[resource]
+script = ExtResource("2_rgu46")
+id = &"SpineGrowth"
+modifiers = Array[ExtResource("1_7i3ih")]([SubResource("Resource_3tq8v"), SubResource("Resource_u3dke"), SubResource("Resource_ryrtw"), SubResource("Resource_47bmh")])

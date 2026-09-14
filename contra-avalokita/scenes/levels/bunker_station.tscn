@@ -1,0 +1,450 @@
+[gd_scene format=3 uid="uid://c6pmvq7y4l1ab"]
+
+[ext_resource type="Script" uid="uid://dly6gurxl7jiv" path="res://scripts/rendering/level_root.gd" id="1_root"]
+[ext_resource type="Script" uid="uid://chyouqlsk3qxf" path="res://scripts/rendering/level_environment_controller.gd" id="2_env"]
+[ext_resource type="Script" uid="uid://crnaeoe8fy05c" path="res://scripts/rendering/vfx_router.gd" id="3_vfx"]
+[ext_resource type="Script" uid="uid://ds4ck7abdknpy" path="res://scripts/rendering/camera_fx_controller.gd" id="4_cam"]
+[ext_resource type="Script" uid="uid://x817qpac03ax" path="res://scripts/rendering/render_debug_overlay.gd" id="5_dbg"]
+[ext_resource type="PackedScene" uid="uid://ci8mp7y04x2ln" path="res://scenes/environment/industrial_lamp.tscn" id="6_lamp"]
+[ext_resource type="PackedScene" uid="uid://dmkv382yn81al" path="res://scenes/environment/steam_vent.tscn" id="7_vent"]
+[ext_resource type="PackedScene" uid="uid://d3pmk5x08va4l" path="res://scenes/environment/structural_column.tscn" id="8_col"]
+[ext_resource type="PackedScene" uid="uid://b2k8y4xv6mlaq" path="res://scenes/environment/foreground_pipe_cluster.tscn" id="9_pipe"]
+[ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="10_char"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
+size = Vector2(1600, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_l"]
+size = Vector2(32, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_r"]
+size = Vector2(32, 500)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_plat"]
+size = Vector2(180, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_trig"]
+size = Vector2(64, 96)
+
+[sub_resource type="Gradient" id="Gradient_train_light"]
+colors = PackedColorArray(0.9, 0.65, 0.25, 0.85, 0.9, 0.65, 0.25, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_train"]
+gradient = SubResource("Gradient_train_light")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[node name="BunkerStation" type="Node2D" unique_id=1351802403 node_paths=PackedStringArray("world", "background_world", "gameplay_world", "foreground_world", "lighting", "environment_fx", "runtime_fx", "camera_rig", "screen_fx", "ui", "environment_controller", "player")]
+script = ExtResource("1_root")
+world = NodePath("World")
+background_world = NodePath("World/BackgroundWorld")
+gameplay_world = NodePath("World/GameplayWorld")
+foreground_world = NodePath("World/ForegroundWorld")
+lighting = NodePath("World/Lighting")
+environment_fx = NodePath("World/EnvironmentFX")
+runtime_fx = NodePath("RuntimeFX")
+camera_rig = NodePath("CameraRig")
+screen_fx = NodePath("ScreenFX")
+ui = NodePath("UI")
+environment_controller = NodePath("LevelEnvironmentController")
+player = NodePath("World/GameplayWorld/Player")
+
+[node name="LevelEnvironmentController" type="Node" parent="." unique_id=1618083516 node_paths=PackedStringArray("canvas_modulate", "far_fx", "mid_fx", "gameplay_fx", "near_fx", "screen_atmosphere")]
+script = ExtResource("2_env")
+canvas_modulate = NodePath("../World/Lighting/GlobalLighting/CanvasModulate")
+far_fx = NodePath("../World/EnvironmentFX/FarFX")
+mid_fx = NodePath("../World/EnvironmentFX/MidFX")
+gameplay_fx = NodePath("../World/EnvironmentFX/GameplayWorldFX")
+near_fx = NodePath("../World/EnvironmentFX/NearFX")
+screen_atmosphere = NodePath("../ScreenFX/ScreenAtmosphere")
+
+[node name="World" type="Node2D" parent="." unique_id=1462633264]
+
+[node name="BackgroundWorld" type="Node2D" parent="World" unique_id=344041757]
+
+[node name="FarBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=1259646847]
+texture_filter = 2
+z_index = -90
+scroll_scale = Vector2(0.12, 1)
+
+[node name="TunnelVoid" type="Polygon2D" parent="World/BackgroundWorld/FarBackground" unique_id=450611706]
+color = Color(0.04, 0.05, 0.07, 1)
+polygon = PackedVector2Array(-800, -500, 2400, -500, 2400, 500, -800, 500)
+
+[node name="DistantSilhouettes" type="Polygon2D" parent="World/BackgroundWorld/FarBackground" unique_id=1204332878]
+color = Color(0.07, 0.09, 0.12, 1)
+polygon = PackedVector2Array(-600, 140, -400, 20, -200, 70, 0, -20, 200, 60, 500, -50, 800, 40, 1100, -10, 1400, 80, 1800, 10, 2200, 140)
+
+[node name="DistantStructures" type="Parallax2D" parent="World/BackgroundWorld" unique_id=862731148]
+z_index = -70
+scroll_scale = Vector2(0.25, 1)
+
+[node name="MegaTrain" type="Node2D" parent="World/BackgroundWorld/DistantStructures" unique_id=1648077551]
+position = Vector2(350, 30)
+
+[node name="TrainBody" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain" unique_id=855819033]
+color = Color(0.1, 0.13, 0.16, 1)
+polygon = PackedVector2Array(-350, -40, 450, -40, 480, 60, -350, 60)
+
+[node name="TrainRoofEquipment" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain" unique_id=1767670645]
+color = Color(0.14, 0.17, 0.21, 1)
+polygon = PackedVector2Array(-320, -52, -180, -52, -170, -40, -330, -40, 100, -48, 260, -48, 270, -40, 90, -40)
+
+[node name="TrainWindows" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain" unique_id=1411165451]
+light_mask = 32
+color = Color(0.85, 0.62, 0.22, 0.9)
+polygon = PackedVector2Array(-300, -20, -260, -20, -260, 0, -300, 0, -220, -20, -180, -20, -180, 0, -220, 0, -140, -20, -100, -20, -100, 0, -140, 0, -60, -20, -20, -20, -20, 0, -60, 0, 20, -20, 60, -20, 60, 0, 20, 0, 100, -20, 140, -20, 140, 0, 100, 0, 180, -20, 220, -20, 220, 0, 180, 0, 260, -20, 300, -20, 300, 0, 260, 0)
+
+[node name="RunningLights" type="Polygon2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain" unique_id=955036793]
+light_mask = 32
+color = Color(0.38, 0.78, 0.83, 1)
+polygon = PackedVector2Array(470, -10, 478, -10, 478, -2, 470, -2, 470, 20, 478, 20, 478, 28, 470, 28)
+
+[node name="SmokeSockets" type="Node2D" parent="World/BackgroundWorld/DistantStructures/MegaTrain" unique_id=631469237]
+position = Vector2(-250, -52)
+
+[node name="TrainSmoke" parent="World/BackgroundWorld/DistantStructures/MegaTrain/SmokeSockets" unique_id=1422307092 instance=ExtResource("7_vent")]
+
+[node name="MidBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=1097012927]
+z_index = -50
+scroll_scale = Vector2(0.5, 1)
+
+[node name="StationRearWall" type="Polygon2D" parent="World/BackgroundWorld/MidBackground" unique_id=662737345]
+light_mask = 2
+color = Color(0.14, 0.17, 0.2, 1)
+polygon = PackedVector2Array(-400, -350, 1800, -350, 1800, 220, -400, 220)
+
+[node name="SupportFrames" type="Line2D" parent="World/BackgroundWorld/MidBackground" unique_id=1197538310]
+light_mask = 2
+points = PackedVector2Array(-300, -250, -300, 180, -100, -250, -100, 180, 100, -250, 100, 180, 300, -250, 300, 180, 500, -250, 500, 180, 700, -250, 700, 180, 900, -250, 900, 180, 1100, -250, 1100, 180, 1300, -250, 1300, 180, 1500, -250, 1500, 180)
+width = 3.0
+default_color = Color(0.18, 0.22, 0.26, 1)
+
+[node name="PipeNetwork" type="Line2D" parent="World/BackgroundWorld/MidBackground" unique_id=2831142]
+light_mask = 2
+points = PackedVector2Array(-350, -120, 200, -120, 220, -40, 850, -40, 870, -150, 1600, -150)
+width = 4.0
+default_color = Color(0.12, 0.14, 0.17, 1)
+
+[node name="NearBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=660173858]
+z_index = -30
+scroll_scale = Vector2(0.8, 1)
+
+[node name="RearColumns" type="Polygon2D" parent="World/BackgroundWorld/NearBackground" unique_id=632303928]
+light_mask = 2
+color = Color(0.17, 0.21, 0.25, 1)
+polygon = PackedVector2Array(-50, -280, -20, -280, -20, 180, -50, 180, 250, -280, 280, -280, 280, 180, 250, 180, 550, -280, 580, -280, 580, 180, 550, 180, 850, -280, 880, -280, 880, 180, 850, 180, 1150, -280, 1180, -280, 1180, 180, 1150, 180)
+
+[node name="RearCables" type="Line2D" parent="World/BackgroundWorld/NearBackground" unique_id=1437105828]
+light_mask = 2
+points = PackedVector2Array(-100, -180, 100, -130, 300, -170, 500, -120, 700, -165, 900, -125, 1100, -175, 1300, -135)
+width = 1.5
+default_color = Color(0.1, 0.12, 0.14, 1)
+
+[node name="GameplayWorld" type="Node2D" parent="World" unique_id=925805585]
+texture_filter = 0
+
+[node name="StaticGeometry" type="Node2D" parent="World/GameplayWorld" unique_id=1732468009]
+
+[node name="StationFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=612194599]
+position = Vector2(600, 154)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StationFloor" unique_id=1614339691]
+shape = SubResource("RectangleShape2D_floor")
+
+[node name="FloorVisual" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/StationFloor" unique_id=721576485]
+light_mask = 4
+color = Color(0.24, 0.28, 0.32, 1)
+polygon = PackedVector2Array(-800, -16, 800, -16, 800, 16, -800, 16)
+
+[node name="FloorTopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/StationFloor" unique_id=1232422853]
+light_mask = 4
+points = PackedVector2Array(-800, -16, 800, -16)
+width = 1.5
+default_color = Color(0.55, 0.62, 0.68, 1)
+
+[node name="LeftBoundaryWall" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=998379655]
+position = Vector2(-200, -80)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/LeftBoundaryWall" unique_id=1112152422]
+shape = SubResource("RectangleShape2D_wall_l")
+
+[node name="RightBoundaryWall" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1471680924]
+position = Vector2(1400, -80)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/RightBoundaryWall" unique_id=2102875346]
+shape = SubResource("RectangleShape2D_wall_r")
+
+[node name="Platforms" type="Node2D" parent="World/GameplayWorld" unique_id=2123933275]
+
+[node name="CatwalkLeft" type="StaticBody2D" parent="World/GameplayWorld/Platforms" unique_id=361743524 groups=["climbable_surface"]]
+position = Vector2(250, 40)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/Platforms/CatwalkLeft" unique_id=718132722]
+shape = SubResource("RectangleShape2D_plat")
+
+[node name="Visual" type="Polygon2D" parent="World/GameplayWorld/Platforms/CatwalkLeft" unique_id=1282751644]
+light_mask = 4
+color = Color(0.3, 0.36, 0.42, 1)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="CatwalkRight" type="StaticBody2D" parent="World/GameplayWorld/Platforms" unique_id=794469423 groups=["climbable_surface"]]
+position = Vector2(750, 40)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/Platforms/CatwalkRight" unique_id=393860238]
+shape = SubResource("RectangleShape2D_plat")
+
+[node name="Visual" type="Polygon2D" parent="World/GameplayWorld/Platforms/CatwalkRight" unique_id=402839204]
+light_mask = 4
+color = Color(0.3, 0.36, 0.42, 1)
+polygon = PackedVector2Array(-90, -8, 90, -8, 90, 8, -90, 8)
+
+[node name="InteractiveProps" type="Node2D" parent="World/GameplayWorld" unique_id=249455530]
+
+[node name="ControlConsole" type="Node2D" parent="World/GameplayWorld/InteractiveProps" unique_id=2099468913]
+position = Vector2(500, 138)
+
+[node name="ConsoleMesh" type="Polygon2D" parent="World/GameplayWorld/InteractiveProps/ControlConsole" unique_id=1978907107]
+light_mask = 4
+color = Color(0.2, 0.24, 0.27, 1)
+polygon = PackedVector2Array(-14, -24, 14, -24, 10, 0, -10, 0)
+
+[node name="ScreenGlow" type="Polygon2D" parent="World/GameplayWorld/InteractiveProps/ControlConsole" unique_id=81443817]
+light_mask = 32
+color = Color(0.38, 0.78, 0.83, 0.9)
+polygon = PackedVector2Array(-10, -22, 10, -22, 8, -14, -8, -14)
+
+[node name="Enemies" type="Node2D" parent="World/GameplayWorld" unique_id=1238830373]
+
+[node name="Player" parent="World/GameplayWorld" unique_id=1446128432 instance=ExtResource("10_char")]
+position = Vector2(300, 136)
+
+[node name="GameplayTriggers" type="Node2D" parent="World/GameplayWorld" unique_id=708890991]
+
+[node name="StationCheckpoint" type="Area2D" parent="World/GameplayWorld/GameplayTriggers" unique_id=1721043880]
+position = Vector2(500, 90)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/GameplayTriggers/StationCheckpoint" unique_id=1861974806]
+shape = SubResource("RectangleShape2D_trig")
+
+[node name="ForegroundWorld" type="Node2D" parent="World" unique_id=680957324]
+
+[node name="NearForeground" type="Parallax2D" parent="World/ForegroundWorld" unique_id=670475346]
+z_index = 45
+scroll_scale = Vector2(1.1, 1)
+
+[node name="Railings" type="Line2D" parent="World/ForegroundWorld/NearForeground" unique_id=377587226]
+light_mask = 16
+points = PackedVector2Array(-200, 150, 1400, 150)
+width = 2.0
+default_color = Color(0.1, 0.12, 0.15, 1)
+
+[node name="ForegroundPipes" parent="World/ForegroundWorld/NearForeground" unique_id=217321517 instance=ExtResource("9_pipe")]
+position = Vector2(420, 0)
+
+[node name="FrontOccluders" type="Parallax2D" parent="World/ForegroundWorld" unique_id=1220352991]
+z_index = 65
+scroll_scale = Vector2(1.22, 1)
+
+[node name="ColumnLeft" parent="World/ForegroundWorld/FrontOccluders" unique_id=1956329864 instance=ExtResource("8_col")]
+position = Vector2(80, 0)
+
+[node name="ColumnRight" parent="World/ForegroundWorld/FrontOccluders" unique_id=946753974 instance=ExtResource("8_col")]
+position = Vector2(980, 0)
+
+[node name="Lighting" type="Node2D" parent="World" unique_id=1426868865]
+
+[node name="GlobalLighting" type="Node2D" parent="World/Lighting" unique_id=1982250280]
+
+[node name="CanvasModulate" type="CanvasModulate" parent="World/Lighting/GlobalLighting" unique_id=1007458702]
+color = Color(0.12, 0.15, 0.18, 1)
+
+[node name="BackgroundLights" type="Node2D" parent="World/Lighting" unique_id=487871799]
+
+[node name="TrainWindowLight" type="PointLight2D" parent="World/Lighting/BackgroundLights" unique_id=1571334194]
+position = Vector2(350, 20)
+color = Color(0.9, 0.65, 0.25, 1)
+energy = 0.8
+range_item_cull_mask = 2
+texture = SubResource("GradientTexture2D_train")
+texture_scale = 3.0
+
+[node name="GameplayLights" type="Node2D" parent="World/Lighting" unique_id=2124430134]
+
+[node name="StationLamp1" parent="World/Lighting/GameplayLights" unique_id=1565788859 instance=ExtResource("6_lamp")]
+position = Vector2(250, 10)
+
+[node name="StationLamp2" parent="World/Lighting/GameplayLights" unique_id=911713448 instance=ExtResource("6_lamp")]
+position = Vector2(750, 10)
+
+[node name="ForegroundLights" type="Node2D" parent="World/Lighting" unique_id=1299509425]
+
+[node name="DynamicLights" type="Node2D" parent="World/Lighting" unique_id=394767242]
+
+[node name="EnvironmentFX" type="Node2D" parent="World" unique_id=1116220847]
+
+[node name="FarFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=1381307943]
+z_index = -85
+scroll_scale = Vector2(0.12, 1)
+
+[node name="MidFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=834695629]
+z_index = -45
+scroll_scale = Vector2(0.5, 1)
+
+[node name="GameplayWorldFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=962771242]
+z_index = 12
+
+[node name="FloorVent" parent="World/EnvironmentFX/GameplayWorldFX" unique_id=1770371734 instance=ExtResource("7_vent")]
+position = Vector2(400, 138)
+
+[node name="NearFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=1165852582]
+z_index = 50
+scroll_scale = Vector2(1.1, 1)
+
+[node name="RuntimeFX" type="Node2D" parent="." unique_id=1669792410 node_paths=PackedStringArray("world_transient_fx", "projectile_fx", "detached_character_fx", "combat_fx", "dynamic_lights")]
+script = ExtResource("3_vfx")
+world_transient_fx = NodePath("WorldTransientFX")
+projectile_fx = NodePath("ProjectileFX")
+detached_character_fx = NodePath("DetachedCharacterFX")
+combat_fx = NodePath("CombatFX")
+dynamic_lights = NodePath("../World/Lighting/DynamicLights")
+
+[node name="WorldTransientFX" type="Node2D" parent="RuntimeFX" unique_id=1981717038]
+z_index = 16
+
+[node name="ProjectileFX" type="Node2D" parent="RuntimeFX" unique_id=1220500287]
+z_index = 22
+
+[node name="DetachedCharacterFX" type="Node2D" parent="RuntimeFX" unique_id=72120706]
+z_index = 27
+
+[node name="CombatFX" type="Node2D" parent="RuntimeFX" unique_id=1242003647]
+z_index = 32
+
+[node name="CameraRig" type="Node2D" parent="." unique_id=1211301405 node_paths=PackedStringArray("camera", "follow_target")]
+script = ExtResource("4_cam")
+camera = NodePath("Camera2D")
+follow_target = NodePath("../World/GameplayWorld/Player")
+
+[node name="Camera2D" type="Camera2D" parent="CameraRig" unique_id=1600889530]
+position = Vector2(300, 90)
+zoom = Vector2(1.25, 1.25)
+limit_left = -200
+limit_top = -450
+limit_right = 1400
+limit_bottom = 260
+
+[node name="ScreenFX" type="CanvasLayer" parent="." unique_id=437476214]
+layer = 10
+
+[node name="WorldPostFX" type="ColorRect" parent="ScreenFX" unique_id=968813274]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="ScreenAtmosphere" type="ColorRect" parent="ScreenFX" unique_id=686149508]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.08, 0.1, 0.05)
+
+[node name="DamageOverlay" type="ColorRect" parent="ScreenFX" unique_id=412851857]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.8, 0.1, 0.1, 0)
+
+[node name="FlashOverlay" type="ColorRect" parent="ScreenFX" unique_id=1074584298]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="Vignette" type="ColorRect" parent="ScreenFX" unique_id=462459359]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.15)
+
+[node name="TransitionFX" type="ColorRect" parent="ScreenFX" unique_id=1537832510]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1403407678]
+layer = 20
+
+[node name="HUD" type="Control" parent="UI" unique_id=1863537086]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BossUI" type="Control" parent="UI" unique_id=1615225005]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="InteractionUI" type="Control" parent="UI" unique_id=1593700560]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="DebugUI" type="Control" parent="UI" unique_id=1429451567 node_paths=PackedStringArray("level_root")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5_dbg")
+level_root = NodePath("../..")
+
+[node name="Menus" type="Control" parent="UI" unique_id=172590629]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

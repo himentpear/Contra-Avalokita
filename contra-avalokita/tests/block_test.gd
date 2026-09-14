@@ -77,8 +77,8 @@ func run() -> void:
 	check(p.reaction_state == &"BlockHit", "Reaction state is BlockHit on successful block")
 	check(p.reaction_push_offset == Vector2.ZERO, "Feet anchored: reaction_push_offset is strictly ZERO (no whole-body floor slip)")
 	
-	# Sample arm shockwave on frame 1
-	await ticks(3)
+	# Sample the arm shockwave after the local contact freeze releases.
+	await ticks(7)
 	check(p.weapons.main_hand.rotation < expected_sword_rot - 0.03, "Sword deflects backward under impact: rot=%.3f < %.3f" % [p.weapons.main_hand.rotation, expected_sword_rot - 0.03])
 	# Sample torso shockwave on frame 2-3
 	await ticks(2)

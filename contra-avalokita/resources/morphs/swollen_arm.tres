@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
 
-[ext_resource type="Script" path="res://scripts/sdf_modifier.gd" id="1_u7p1n"]
-[ext_resource type="Script" path="res://scripts/sdf_morph_profile.gd" id="2_hm6ep"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_modifier.gd" id="1_u7p1n"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_morph_profile.gd" id="2_hm6ep"]
 
-[sub_resource type="Resource" id="Resource_x87hc"]
+[sub_resource type="Resource" id="Resource_v6hff"]
 script = ExtResource("1_u7p1n")
 id = &"SwollenForearm"
 shape = 1
@@ -17,4 +17,4 @@ depth = 1.0
 [resource]
 script = ExtResource("2_hm6ep")
 id = &"SwollenArm"
-modifiers = Array[ExtResource("1_u7p1n")]([SubResource("Resource_x87hc")])
+modifiers = Array[ExtResource("1_u7p1n")]([SubResource("Resource_v6hff")])

@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://content/base/morphs/spine_growth.tres" id="2"]
+[resource]
+script = ExtResource("1")
+id = &"base:spine_growth"
+content_type = &"morph"
+display_name = "Spine Growth"
+tags = Array[StringName]([&"add", &"spine"])
+resource = ExtResource("2")

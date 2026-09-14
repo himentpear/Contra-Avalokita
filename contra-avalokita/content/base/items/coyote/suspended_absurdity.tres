@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CoyoteItem" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/coyote_item.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"base:suspended_absurdity"
+display_name = "悬置的荒诞"
+rarity = &"RARE"
+mechanical_text = "未堕状态下起跳时，\n水平初始动量提高 12%。"
+flavor_text = "坠落已经发生，只是结论尚未抵达。"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+modifiers = {&"coyote_horizontal_jump_multiplier": 1.12}

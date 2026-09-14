@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="PackedScene" path="res://content/base/weapons/sword/sword.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"test_dlc:red_sword"
+content_type = &"weapon"
+display_name = "Red Sword (Architecture Test)"
+tags = Array[StringName]([&"blade", &"test"])
+resource = ExtResource("2")
+metadata = {"tint": "red", "test_only": true}

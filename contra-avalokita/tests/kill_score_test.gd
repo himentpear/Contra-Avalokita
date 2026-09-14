@@ -1,11 +1,14 @@
 extends SceneTree
 const Profile = preload("res://scripts/enemy_score_profile.gd")
-const Event = preload("res://scripts/hit_event.gd")
+const Event = preload("res://gameplay/combat/hit/hit_event.gd")
+const ScoreSystem = preload("res://gameplay/roguelike/scoring/score_system.gd")
 func _initialize() -> void:
 	call_deferred("run")
 
 func run() -> void:
-	var score = root.get_node("KillScore")
+	var score := ScoreSystem.new()
+	score.name = "ScoreSystem"
+	root.add_child(score)
 	var profile = Profile.new()
 	profile.base_score = 400
 	score.reset_run()

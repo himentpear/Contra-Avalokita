@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CoyoteItem" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/coyote_item.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = &"base:wile_glance"
+display_name = "Wile E. Coyote的回眸"
+rarity = &"UNCOMMON"
+mechanical_text = "土狼时间 +0.06 秒。"
+flavor_text = "直到低头之前，他仍相信脚下有路。"
+tags = Array[StringName]([&"COYOTE", &"UNFALLEN", &"MOVEMENT"])
+modifiers = {&"coyote_time_bonus": 0.06}

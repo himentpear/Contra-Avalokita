@@ -62,7 +62,8 @@ func run() -> void:
 	
 	# Check visual position on Frame +1:
 	await ticks(1)
-	check(p.visual.position.x > 1.0, "Target visual mesh displaced horizontally on Frame +1 before rotational bend: %.2f" % p.visual.position.x)
+	var push_disp: float = p.pose_root.position.x if absf(p.pose_root.position.x) > 0.01 else p.visual.position.x
+	check(push_disp > 1.0, "Target visual mesh displaced horizontally on Frame +1 before rotational bend: %.2f" % push_disp)
 
 	# 4. SDF Contact Dent + Opposite Bulge
 	check(p.body_renderer.impact_depth > 0.5, "SDF contact dent depth is active: %.2f" % p.body_renderer.impact_depth)

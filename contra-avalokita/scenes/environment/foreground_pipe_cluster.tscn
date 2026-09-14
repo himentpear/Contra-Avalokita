@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://b2k8y4xv6mlaq"]
+
+[node name="ForegroundPipeCluster" type="Node2D"]
+z_index = 45
+light_mask = 16
+
+[node name="MainPipe" type="Line2D" parent="."]
+light_mask = 16
+points = PackedVector2Array(-80, -140, 0, -110, 80, -90, 160, -80)
+width = 6.0
+default_color = Color(0.12, 0.15, 0.18, 1)
+
+[node name="SecondaryCable" type="Line2D" parent="."]
+light_mask = 16
+points = PackedVector2Array(-80, -125, -10, -95, 60, -75, 160, -65)
+width = 2.5
+default_color = Color(0.08, 0.1, 0.12, 1)
+
+[node name="JointBracket" type="Polygon2D" parent="."]
+light_mask = 16
+color = Color(0.18, 0.22, 0.26, 1)
+polygon = PackedVector2Array(-4, -115, 4, -115, 4, -105, -4, -105)

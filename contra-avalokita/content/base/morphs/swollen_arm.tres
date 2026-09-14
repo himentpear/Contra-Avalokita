@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SdfMorphProfile" format=3]
+
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_modifier.gd" id="1_t6iwa"]
+[ext_resource type="Script" path="res://gameplay/character/sdf/sdf_morph_profile.gd" id="2_qdn03"]
+
+[sub_resource type="Resource" id="Resource_v6hff"]
+script = ExtResource("1_t6iwa")
+id = &"SwollenForearm"
+shape = 1
+anchor = &"ArmFrontJoint"
+anchor_b = &"ArmFrontEnd"
+radius = 5.2
+radius_end = 4.8
+softness = 1.5
+depth = 1.0
+
+[resource]
+script = ExtResource("2_qdn03")
+id = &"SwollenArm"
+modifiers = Array[ExtResource("1_t6iwa")]([SubResource("Resource_v6hff")])

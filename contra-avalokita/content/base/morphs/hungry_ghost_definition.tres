@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ContentDefinition" load_steps=3 format=3]
+[ext_resource type="Script" path="res://core/content/content_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://content/base/morphs/hungry_ghost.tres" id="2"]
+[resource]
+script = ExtResource("1")
+id = &"base:hungry_ghost"
+content_type = &"morph"
+display_name = "Hungry Ghost"
+tags = Array[StringName]([&"subtract", &"torso"])
+resource = ExtResource("2")

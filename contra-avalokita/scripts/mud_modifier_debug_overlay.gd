@@ -2,7 +2,7 @@ class_name MudModifierDebugOverlay
 extends Node2D
 ## One overlay per body renderer; all modifier diagnostics are drawn in one pass.
 
-const SdfModifier = preload("res://scripts/sdf_modifier.gd")
+const SdfModifier = preload("res://gameplay/character/sdf/sdf_modifier.gd")
 var renderer: Node2D
 
 func _draw() -> void:
