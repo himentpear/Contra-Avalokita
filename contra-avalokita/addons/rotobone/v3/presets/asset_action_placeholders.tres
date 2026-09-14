@@ -1,4 +1,4 @@
-[gd_resource type="AnimationLibrary" format=3]
+[gd_resource type="AnimationLibrary" format=3 uid="uid://dr08hnvge0hgd"]
 
 [sub_resource type="Animation" id="Animation_g3hg8"]
 resource_name = "Air Spin"
@@ -3559,7 +3559,7 @@ tracks/12/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5, 0.5833333),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [-0.117914, -0.12925193, -0.11683698, -0.11676011, -0.13312076, -0.11843237, -0.11817319, -0.117914]
+"values": [-0.117914, -0.12925193, -0.11683697999999999, -0.11676011, -0.13312076, -0.11843237, -0.11817319, -0.117914]
 }
 tracks/13/type = "value"
 tracks/13/imported = false
@@ -3924,7 +3924,7 @@ tracks/1/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666, 0.5, 0.5833333, 0.6666667),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.22, 0.185, 0.15, 0.115, 0.08, 0.06, 0.039999995, 0.019999996, 0.0]
+"values": [0.22, 0.185, 0.15, 0.115, 0.08, 0.06, 0.039999995000000003, 0.019999996, 0.0]
 }
 tracks/2/type = "value"
 tracks/2/imported = false
@@ -8330,7 +8330,7 @@ tracks/6/keys = {
 "times": PackedFloat32Array(0, 0.083333336, 0.16666667, 0.25, 0.33333334, 0.41666666),
 "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
 "update": 0,
-"values": [0.2, 0.14, 0.07999999, 0.029999997, -0.010000003, -0.05]
+"values": [0.2, 0.14, 0.07999999000000001, 0.029999997, -0.010000003, -0.05]
 }
 tracks/7/type = "value"
 tracks/7/imported = false

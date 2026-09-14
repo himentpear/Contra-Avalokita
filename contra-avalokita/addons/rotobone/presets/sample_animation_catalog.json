@@ -2,1299 +2,1299 @@
   "schema_version": 1,
   "source_pack": "2D-Pixel-Art-Character-Template.zip",
   "notes": [
-    "Timing comes from Aseprite headers when the exported PNG frame count matches.",
-    "Where PNG export geometry differs from the Aseprite source, the exported PNG is authoritative for tracing geometry and the entry timing_source flags the mismatch.",
+	"Timing comes from Aseprite headers when the exported PNG frame count matches.",
+	"Where PNG export geometry differs from the Aseprite source, the exported PNG is authoritative for tracing geometry and the entry timing_source flags the mismatch.",
     "The shown 192x48 four-frame example matches climb_back exactly."
   ],
   "clips": [
-    {
-      "id": "crouch_idle",
-      "category": "locomotion",
-      "source_png": "Crouch-Idle/Player Crouch-Idle 48x48.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "land",
-      "category": "airborne",
-      "source_png": "Land/player land 48x48.png",
-      "texture_size": [
-        432,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 9,
-      "frame_durations_ms": [
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80
-      ],
-      "loop": false,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "sword_run",
-      "category": "combat_locomotion",
-      "source_png": "Sword Run/Player Sword Run 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "push",
-      "category": "interaction",
-      "source_png": "Push/player push 48x48.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110
-      ],
-      "loop": true,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "sword_idle",
-      "category": "combat_locomotion",
-      "source_png": "Sword Idle/Player Sword Idle 48x48.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "hurt",
-      "category": "reaction",
-      "source_png": "Hurt-Damaged/Player Hurt 48x48.png",
-      "texture_size": [
-        192,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 4,
-      "frame_durations_ms": [
-        100,
-        100,
-        100,
-        100
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "air_spin",
-      "category": "airborne",
-      "source_png": "Air Spin/player air spin 48x48.png",
-      "texture_size": [
-        288,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 6,
-      "frame_durations_ms": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "wall_slide_left",
-      "category": "traversal",
-      "source_png": "Wall Slide/player wall slide (left) 48x48.png",
-      "texture_size": [
-        144,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 3,
-      "frame_durations_ms": [
-        100,
-        100,
-        100
-      ],
-      "loop": true,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "left",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "wall_slide",
-      "category": "traversal",
-      "source_png": "Wall Slide/player wall slide 48x48.png",
-      "texture_size": [
-        144,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 3,
-      "frame_durations_ms": [
-        100,
-        100,
-        100
-      ],
-      "loop": true,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "death",
-      "category": "reaction",
-      "source_png": "Death/Player Death 64x64.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110
-      ],
-      "loop": false,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "pull",
-      "category": "interaction",
-      "source_png": "Pull/Player Pull 48x48.png",
-      "texture_size": [
-        288,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 6,
-      "frame_durations_ms": [
-        180,
-        180,
-        180,
-        180,
-        180,
-        180
-      ],
-      "loop": true,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "jump_new",
-      "category": "airborne",
-      "source_png": "Jump/player new jump 48x48.png",
-      "texture_size": [
-        288,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 6,
-      "frame_durations_ms": [
-        125,
-        125,
-        125,
-        125,
-        125,
-        125
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "jump_left",
-      "category": "airborne",
-      "source_png": "Jump/player jump left 48x48-sheet.png",
-      "texture_size": [
-        288,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 6,
-      "frame_durations_ms": [
-        125,
-        125,
-        125,
-        125,
-        125,
-        125
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "left",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "jump",
-      "category": "airborne",
-      "source_png": "Jump/player jump 48x48.png",
-      "texture_size": [
-        144,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 3,
-      "frame_durations_ms": [
-        125,
-        125,
-        125
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "png/aseprite frame-count mismatch (3 vs 6); review timing"
-    },
-    {
-      "id": "punch_jab",
-      "category": "combat",
-      "source_png": "Punch Jab/Player Jab 48x48.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        40,
-        40,
-        40,
-        50,
-        50,
-        50,
-        50,
-        50,
-        50,
-        50
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "idle",
-      "category": "locomotion",
-      "source_png": "Idle/Player Idle 48x48.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95,
-        95
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "walk",
-      "category": "locomotion",
-      "source_png": "Walk/PlayerWalk 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        135,
-        135,
-        135,
-        135,
-        135,
-        135,
-        135,
-        135
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "wall_land_left",
-      "category": "traversal",
-      "source_png": "Wall Land/Player Wall Land (left) 48x48.png",
-      "texture_size": [
-        288,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 6,
-      "frame_durations_ms": [
-        85,
-        85,
-        85,
-        85,
-        85,
-        85
-      ],
-      "loop": false,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "left",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "wall_land",
-      "category": "traversal",
-      "source_png": "Wall Land/player wall land 48x48.png",
-      "texture_size": [
-        288,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 6,
-      "frame_durations_ms": [
-        85,
-        85,
-        85,
-        85,
-        85,
-        85
-      ],
-      "loop": false,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "climb_side",
-      "category": "traversal",
-      "source_png": "Climb (facing side of player)/Player Side-Climb 48x48.png",
-      "texture_size": [
-        192,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 4,
-      "frame_durations_ms": [
-        180,
-        180,
-        180,
-        180
-      ],
-      "loop": true,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "side",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "shoot_2h",
-      "category": "combat",
-      "source_png": "Shooting (two-handed)/player shoot 2H 48x48.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "punch",
-      "category": "combat",
-      "source_png": "Punch/Player Punch 64x64.png",
-      "texture_size": [
-        512,
-        64
-      ],
-      "frame_size": [
-        64,
-        64
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        105,
-        105,
-        105,
-        105,
-        105,
-        105,
-        105,
-        105
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        32.0,
-        35.84
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "climb_back",
-      "category": "traversal",
-      "source_png": "Climb (facing back of player)/player climb-back 48x48.png",
-      "texture_size": [
-        192,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 4,
-      "frame_durations_ms": [
-        185,
-        185,
-        185,
-        185
-      ],
-      "loop": true,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "back",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "katana_walk",
-      "category": "combat_locomotion",
-      "source_png": "Katana walk/katana walk.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110,
-        110
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "katana_run",
-      "category": "combat_locomotion",
-      "source_png": "Katana Run/player katana run 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        85,
-        85,
-        85,
-        85,
-        85,
-        85,
-        85,
-        85
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "katana_continuous_attack",
-      "category": "combat",
-      "source_png": "Katana Continuous Attack/player katana continuous attack 80x64.png",
-      "texture_size": [
-        720,
-        64
-      ],
-      "frame_size": [
-        80,
-        64
-      ],
-      "frame_count": 9,
-      "frame_durations_ms": [
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        40.0,
-        35.84
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "punch_cross",
-      "category": "combat",
-      "source_png": "Punch Cross/Player Punch Cross 64x64.png",
-      "texture_size": [
-        448,
-        64
-      ],
-      "frame_size": [
-        64,
-        64
-      ],
-      "frame_count": 7,
-      "frame_durations_ms": [
-        105,
-        105,
-        105,
-        105,
-        105,
-        105,
-        105
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        32.0,
-        35.84
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "push_pull_idle",
-      "category": "interaction",
-      "source_png": "PushPull (idle state)/player push idle 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100
-      ],
-      "loop": true,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "shoot_run",
-      "category": "combat_locomotion",
-      "source_png": "Shooting (running and aiming)/Player Running Shooting 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "aim_run",
-      "category": "combat_locomotion",
-      "source_png": "Shooting (running and aiming)/Player Running Aiming 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "katana_attack_sheathe",
-      "category": "combat",
-      "source_png": "Katana Attack-Sheathe/player katana attack-sheathe 80x64.png",
-      "texture_size": [
-        800,
-        64
-      ],
-      "frame_size": [
-        80,
-        64
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        75,
-        75,
-        75,
-        75,
-        75,
-        75,
-        75,
-        75,
-        75,
-        75
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        40.0,
-        35.84
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "katana_air_attack",
-      "category": "combat_airborne",
-      "source_png": "Katana Air Attack/player katana air attack (upper body) 80x64.png",
-      "texture_size": [
-        720,
-        64
-      ],
-      "frame_size": [
-        80,
-        64
-      ],
-      "frame_count": 9,
-      "frame_durations_ms": [
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70,
-        70
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        40.0,
-        35.84
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "run",
-      "category": "locomotion",
-      "source_png": "Run/player run 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80,
-        80
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "ledge_climb",
-      "category": "traversal",
-      "source_png": "Ledge Grab-Climb/player ledge climb 48x48.png",
-      "texture_size": [
-        240,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 5,
-      "frame_durations_ms": [
-        120,
-        120,
-        120,
-        120,
-        120
-      ],
-      "loop": false,
-      "anchor_mode": "contact",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "katana_run_attack_upper",
-      "category": "combat_locomotion",
-      "source_png": "Katana Run Attack/player katana running attack (upper body).png",
-      "texture_size": [
-        640,
-        64
-      ],
-      "frame_size": [
-        80,
-        64
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        85,
-        85,
-        85,
-        85,
-        85,
-        85,
-        85,
-        85
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        40.0,
-        35.84
-      ],
-      "source_facing": "right",
-      "timing_source": "png/aseprite frame-count mismatch (8 vs 16); review timing"
-    },
-    {
-      "id": "crouch_walk",
-      "category": "locomotion",
-      "source_png": "Crouch-Walk/player crouch-walk 48x48.png",
-      "texture_size": [
-        480,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 10,
-      "frame_durations_ms": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100
-      ],
-      "loop": true,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "sword_attack",
-      "category": "combat",
-      "source_png": "Sword Attack/player sword atk 64x64.png",
-      "texture_size": [
-        384,
-        64
-      ],
-      "frame_size": [
-        64,
-        64
-      ],
-      "frame_count": 6,
-      "frame_durations_ms": [
-        70,
-        70,
-        70,
-        70,
-        70,
-        70
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        32.0,
-        35.84
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "dash",
-      "category": "airborne",
-      "source_png": "Dash/dash.png",
-      "texture_size": [
-        432,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 9,
-      "frame_durations_ms": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "sword_stab",
-      "category": "combat",
-      "source_png": "Sword Stab/Player Sword Stab 96x48.png",
-      "texture_size": [
-        672,
-        48
-      ],
-      "frame_size": [
-        96,
-        48
-      ],
-      "frame_count": 7,
-      "frame_durations_ms": [
-        90,
-        90,
-        90,
-        90,
-        90,
-        90,
-        90
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        48.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "roll",
-      "category": "traversal",
-      "source_png": "Roll/Player Roll 48x48.png",
-      "texture_size": [
-        336,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 7,
-      "frame_durations_ms": [
-        100,
-        100,
-        100,
-        100,
-        100,
-        100,
-        100
-      ],
-      "loop": false,
-      "anchor_mode": "hip",
-      "anchor_px": [
-        24.0,
-        26.88
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    },
-    {
-      "id": "slide",
-      "category": "traversal",
-      "source_png": "Slide/Player Slide 48x48.png",
-      "texture_size": [
-        384,
-        48
-      ],
-      "frame_size": [
-        48,
-        48
-      ],
-      "frame_count": 8,
-      "frame_durations_ms": [
-        75,
-        75,
-        75,
-        75,
-        75,
-        75,
-        75,
-        75
-      ],
-      "loop": false,
-      "anchor_mode": "feet",
-      "anchor_px": [
-        24.0,
-        40.32
-      ],
-      "source_facing": "right",
-      "timing_source": "aseprite"
-    }
+	{
+	  "id": "crouch_idle",
+	  "category": "locomotion",
+	  "source_png": "Crouch-Idle/Player Crouch-Idle 48x48.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "land",
+	  "category": "airborne",
+	  "source_png": "Land/player land 48x48.png",
+	  "texture_size": [
+		432,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 9,
+	  "frame_durations_ms": [
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80
+	  ],
+	  "loop": false,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "sword_run",
+	  "category": "combat_locomotion",
+	  "source_png": "Sword Run/Player Sword Run 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "push",
+	  "category": "interaction",
+	  "source_png": "Push/player push 48x48.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110
+	  ],
+	  "loop": true,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "sword_idle",
+	  "category": "combat_locomotion",
+	  "source_png": "Sword Idle/Player Sword Idle 48x48.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "hurt",
+	  "category": "reaction",
+	  "source_png": "Hurt-Damaged/Player Hurt 48x48.png",
+	  "texture_size": [
+		192,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 4,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100,
+		100
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "air_spin",
+	  "category": "airborne",
+	  "source_png": "Air Spin/player air spin 48x48.png",
+	  "texture_size": [
+		288,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 6,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100,
+		100,
+		100,
+		100
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "wall_slide_left",
+	  "category": "traversal",
+	  "source_png": "Wall Slide/player wall slide (left) 48x48.png",
+	  "texture_size": [
+		144,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 3,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100
+	  ],
+	  "loop": true,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "left",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "wall_slide",
+	  "category": "traversal",
+	  "source_png": "Wall Slide/player wall slide 48x48.png",
+	  "texture_size": [
+		144,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 3,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100
+	  ],
+	  "loop": true,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "death",
+	  "category": "reaction",
+	  "source_png": "Death/Player Death 64x64.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110
+	  ],
+	  "loop": false,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "pull",
+	  "category": "interaction",
+	  "source_png": "Pull/Player Pull 48x48.png",
+	  "texture_size": [
+		288,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 6,
+	  "frame_durations_ms": [
+		180,
+		180,
+		180,
+		180,
+		180,
+		180
+	  ],
+	  "loop": true,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "jump_new",
+	  "category": "airborne",
+	  "source_png": "Jump/player new jump 48x48.png",
+	  "texture_size": [
+		288,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 6,
+	  "frame_durations_ms": [
+		125,
+		125,
+		125,
+		125,
+		125,
+		125
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "jump_left",
+	  "category": "airborne",
+	  "source_png": "Jump/player jump left 48x48-sheet.png",
+	  "texture_size": [
+		288,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 6,
+	  "frame_durations_ms": [
+		125,
+		125,
+		125,
+		125,
+		125,
+		125
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "left",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "jump",
+	  "category": "airborne",
+	  "source_png": "Jump/player jump 48x48.png",
+	  "texture_size": [
+		144,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 3,
+	  "frame_durations_ms": [
+		125,
+		125,
+		125
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "png/aseprite frame-count mismatch (3 vs 6); review timing"
+	},
+	{
+	  "id": "punch_jab",
+	  "category": "combat",
+	  "source_png": "Punch Jab/Player Jab 48x48.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		40,
+		40,
+		40,
+		50,
+		50,
+		50,
+		50,
+		50,
+		50,
+		50
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "idle",
+	  "category": "locomotion",
+	  "source_png": "Idle/Player Idle 48x48.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95,
+		95
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "walk",
+	  "category": "locomotion",
+	  "source_png": "Walk/PlayerWalk 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		135,
+		135,
+		135,
+		135,
+		135,
+		135,
+		135,
+		135
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "wall_land_left",
+	  "category": "traversal",
+	  "source_png": "Wall Land/Player Wall Land (left) 48x48.png",
+	  "texture_size": [
+		288,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 6,
+	  "frame_durations_ms": [
+		85,
+		85,
+		85,
+		85,
+		85,
+		85
+	  ],
+	  "loop": false,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "left",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "wall_land",
+	  "category": "traversal",
+	  "source_png": "Wall Land/player wall land 48x48.png",
+	  "texture_size": [
+		288,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 6,
+	  "frame_durations_ms": [
+		85,
+		85,
+		85,
+		85,
+		85,
+		85
+	  ],
+	  "loop": false,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "climb_side",
+	  "category": "traversal",
+	  "source_png": "Climb (facing side of player)/Player Side-Climb 48x48.png",
+	  "texture_size": [
+		192,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 4,
+	  "frame_durations_ms": [
+		180,
+		180,
+		180,
+		180
+	  ],
+	  "loop": true,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "side",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "shoot_2h",
+	  "category": "combat",
+	  "source_png": "Shooting (two-handed)/player shoot 2H 48x48.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "punch",
+	  "category": "combat",
+	  "source_png": "Punch/Player Punch 64x64.png",
+	  "texture_size": [
+		512,
+		64
+	  ],
+	  "frame_size": [
+		64,
+		64
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		105,
+		105,
+		105,
+		105,
+		105,
+		105,
+		105,
+		105
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		32.0,
+		35.84
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "climb_back",
+	  "category": "traversal",
+	  "source_png": "Climb (facing back of player)/player climb-back 48x48.png",
+	  "texture_size": [
+		192,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 4,
+	  "frame_durations_ms": [
+		185,
+		185,
+		185,
+		185
+	  ],
+	  "loop": true,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "back",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "katana_walk",
+	  "category": "combat_locomotion",
+	  "source_png": "Katana walk/katana walk.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110,
+		110
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "katana_run",
+	  "category": "combat_locomotion",
+	  "source_png": "Katana Run/player katana run 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		85,
+		85,
+		85,
+		85,
+		85,
+		85,
+		85,
+		85
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "katana_continuous_attack",
+	  "category": "combat",
+	  "source_png": "Katana Continuous Attack/player katana continuous attack 80x64.png",
+	  "texture_size": [
+		720,
+		64
+	  ],
+	  "frame_size": [
+		80,
+		64
+	  ],
+	  "frame_count": 9,
+	  "frame_durations_ms": [
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		40.0,
+		35.84
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "punch_cross",
+	  "category": "combat",
+	  "source_png": "Punch Cross/Player Punch Cross 64x64.png",
+	  "texture_size": [
+		448,
+		64
+	  ],
+	  "frame_size": [
+		64,
+		64
+	  ],
+	  "frame_count": 7,
+	  "frame_durations_ms": [
+		105,
+		105,
+		105,
+		105,
+		105,
+		105,
+		105
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		32.0,
+		35.84
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "push_pull_idle",
+	  "category": "interaction",
+	  "source_png": "PushPull (idle state)/player push idle 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100
+	  ],
+	  "loop": true,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "shoot_run",
+	  "category": "combat_locomotion",
+	  "source_png": "Shooting (running and aiming)/Player Running Shooting 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "aim_run",
+	  "category": "combat_locomotion",
+	  "source_png": "Shooting (running and aiming)/Player Running Aiming 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "katana_attack_sheathe",
+	  "category": "combat",
+	  "source_png": "Katana Attack-Sheathe/player katana attack-sheathe 80x64.png",
+	  "texture_size": [
+		800,
+		64
+	  ],
+	  "frame_size": [
+		80,
+		64
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		75,
+		75,
+		75,
+		75,
+		75,
+		75,
+		75,
+		75,
+		75,
+		75
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		40.0,
+		35.84
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "katana_air_attack",
+	  "category": "combat_airborne",
+	  "source_png": "Katana Air Attack/player katana air attack (upper body) 80x64.png",
+	  "texture_size": [
+		720,
+		64
+	  ],
+	  "frame_size": [
+		80,
+		64
+	  ],
+	  "frame_count": 9,
+	  "frame_durations_ms": [
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70,
+		70
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		40.0,
+		35.84
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "run",
+	  "category": "locomotion",
+	  "source_png": "Run/player run 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80,
+		80
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "ledge_climb",
+	  "category": "traversal",
+	  "source_png": "Ledge Grab-Climb/player ledge climb 48x48.png",
+	  "texture_size": [
+		240,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 5,
+	  "frame_durations_ms": [
+		120,
+		120,
+		120,
+		120,
+		120
+	  ],
+	  "loop": false,
+	  "anchor_mode": "contact",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "katana_run_attack_upper",
+	  "category": "combat_locomotion",
+	  "source_png": "Katana Run Attack/player katana running attack (upper body).png",
+	  "texture_size": [
+		640,
+		64
+	  ],
+	  "frame_size": [
+		80,
+		64
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		85,
+		85,
+		85,
+		85,
+		85,
+		85,
+		85,
+		85
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		40.0,
+		35.84
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "png/aseprite frame-count mismatch (8 vs 16); review timing"
+	},
+	{
+	  "id": "crouch_walk",
+	  "category": "locomotion",
+	  "source_png": "Crouch-Walk/player crouch-walk 48x48.png",
+	  "texture_size": [
+		480,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 10,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100
+	  ],
+	  "loop": true,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "sword_attack",
+	  "category": "combat",
+	  "source_png": "Sword Attack/player sword atk 64x64.png",
+	  "texture_size": [
+		384,
+		64
+	  ],
+	  "frame_size": [
+		64,
+		64
+	  ],
+	  "frame_count": 6,
+	  "frame_durations_ms": [
+		70,
+		70,
+		70,
+		70,
+		70,
+		70
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		32.0,
+		35.84
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "dash",
+	  "category": "airborne",
+	  "source_png": "Dash/dash.png",
+	  "texture_size": [
+		432,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 9,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "sword_stab",
+	  "category": "combat",
+	  "source_png": "Sword Stab/Player Sword Stab 96x48.png",
+	  "texture_size": [
+		672,
+		48
+	  ],
+	  "frame_size": [
+		96,
+		48
+	  ],
+	  "frame_count": 7,
+	  "frame_durations_ms": [
+		90,
+		90,
+		90,
+		90,
+		90,
+		90,
+		90
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		48.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "roll",
+	  "category": "traversal",
+	  "source_png": "Roll/Player Roll 48x48.png",
+	  "texture_size": [
+		336,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 7,
+	  "frame_durations_ms": [
+		100,
+		100,
+		100,
+		100,
+		100,
+		100,
+		100
+	  ],
+	  "loop": false,
+	  "anchor_mode": "hip",
+	  "anchor_px": [
+		24.0,
+		26.88
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	},
+	{
+	  "id": "slide",
+	  "category": "traversal",
+	  "source_png": "Slide/Player Slide 48x48.png",
+	  "texture_size": [
+		384,
+		48
+	  ],
+	  "frame_size": [
+		48,
+		48
+	  ],
+	  "frame_count": 8,
+	  "frame_durations_ms": [
+		75,
+		75,
+		75,
+		75,
+		75,
+		75,
+		75,
+		75
+	  ],
+	  "loop": false,
+	  "anchor_mode": "feet",
+	  "anchor_px": [
+		24.0,
+		40.32
+	  ],
+	  "source_facing": "right",
+	  "timing_source": "aseprite"
+	}
   ]
 }

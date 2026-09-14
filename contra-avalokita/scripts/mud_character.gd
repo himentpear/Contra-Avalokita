@@ -2,6 +2,7 @@ class_name MudCharacter
 extends CharacterBody2D
 @export var blade_footwork: Resource = preload("res://resources/blade_footwork.tres")
 const HitEvent = preload("res://scripts/hit_event.gd")
+const IntentComponentScript = preload("res://gameplay/components/movement/intent_component.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -370,6 +371,7 @@ func update_jump_animation() -> void:
 var score_life_id := 0
 var score_attack_serial := 0
 @export var player_controlled := true
+var intent_component: IntentComponent = IntentComponentScript.new()
 @export var move_speed := 105.0
 @export_range(0.1, 0.9) var walk_speed_ratio := 0.43
 @export var acceleration := 700.0
@@ -705,6 +707,7 @@ var _contact_squash_timer := 0.0
 var _flight_stretch_timer := 0.0
 
 func _ready() -> void:
+	add_to_group(&"player_input_entities")
 	health = max_health
 	movement_assist.configure(base_coyote_time, base_jump_buffer_time)
 	item_inventory.changed.connect(_recompute_movement_modifiers)
@@ -777,7 +780,11 @@ func _ready() -> void:
 ## Shared input seam: AI / NPC controllers use this without modifying the rig.
 func set_intent(direction: float, jump := false, attack := false, block := false) -> void:
 	if state == &"Dead": return
-	move_intent = clampf(direction, -1, 1)
+	intent_component.move_direction = clampf(direction, -1, 1)
+	intent_component.jump_pressed = jump
+	intent_component.attack_pressed = attack
+	intent_component.block_held = block
+	move_intent = intent_component.move_direction
 	if jump:
 		movement_assist.register_jump_input()
 	jump_requested = jump_requested or jump
@@ -1060,23 +1067,6 @@ func _physics_process(delta: float) -> void:
 	movement_assist.observe_grounded(grounded, allow_coyote_departure)
 	_update_wall_memory(delta, grounded)
 
-	if player_controlled:
-		var input_direction := Input.get_axis("move_left", "move_right")
-		if not Input.is_action_pressed("sprint"): input_direction *= walk_speed_ratio
-		var block_pressed := Input.is_action_pressed("block") if InputMap.has_action("block") else false
-		set_intent(input_direction, Input.is_action_just_pressed("jump"), Input.is_action_just_pressed("attack"), block_pressed)
-		if Input.is_action_just_pressed("equipment"): equipment.toggle()
-		if not is_attacking():
-			if Input.is_action_just_pressed("weapon_sword"):
-				weapons.equip(weapons.default_weapon)
-				sync_weapon_animation()
-			if Input.is_action_just_pressed("weapon_none"):
-				weapons.equip(null)
-				sync_weapon_animation()
-		if Input.is_action_just_pressed("debug_rig"):
-			rig.debug_draw = not rig.debug_draw
-			body_renderer.modifier_debug_draw = rig.debug_draw
-	
 	if not is_attacking():
 		if is_blocking():
 			action_state = &"Block"

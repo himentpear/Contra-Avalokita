@@ -25,6 +25,7 @@ SaveManager="*res://core/save/save_manager.gd"
 CommandRegistry="*res://core/debug/command_registry.gd"
 Console="*res://ui/console/console.tscn"
 HitstopManager="*res://scripts/combat/hitstop_manager.gd"
+PlayerInput="*res://gameplay/systems/input/player_input_system.gd"
 
 [display]
 
