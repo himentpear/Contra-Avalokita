@@ -4,6 +4,7 @@ extends CharacterBody2D
 const HitEvent = preload("res://scripts/hit_event.gd")
 const IntentComponentScript = preload("res://gameplay/components/movement/intent_component.gd")
 const MovementComponent = preload("res://scripts/components/movement_component.gd")
+const HealthComponent = preload("res://scripts/components/health_component.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -22,6 +23,7 @@ signal jump_executed(source: MudMovementAssist.JumpSource)
 @export var landing_recovery_duration := 0.07
 @export var movement_assist_debug := false
 var movement_component: MovementComponent
+var health_component: HealthComponent
 
 var air_time: float:
 	get: return movement_component.air_time if movement_component else 0.0
@@ -181,7 +183,12 @@ var intent_component: IntentComponent = IntentComponentScript.new()
 @export var max_health := 100.0
 @export var allow_air_attack := true
 @export_range(0.1,1.0) var attack_movement_multiplier := 1.0
-var health := 100.0
+var _health := 100.0
+var health: float:
+	get: return health_component.health if health_component else _health
+	set(v):
+		_health = v
+		if health_component: health_component.health = v
 var state: StringName = &"Idle"
 var attack_time := 0.0
 var _facing := 1.0
@@ -222,10 +229,23 @@ var action_state: StringName = &"None"
 var pose_composer: MudPoseComposer
 
 @export var max_stability := 100.0
-var stability := 100.0
+var _stability := 100.0
+var stability: float:
+	get: return health_component.stability if health_component else _stability
+	set(v):
+		_stability = v
+		if health_component: health_component.stability = v
 @export var stability_recovery_rate := 25.0
 @export var stability_recovery_cooldown := 0.5
-var stability_cooldown_timer := 0.0
+var stability_cooldown_timer: float:
+	get: return health_component.stability_cooldown_timer if health_component else 0.0
+	set(v): if health_component: health_component.stability_cooldown_timer = v
+
+func damage(amount: float) -> void:
+	if health_component: health_component.damage(amount)
+
+func heal(amount: float) -> void:
+	if health_component: health_component.heal(amount)
 
 var reaction_state: StringName = &"None"
 var reaction_time := 0.0
@@ -525,7 +545,22 @@ var _flight_stretch_timer := 0.0
 
 func _ready() -> void:
 	add_to_group(&"player_input_entities")
-	health = max_health
+	if has_node("Components/HealthComponent"):
+		health_component = $Components/HealthComponent
+	elif has_node("HealthComponent"):
+		health_component = $HealthComponent
+	else:
+		health_component = HealthComponent.new()
+		health_component.name = "HealthComponent"
+		var comp_root := get_node_or_null("Components")
+		if comp_root:
+			comp_root.add_child(health_component)
+		else:
+			add_child(health_component)
+	health_component.setup(max_health, max_stability)
+	health_component.damaged.connect(func(amount: float) -> void: damaged.emit(amount))
+	health_component.died.connect(func() -> void: die())
+
 	if has_node("Components/MovementComponent"):
 		movement_component = $Components/MovementComponent
 	elif has_node("MovementComponent"):
@@ -860,10 +895,8 @@ func _physics_process(delta: float) -> void:
 			reaction_state = &"None"
 			reaction_push_offset = Vector2.ZERO
 
-	if stability_cooldown_timer > 0.0:
-		stability_cooldown_timer = maxf(0.0, stability_cooldown_timer - delta)
-	elif stability < max_stability:
-		stability = minf(max_stability, stability + stability_recovery_rate * delta)
+	if health_component:
+		health_component.advance_stability(delta)
 
 	if is_instance_valid(pose_composer):
 		pose_composer.restore_base()
