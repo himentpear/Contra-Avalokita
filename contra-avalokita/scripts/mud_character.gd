@@ -9,6 +9,10 @@ const CombatComponent = preload("res://scripts/components/combat_component.gd")
 const AnimationController = preload("res://scripts/components/animation_controller.gd")
 const SDFBodyComponent = preload("res://scripts/components/sdf_body_component.gd")
 const CharacterStateComponent = preload("res://scripts/components/character_state_component.gd")
+const EquipmentController = preload("res://scripts/components/equipment_controller.gd")
+const WeaponManager = preload("res://scripts/weapon_manager.gd")
+const EquipmentManager = preload("res://scripts/equipment_manager.gd")
+const WeaponData = preload("res://scripts/resources/weapon_data.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -32,6 +36,7 @@ var combat_component: CombatComponent
 var animation_controller: AnimationController
 var sdf_body_component: SDFBodyComponent
 var character_state_component: CharacterStateComponent
+var equipment_controller: EquipmentController
 
 var air_time: float:
 	get: return movement_component.air_time if movement_component else 0.0
@@ -601,6 +606,11 @@ func _ready() -> void:
 	combat_component.hit_flash_color = _hit_flash_color
 
 	$Hurtbox.set_meta("owner_character", self)
+	equipment_controller = weapons
+	if equipment_controller:
+		equipment_controller.owner_character = self
+		if equipment:
+			equipment_controller.setup_equipment(equipment)
 	weapons.owner_character = self
 	if weapons.current: weapons.current.set_meta("owner_character", self)
 	rig = RigAdapter.new()
