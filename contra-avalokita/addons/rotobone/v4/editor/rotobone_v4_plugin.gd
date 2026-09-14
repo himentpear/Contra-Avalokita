@@ -70,6 +70,9 @@ func _apply_selected_pose() -> void:
 	var nodes := _graph.sorted_nodes() if _graph != null else []
 	if viewport != null and _active_pose_index >= 0 and _active_pose_index < nodes.size():
 		viewport.pose = nodes[_active_pose_index].pose
+		if viewport.reference_hframes > 1:
+			var frame := roundi(float(_active_pose_index) * (viewport.reference_hframes - 1) / maxf(nodes.size() - 1, 1))
+			viewport.set_reference_frame(frame)
 
 
 func _on_capture_pose() -> void:
