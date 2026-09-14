@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b816cmpy1roui"]
+
+[node name="RotoPoseMudTest" unique_id=1661788698]
+
+[node name="PoseViewport" parent="." index="2"]
+enabled_targets = PackedStringArray("head", "hand_r", "hand_l", "foot_r", "foot_l", "weapon_tip", "body")

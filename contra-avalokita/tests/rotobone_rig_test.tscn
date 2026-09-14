@@ -1,0 +1,94 @@
+[gd_scene format=3 uid="uid://chmovy0obnmm"]
+
+[sub_resource type="Animation" id="Animation_RESET"]
+resource_name = "RESET"
+length = 0.001
+
+[sub_resource type="Animation" id="Animation_trace_pose"]
+resource_name = "trace_pose"
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_default"]
+_data = {
+&"RESET": SubResource("Animation_RESET"),
+&"trace_pose": SubResource("Animation_trace_pose")
+}
+
+[node name="RotoBoneRigTest" type="Node2D" unique_id=1048576845]
+editor_description = "Standalone RotoBone tracing rig for 48x48 side-view sprite references. Drag RotoBoneAnchor to place the reference overlay; edit Bone2D pose transforms only. Do not edit rest/length during tracing."
+
+[node name="RotoBoneAnchor" type="Marker2D" parent="." unique_id=1799150790]
+editor_description = "Reference-space XY anchor. Default placement assumes a 48x48 sprite with a feet anchor near (24, 40.32)."
+metadata/rotobone_anchor = true
+
+[node name="RotoBoneRig" type="Node2D" parent="." unique_id=27119648]
+position = Vector2(0, -15.36)
+metadata/rotobone_standard_rig = true
+
+[node name="Skeleton2D" type="Skeleton2D" parent="RotoBoneRig" unique_id=490754223]
+
+[node name="pelvis" type="Bone2D" parent="RotoBoneRig/Skeleton2D" unique_id=1406899618]
+rest = Transform2D(1, 0, 0, 1, 0, 0)
+metadata/rotobone_semantic = "pelvis"
+
+[node name="torso" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis" unique_id=937621153]
+rest = Transform2D(1, 0, 0, 1, 0, -7)
+metadata/rotobone_semantic = "torso"
+
+[node name="chest" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso" unique_id=105579371]
+rest = Transform2D(1, 0, 0, 1, 0, -7)
+metadata/rotobone_semantic = "chest"
+
+[node name="head" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso/chest" unique_id=47621686]
+rest = Transform2D(0, -1, 1, 0, 0, -5)
+metadata/rotobone_semantic = "head"
+
+[node name="arm_front_upper" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso/chest" unique_id=1107589315]
+rest = Transform2D(0.9393727, 0.3428978, -0.3428978, 0.9393727, 0.5, -3.5)
+metadata/rotobone_semantic = "arm_front_upper"
+
+[node name="arm_front_lower" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso/chest/arm_front_upper" unique_id=1655662181]
+rest = Transform2D(0.9553365, 0.2955202, -0.2955202, 0.9553365, 7, 0)
+metadata/rotobone_semantic = "arm_front_lower"
+
+[node name="hand_front" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso/chest/arm_front_upper/arm_front_lower" unique_id=439812168]
+rest = Transform2D(0.9987503, -0.0499792, 0.0499792, 0.9987503, 7, 0)
+metadata/rotobone_semantic = "hand_front"
+
+[node name="arm_back_upper" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso/chest" unique_id=1623942752]
+rest = Transform2D(0.9800666, -0.1986693, 0.1986693, 0.9800666, -0.5, -3)
+metadata/rotobone_semantic = "arm_back_upper"
+
+[node name="arm_back_lower" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso/chest/arm_back_upper" unique_id=1383312512]
+rest = Transform2D(0.8525245, 0.5226872, -0.5226872, 0.8525245, 7, 0)
+metadata/rotobone_semantic = "arm_back_lower"
+
+[node name="hand_back" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/torso/chest/arm_back_upper/arm_back_lower" unique_id=1975450492]
+rest = Transform2D(0.9987503, 0.0499792, -0.0499792, 0.9987503, 7, 0)
+metadata/rotobone_semantic = "hand_back"
+
+[node name="leg_front_upper" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis" unique_id=1456000348]
+rest = Transform2D(0.2867152, 0.9580159, -0.9580159, 0.2867152, -1.8, 1)
+metadata/rotobone_semantic = "leg_front_upper"
+
+[node name="leg_front_lower" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/leg_front_upper" unique_id=1782956619]
+rest = Transform2D(0.9800666, -0.1986693, 0.1986693, 0.9800666, 9, 0)
+metadata/rotobone_semantic = "leg_front_lower"
+
+[node name="foot_front" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/leg_front_upper/leg_front_lower" unique_id=164966291]
+rest = Transform2D(0.4975711, -0.8674232, 0.8674232, 0.4975711, 9, 0)
+metadata/rotobone_semantic = "foot_front"
+
+[node name="leg_back_upper" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis" unique_id=1219927887]
+rest = Transform2D(-0.1486507, 0.9888898, -0.9888898, -0.1486507, 1.8, 1)
+metadata/rotobone_semantic = "leg_back_upper"
+
+[node name="leg_back_lower" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/leg_back_upper" unique_id=1669745051]
+rest = Transform2D(0.8869949, -0.4617792, 0.4617792, 0.8869949, 9, 0)
+metadata/rotobone_semantic = "leg_back_lower"
+
+[node name="foot_back" type="Bone2D" parent="RotoBoneRig/Skeleton2D/pelvis/leg_back_upper/leg_back_lower" unique_id=1306969095]
+rest = Transform2D(0.4356824, -0.9001004, 0.9001004, 0.4356824, 9, 0)
+metadata/rotobone_semantic = "foot_back"
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="RotoBoneRig" unique_id=1746217903]
+libraries/ = SubResource("AnimationLibrary_default")
