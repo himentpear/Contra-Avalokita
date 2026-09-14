@@ -29,7 +29,6 @@
 | `scripts/` | 45 个 GDScript | 大部分角色、战斗、渲染和测试场逻辑仍在兼容目录；领域边界混杂 |
 | `scenes/` | 15 个 `.tscn` | Level 结构较清楚；角色 Scene 过度承载动画资源与行为 |
 | `assets/` | 149 个文件（含 53 个 import） | 字体、背景、角色源素材和根级装备贴图混放；大批第三方角色素材路径很深 |
-| `addons/` | 4 个 GDScript | RotoBone 编辑器插件，与 runtime ECS 应保持隔离 |
 | `tests/`（补充） | 57 个 GDScript、5 个 `.tscn` | 已有很强的角色行为回归资产，是渐进迁移的关键保护网 |
 
 最大脚本/场景：
@@ -151,7 +150,6 @@ MudCharacter (CharacterBody2D + mud_character.gd)
 ├── DeathController
 ├── Hurtbox/CollisionShape2D
 ├── PoseValidation
-└── RotoBoneAnchor
 ```
 
 Scene 的 Node 组合本身适合保留为 View/physics binding。需要迁出的不是 Skeleton 或 AnimationPlayer，而是根脚本中的规则和运行时状态。29 个内嵌 Animation 与角色 Scene 同文件会造成 diff 冲突，后续可按 AnimationLibrary 逐步外置，但这不是 ECS 第一批 PR 的前置条件。
@@ -364,7 +362,6 @@ gameplay/roguelike/scoring/score_system.gd -> scripts/kill_score.gd
 4. 把 Area2D 当作引擎 binding，不把物理回调本身伪装成纯数据 Component。
 5. Entity/Component 不使用 `get("field")` 或 `has_method()` 形成新隐式协议；统一由 component type/signature 查询。
 6. 所有运行时可变 Resource 必须 `resource_local_to_scene` 或在 Factory 中 duplicate，防止多个实体共享生命值等状态。
-7. `addons/rotobone` 保持 editor-only，不依赖 ECS runtime；ECS Animation binding 通过 NodePath/骨骼语义表对接。
-8. Assets 重排放在逻辑迁移稳定之后，避免 Godot import/UID 与资源路径噪声污染行为 PR。
+7. Assets 重排放在逻辑迁移稳定之后，避免 Godot import/UID 与资源路径噪声污染行为 PR。
 
 详细目标结构、迁移表、风险、验证门槛和第一批 PR 见 `docs/ECS_MIGRATION_PLAN.md`。
