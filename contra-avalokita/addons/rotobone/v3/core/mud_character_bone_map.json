@@ -4,8 +4,10 @@
   "skeleton_path": "Visual/PoseRoot/Skeleton2D",
   "semantic_map": {
     "hips":{"bone":"Pelvis","path":"Pelvis"},
-    "spine":{"bone":"SpineLower","path":"Pelvis/SpineLower"},
-    "chest":{"bone":"SpineUpper","path":"Pelvis/SpineLower/SpineUpper"},
+    "spine":{"bone":"Torso","path":"Pelvis/Torso"},
+    "chest":{"bone":"Torso","path":"Pelvis/Torso"},
+    "spine_lower_helper":{"bone":"SpineLower","path":"Pelvis/SpineLower"},
+    "spine_upper_helper":{"bone":"SpineUpper","path":"Pelvis/SpineLower/SpineUpper"},
     "head":{"bone":"Head","path":"Pelvis/Torso/Head"},
     "upper_arm_l":{"bone":"UpperArmFront","path":"Pelvis/Torso/UpperArmFront"},
     "lower_arm_l":{"bone":"ForearmFront","path":"Pelvis/Torso/UpperArmFront/ForearmFront"},
@@ -20,6 +22,7 @@
     "lower_leg_r":{"bone":"ShinBack","path":"Pelvis/ThighBack/ShinBack"},
     "foot_r":{"bone":"FootBack","path":"Pelvis/ThighBack/ShinBack/FootBack"}
   },
+  "visual_connections": [{"from":"Pelvis/SpineLower/SpineUpper","to":"Pelvis/Torso","mode":"renderer_bridge"}],
   "hierarchy": [
     {"name":"Pelvis","path":"Pelvis","children":[
       {"name":"Torso","path":"Pelvis/Torso","children":[

@@ -30,6 +30,8 @@ godot --headless --path . --script res://addons/rotobone/v3/tools/build_asset_ac
 - `asset_action_catalog.json` mirrors all 36 action folders in the source asset pack. Each row records its primary sprite sheet, cell dimensions, canonical action, source AnimationPlayer clip, and whether the mapping is direct, reference-only, or excluded.
 - `RotoBonePoseBaker` targets only the wrapper `AnimationPlayer`. It emits Bone2D `rotation` value tracks and, only when explicitly requested by API, a root `position` track.
 - `Bone2D.rest`, bone length, hierarchy, Bone2D position, and scale are read-only. Temporary IK may be used while posing, but the baker never serializes IK state or scale.
+- `RotoBonePoseGuard` enforces rotation-only authoring inside the workspace. Moving, scaling, skewing, changing rest/length, or reparenting a bone is immediately restored while its rotation is preserved. Use the Rotate tool (`E`) instead of dragging with the Move tool.
+- `Torso` is the animated semantic spine/chest. `SpineLower` and `SpineUpper` are renderer helper bones under Pelvis, not a second authored torso chain. The viewport draws an amber `SpineUpper → Torso` renderer bridge so this intentional non-parent connection remains visible without changing the source hierarchy or its animation paths.
 - The original `mud_character.tscn` remains the single skeleton template. Profiles for Roll, Hurt, and Death are available for authoring even though the source scene currently has no matching reusable clip.
 
 The v3 catalog deliberately excludes shooting, ledge grab/climb, air spin, dash, slide, punch, and jab workflows.

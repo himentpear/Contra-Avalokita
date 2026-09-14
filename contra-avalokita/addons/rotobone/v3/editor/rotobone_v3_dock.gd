@@ -97,6 +97,11 @@ func _build_ui() -> void:
 	status_label.text = "Detecting template…"
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(status_label)
+	var pose_hint := Label.new()
+	pose_hint.text = "Rotation-only pose mode · use Rotate (E)"
+	pose_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	pose_hint.add_theme_color_override("font_color", Color("ffca6b"))
+	add_child(pose_hint)
 	add_child(HSeparator.new())
 
 	animation_select = OptionButton.new()

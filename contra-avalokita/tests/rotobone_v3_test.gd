@@ -30,7 +30,10 @@ func _run() -> void:
 	_check(mud_instance != null, "MudCharacterInstance exists")
 	_check(mud_instance != null and mud_instance.scene_file_path == Adapter.TEMPLATE_PATH, "test uses mud_character PackedScene instance")
 	_check(scene.get_node_or_null("RotoBoneAnchor") is Marker2D, "RotoBoneAnchor exists")
-	_check(scene.get_node_or_null("ReferenceOverlay") is RotoBoneViewportOverlay, "ReferenceOverlay exists")
+	var viewport_overlay := scene.get_node_or_null("ReferenceOverlay") as RotoBoneViewportOverlay
+	_check(viewport_overlay != null and viewport_overlay.show_rig_guides, "ReferenceOverlay shows depth and spine guides")
+	var pose_guard := scene.get_node_or_null("RotoBonePoseGuard") as RotoBonePoseContractGuard
+	_check(pose_guard != null and pose_guard.rotation_only, "rotation-only pose guard exists")
 	var timeline := scene.get_node_or_null("KeyframeMarkerLayer") as RotoBoneTimelineOverlay
 	_check(timeline != null, "KeyframeMarkerLayer exists")
 	_check(timeline != null and timeline.profile != null and not timeline.profile.markers.is_empty(), "timeline renders marker data")
@@ -48,9 +51,32 @@ func _run() -> void:
 	_check(adapter.character_body == mud_instance, "detected CharacterBody2D is the scene instance")
 	_check(adapter.skeleton != null and mud_instance.get_path_to(adapter.skeleton) == NodePath("Visual/PoseRoot/Skeleton2D"), "existing skeleton path detected")
 	_check(adapter.semantic_map.has("hips") and adapter.semantic_map.has("head"), "semantic bone map generated")
+	_check(adapter.semantic_map.spine.bone == "Torso" and adapter.semantic_map.chest.bone == "Torso", "Torso owns the semantic spine and chest roles")
+	_check(adapter.semantic_map.spine_lower_helper.bone == "SpineLower" and adapter.semantic_map.spine_upper_helper.bone == "SpineUpper", "renderer spine helpers are mapped separately")
 	_check(_count_bones(adapter.skeleton) == 17, "all 17 existing bones detected")
 	var checked_map: Variant = JSON.parse_string(FileAccess.get_file_as_string(Adapter.DEFAULT_MAP_PATH))
 	_check(checked_map is Dictionary and checked_map.get("skeleton_path") == "Visual/PoseRoot/Skeleton2D", "stored bone map targets the source hierarchy")
+	_check(checked_map is Dictionary and checked_map.get("visual_connections", []).size() == 1, "stored bone map declares the SpineUpper-to-Torso renderer bridge")
+
+	pose_guard.capture_contract()
+	var front_arm := adapter.skeleton.get_node("Pelvis/Torso/UpperArmFront") as Bone2D
+	var back_arm := adapter.skeleton.get_node("Pelvis/Torso/UpperArmBack") as Bone2D
+	var original_front_position: Vector2 = front_arm.position
+	var original_front_scale: Vector2 = front_arm.scale
+	var original_front_rest: Transform2D = front_arm.rest
+	var original_front_length: float = front_arm.length
+	var original_back_rotation: float = back_arm.rotation
+	var authored_rotation: float = front_arm.rotation + 0.2
+	front_arm.position += Vector2(8, 5)
+	front_arm.scale = Vector2(1.4, 0.7)
+	front_arm.rest = front_arm.rest.translated(Vector2(3, 0))
+	front_arm.length += 9.0
+	front_arm.rotation = authored_rotation
+	var corrected := pose_guard.enforce_contract()
+	_check(corrected.has("UpperArmFront"), "pose guard detects forbidden bone dragging")
+	_check(front_arm.position == original_front_position and front_arm.scale == original_front_scale and front_arm.rest == original_front_rest and front_arm.length == original_front_length, "pose guard restores position, scale, rest, and length")
+	_check(is_equal_approx(front_arm.rotation, authored_rotation), "pose guard preserves the authored front-bone rotation")
+	_check(is_equal_approx(back_arm.rotation, original_back_rotation), "editing a front bone does not alter the back-bone pose")
 
 	var workspace := Workspace.new()
 	_check(workspace.load_catalog() == OK, "animation catalog loads")

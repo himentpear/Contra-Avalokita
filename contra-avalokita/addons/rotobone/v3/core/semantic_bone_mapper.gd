@@ -4,8 +4,10 @@ extends RefCounted
 
 const SEMANTIC_CANDIDATES := {
 	"hips": ["Pelvis", "Hips"],
-	"spine": ["SpineLower", "Torso", "Spine"],
-	"chest": ["SpineUpper", "Torso", "Chest"],
+	"spine": ["Torso", "Spine", "SpineLower"],
+	"chest": ["Torso", "Chest", "SpineUpper"],
+	"spine_lower_helper": ["SpineLower"],
+	"spine_upper_helper": ["SpineUpper"],
 	"head": ["Head"],
 	"upper_arm_l": ["UpperArmFront", "UpperArmL"],
 	"lower_arm_l": ["ForearmFront", "LowerArmL"],
@@ -55,6 +57,11 @@ func mapping_document(skeleton: Skeleton2D, source_scene: String) -> Dictionary:
 		"skeleton_path": String(instance_root.get_path_to(skeleton)),
 		"semantic_map": map_skeleton(skeleton),
 		"hierarchy": extract_hierarchy(skeleton),
+		"visual_connections": [{
+			"from": "Pelvis/SpineLower/SpineUpper",
+			"to": "Pelvis/Torso",
+			"mode": "renderer_bridge",
+		}],
 	}
 
 
