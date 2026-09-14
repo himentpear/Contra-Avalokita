@@ -49,6 +49,26 @@ func run() -> void:
 	check(actor.wall_side > 0.0 and actor.facing > 0.0, "Wall side and facing point toward the contacted wall")
 	check(absf(actor.velocity.y) < 1.0, "WallHang arrests vertical velocity")
 	check(absf(actor._hand_front_bone.global_position.x - actor.wall_surface_x) < 3.0, "Main hand is constrained to the physical wall plane")
+	# IK must preserve the pose supplied by animation, including authored scale.
+	var animated_upper_scale := Vector2(1.04, 0.96)
+	var animated_lower_scale := Vector2(0.97, 1.03)
+	actor._upper_arm_front_bone.scale = animated_upper_scale
+	actor._forearm_front_bone.scale = animated_lower_scale
+	actor.pose_composer._solve_wall_chain(
+		actor._upper_arm_front_bone,
+		actor._forearm_front_bone,
+		actor._hand_front_bone,
+		actor._hand_front_bone.global_position + Vector2(1.0, 0.0),
+		1.0,
+		0.0
+	)
+	check(
+		actor._upper_arm_front_bone.scale.is_equal_approx(animated_upper_scale)
+		and actor._forearm_front_bone.scale.is_equal_approx(animated_lower_scale),
+		"Wall IK preserves animated upper-limb scale"
+	)
+	actor._upper_arm_front_bone.scale = actor._upper_arm_front_bone.rest.get_scale()
+	actor._forearm_front_bone.scale = actor._forearm_front_bone.rest.get_scale()
 	var front_toe := actor._foot_front_bone.to_global(Vector2(4.2, 0.0))
 	check(absf(front_toe.x - actor.wall_surface_x) < 10.0, "Raised foot is visually close to the physical wall plane (allowing natural float): toe=%.2f wall=%.2f" % [front_toe.x, actor.wall_surface_x])
 	check((actor._shin_front_bone.global_position.x - actor._thigh_front_bone.global_position.x) * actor.wall_side > 0.0, "WallHang support knee bends forward toward the wall")

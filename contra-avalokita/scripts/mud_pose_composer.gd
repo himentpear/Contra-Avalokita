@@ -124,6 +124,10 @@ func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global:
 	var parent := upper.get_parent() as Node2D
 	if not parent:
 		return
+	# The base animation may author limb scale. Wall IK owns rotation only, so
+	# guard against changing the scale it received rather than requiring rest scale.
+	var upper_scale_before := upper.scale
+	var lower_scale_before := lower.scale
 	var root := upper.position
 	var target := parent.to_local(target_global)
 
@@ -175,8 +179,8 @@ func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global:
 	upper.rotation = lerp_angle(upper.rotation, solved_upper, weight)
 	lower.rotation = lerp_angle(lower.rotation, solved_lower, weight)
 	if OS.is_debug_build():
-		assert(upper.scale.is_equal_approx(upper.rest.get_scale()), "Wall IK changed upper-limb scale")
-		assert(lower.scale.is_equal_approx(lower.rest.get_scale()), "Wall IK changed lower-limb scale")
+		assert(upper.scale.is_equal_approx(upper_scale_before), "Wall IK changed upper-limb scale")
+		assert(lower.scale.is_equal_approx(lower_scale_before), "Wall IK changed lower-limb scale")
 
 
 func _point_foot_at_wall(foot: Bone2D, weight: float) -> void:
