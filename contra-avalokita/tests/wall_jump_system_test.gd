@@ -82,8 +82,11 @@ func run() -> void:
 		await release_actor(kick)
 
 	var coyote := await attach(1.0)
-	coyote.set_intent(-1.0)
-	await physics_frame
+	for frame in 8:
+		coyote.set_intent(-1.0)
+		await physics_frame
+		if not coyote.is_wall_attached():
+			break
 	check(not coyote.is_wall_attached() and coyote.wall_coyote_left > 0.0, "Moving away leaves a short wall-coyote window")
 	coyote.set_intent(-1.0, true)
 	await physics_frame

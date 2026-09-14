@@ -114,8 +114,6 @@ func run() -> void:
 		if cycle_frame == 14:
 			var event := HitEvent.new(28.0, Vector2.RIGHT, sword_target.global_position + Vector2(0, -32), 140.0, 45.0, &"HeavyHit", &"blade", &"UPPER_TORSO")
 			event.impact_strength = 0.90
-			event.hit_stop_duration = 0.066
-			event.hit_stop_frames = 2
 			event.target_push_distance = 3.5
 			event.attacker_drag_ratio = 0.50
 			event.camera_shake_strength = 3.0
@@ -123,9 +121,8 @@ func run() -> void:
 			# Target receives hit
 			sword_target.receive_hit(event)
 			
-			# Attacker hit stop & drag & resistance pulse
-			sword_attacker.hit_stop_ticks = event.hit_stop_frames
-			sword_attacker.hit_stop_duration = event.hit_stop_duration
+			# Attacker hitstop is owned exclusively by HitstopManager.
+			get_tree().root.get_node("HitstopManager").apply_actor_stop(sword_attacker, 0.066, event.impact, event)
 			sword_attacker.hit_drag_timer = 0.12
 			sword_attacker.hit_drag_ratio = event.attacker_drag_ratio
 			sword_attacker.impact_accent_offset = Vector2(-sword_attacker.facing * 1.2, 0.0)
@@ -133,7 +130,7 @@ func run() -> void:
 			# Trigger weapon impact flash
 			if sword_attacker.weapons.current:
 				sword_attacker.weapons.current.impact_flash_point = event.impact_point
-				sword_attacker.weapons.current.impact_flash_timer = event.hit_stop_duration + 0.033
+				sword_attacker.weapons.current.impact_flash_timer = 0.099
 				sword_attacker.weapons.current.queue_redraw()
 
 			# Camera shake disabled
@@ -175,16 +172,13 @@ func run() -> void:
 		if cycle_frame == 15:
 			var event2 := HitEvent.new(16.0, Vector2.RIGHT, punch_target.global_position + Vector2(0, -30), 80.0, 25.0, &"MediumHit", &"unarmed", &"MID_TORSO")
 			event2.impact_strength = 0.65
-			event2.hit_stop_duration = 0.033
-			event2.hit_stop_frames = 1
 			event2.target_push_distance = 2.2
 			event2.attacker_drag_ratio = 0.35
 			event2.camera_shake_strength = 2.0
 
 			punch_target.receive_hit(event2)
 
-			punch_attacker.hit_stop_ticks = event2.hit_stop_frames
-			punch_attacker.hit_stop_duration = event2.hit_stop_duration
+			get_tree().root.get_node("HitstopManager").apply_actor_stop(punch_attacker, 0.033, event2.impact, event2)
 			punch_attacker.hit_drag_timer = 0.09
 			punch_attacker.hit_drag_ratio = event2.attacker_drag_ratio
 			punch_attacker.impact_accent_offset = Vector2(-punch_attacker.facing * 0.8, 0.0)

@@ -29,6 +29,7 @@ var foot_b_ctrl := WallFootController.new()
 var _prev_action: StringName = &"None"
 
 func reset() -> void:
+	wall_blend = 0.0
 	foot_f_ctrl = WallFootController.new()
 	foot_b_ctrl = WallFootController.new()
 	_prev_action = &"None"

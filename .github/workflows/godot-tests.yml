@@ -1,0 +1,48 @@
+name: Godot regression tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  headless-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: contra-avalokita
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.1
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify project imports and scripts
+        run: godot --headless --editor --quit --path .
+
+      - name: Run regression gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          tests=(
+            tests/pose_reference_validation_test.gd
+            tests/movement_assist_test.gd
+            tests/movement_assist_physics_test.gd
+            tests/wall_jump_integration_test.gd
+            tests/pose_layer_integration_test.gd
+            tests/hitstop_manager_test.gd
+            tests/hitstop_integration_test.gd
+            tests/mechanics_lab_test.gd
+            tests/startup_config_test.gd
+          )
+          for test_script in "${tests[@]}"; do
+            echo "::group::$test_script"
+            godot --headless --path . --script "$test_script"
+            echo "::endgroup::"
+          done

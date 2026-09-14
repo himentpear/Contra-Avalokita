@@ -8,7 +8,7 @@ func _ready() -> void:
 	if startup_config == null:
 		startup_config = StartupConfig.new()
 	var loader := PackageLoader.new()
-	var manifests := loader.mount_packages()
+	var manifests := loader.mount_packages(startup_config.should_load_test_packages())
 	var resolved := DependencyResolver.resolve(manifests)
 	if not resolved.ok:
 		push_error("Package initialization failed: %s" % resolved.error)
@@ -27,4 +27,4 @@ func _ready() -> void:
 		push_error("Save system initialization failed: %s" % error_string(save_error))
 		return
 	Game.start_session(GameSessionScript.new())
-	get_tree().call_deferred("change_scene_to_file", startup_config.initial_scene)
+	get_tree().call_deferred("change_scene_to_file", startup_config.resolved_initial_scene())

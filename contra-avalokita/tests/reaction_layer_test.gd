@@ -23,7 +23,7 @@ func run() -> void:
 	await ticks(12)
 
 	# 1. Verify HitEvent Data Structure
-	var event := HitEvent.new(12.0, Vector2(-1.0, 0.0), Vector2(100, 200), 90.0, 20.0, &"LightHit", &"unarmed", &"UPPER_TORSO", 0.03)
+	var event := HitEvent.new(12.0, Vector2(-1.0, 0.0), Vector2(100, 200), 90.0, 20.0, &"LightHit", &"unarmed", &"UPPER_TORSO")
 	check(event.damage == 12.0, "HitEvent damage stored")
 	check(event.direction == Vector2.LEFT, "HitEvent normalized direction stored")
 	check(event.poise_damage == 20.0, "HitEvent poise damage stored")
@@ -81,6 +81,8 @@ func run() -> void:
 	check(not p.is_attacking(), "Heavy hit successfully interrupts attack (is_attacking == false)")
 	check(p.reaction_state == &"HeavyHit", "Reaction state is HeavyHit")
 	check(p.action_state == &"None", "Action state reset to None")
+	while p.local_time_scale <= 0.0:
+		await process_frame
 	await ticks(25)
 	check(not p.has_reaction(), "Heavy stagger completes recovery")
 

@@ -153,6 +153,18 @@ func _reset_wall_runtime() -> void:
 	_reset_same_wall_tracking()
 	_set_wall_action(&"None")
 
+func _detach_wall_pose_for_reaction() -> void:
+	wall_side = 0.0
+	wall_hang_left = 0.0
+	wall_coyote_left = 0.0
+	wall_coyote_side = 0.0
+	wall_coyote_collider_id = 0
+	wall_detach_left = wall_detach_time
+	wall_regrab_left = wall_detach_time
+	_set_wall_action(&"None")
+	if is_instance_valid(pose_composer) and pose_composer.wall_composer:
+		pose_composer.wall_composer.reset()
+
 func _update_wall_memory(delta: float, grounded: bool) -> void:
 	wall_regrab_left = maxf(0.0, wall_regrab_left - delta)
 	wall_detach_left = maxf(0.0, wall_detach_left - delta)
@@ -205,9 +217,7 @@ func _enter_wall_hang(side: float) -> void:
 	wall_slide_scrape_offset = 0.0
 	wall_hang_left = wall_hang_duration
 	velocity.y = 0.0
-	action_state = &"None"
-	combo_stage = 0
-	combo_queued = false
+	cancel_attack_pose()
 	if is_instance_valid(pose_composer) and pose_composer.wall_composer:
 		pose_composer.wall_composer.reset()
 	_set_wall_action(&"WallHang")
@@ -405,7 +415,6 @@ var reaction_direction := Vector2.RIGHT
 var reaction_intensity := 1.0
 var reaction_region: StringName = &"UPPER_TORSO"
 var reaction_impact_local := Vector2.ZERO
-var hit_stop_duration := 0.0
 var local_time_scale := 1.0
 @export_group("Hit Flash")
 @export_range(0.01, 0.30, 0.005) var hit_flash_duration := 0.090
@@ -436,12 +445,6 @@ func set_local_time_scale(scale: float) -> void:
 	local_time_scale = maxf(scale, 0.0)
 	if anim_player:
 		anim_player.speed_scale = local_time_scale
-	if local_time_scale <= 0.0:
-		hit_stop_duration = INF
-		hit_stop_ticks = maxi(hit_stop_ticks, 1)
-	else:
-		hit_stop_duration = 0.0
-		hit_stop_ticks = 0
 
 func attack_animation() -> StringName:
 	if is_armed():
@@ -468,10 +471,50 @@ func start_attack(stage: int = 0) -> void:
 		if punch_hitbox:
 			punch_hitbox.monitoring = false
 
+func cancel_attack_pose() -> void:
+	action_state = &"None"
+	combo_stage = 0
+	combo_queued = false
+	attack_requested = false
+	if punch_hitbox:
+		punch_hitbox.set_deferred("monitoring", false)
+	if weapons and weapons.current:
+		weapons.current.active = false
+		if weapons.current.hitbox:
+			weapons.current.hitbox.set_deferred("monitoring", false)
+
+func clear_transient_pose_state(clear_reaction := true) -> void:
+	cancel_attack_pose()
+	_reset_wall_runtime()
+	jump_squat_left = 0.0
+	pending_jump_source = MudMovementAssist.JumpSource.NONE
+	hit_drag_timer = 0.0
+	impact_accent_offset = Vector2.ZERO
+	reaction_push_offset = Vector2.ZERO
+	if clear_reaction:
+		reaction_state = &"None"
+		reaction_time = 0.0
+		reaction_duration = 0.0
+	if is_instance_valid(pose_composer):
+		pose_composer.restore_base()
+		pose_composer.reset_transient()
+	if is_instance_valid(body_renderer):
+		body_renderer.impact_depth = 0.0
+		body_renderer.impact_bulge_height = 0.0
+
+func get_arm_extension_ratio(back_arm := false) -> float:
+	var upper: Bone2D = _upper_arm_back_bone if back_arm else _upper_arm_front_bone
+	var lower: Bone2D = _forearm_back_bone if back_arm else _forearm_front_bone
+	var hand: Bone2D = _hand_back_bone if back_arm else _hand_front_bone
+	if not is_instance_valid(upper) or not is_instance_valid(lower) or not is_instance_valid(hand):
+		return 0.0
+	var parent := upper.get_parent() as Node2D
+	if not parent:
+		return 0.0
+	var reach := lower.position.length() + hand.position.length()
+	return parent.to_local(hand.global_position).distance_to(upper.position) / maxf(reach, 0.001)
+
 func advance_attack(delta: float) -> void:
-	if hit_stop_ticks > 0:
-		hit_stop_ticks -= 1
-		return
 	var rate := 1.0
 	if hit_drag_timer > 0.0:
 		hit_drag_timer = maxf(0.0, hit_drag_timer - delta)
@@ -615,7 +658,6 @@ var _shin_back_bone: Bone2D
 var _foot_back_bone: Bone2D
 var _spine_lower_bone: Bone2D
 var _spine_upper_bone: Bone2D
-var hit_stop_ticks: int = 0
 var impact_accent_offset: Vector2 = Vector2.ZERO
 
 class RigAdapter extends RefCounted:
@@ -704,19 +746,7 @@ func _ready() -> void:
 		_spine_lower_bone = skeleton.get_node_or_null("Pelvis/SpineLower") as Bone2D
 		if _spine_lower_bone:
 			_spine_upper_bone = _spine_lower_bone.get_node_or_null("SpineUpper") as Bone2D
-		else:
-			var pelvis := skeleton.get_node_or_null("Pelvis") as Bone2D
-			if pelvis:
-				_spine_lower_bone = Bone2D.new()
-				_spine_lower_bone.name = "SpineLower"
-				_spine_lower_bone.position = Vector2(0, -7.33)
-				_spine_lower_bone.rest = Transform2D(0.0, Vector2(0, -7.33))
-				pelvis.add_child(_spine_lower_bone)
-				_spine_upper_bone = Bone2D.new()
-				_spine_upper_bone.name = "SpineUpper"
-				_spine_upper_bone.position = Vector2(0, -7.33)
-				_spine_upper_bone.rest = Transform2D(0.0, Vector2(0, -7.33))
-				_spine_lower_bone.add_child(_spine_upper_bone)
+		assert(is_instance_valid(_spine_lower_bone) and is_instance_valid(_spine_upper_bone), "Spine deformation bones must be authored in mud_character.tscn")
 	punch_hitbox = Area2D.new()
 	punch_hitbox.name = "PunchHitbox"
 	punch_hitbox.collision_layer = 0
@@ -825,26 +855,16 @@ func die() -> void:
 	if state == &"Dead": return
 	move_intent = 0.0
 	block_requested = false
-	action_state = &"None"
-	combo_stage = 0
-	combo_queued = false
-	if punch_hitbox:
-		punch_hitbox.set_deferred("monitoring", false)
+	clear_transient_pose_state()
 	punch_hit_targets.clear()
-	jump_squat_left = 0.0
 	landing_left = 0.0
 	air_time = 0.0
 	jump_phase = &"Grounded"
-	_reset_wall_runtime()
 	pose_composer.base_pose.clear()
 	jump_requested = false
 	pending_jump_source = MudMovementAssist.JumpSource.NONE
 	movement_assist.reset(false)
 	attack_requested = false
-	reaction_state = &"None"
-	reaction_time = 0.0
-	reaction_duration = 0.0
-	hit_stop_duration = 0.0
 	transition(&"Dead")
 	if anim_player:
 		anim_player.stop()
@@ -863,10 +883,7 @@ func rise() -> void:
 	_clear_hit_flash()
 	health = max_health
 	stability = max_stability
-	reaction_state = &"None"
-	reaction_time = 0.0
-	reaction_duration = 0.0
-	hit_stop_duration = 0.0
+	clear_transient_pose_state()
 	move_intent = 0.0
 	jump_requested = false
 	pending_jump_source = MudMovementAssist.JumpSource.NONE
@@ -893,21 +910,11 @@ func revive(animated: bool = false) -> void:
 		return
 	health = max_health
 	stability = max_stability
-	reaction_state = &"None"
-	reaction_time = 0.0
-	reaction_duration = 0.0
-	hit_stop_duration = 0.0
-	action_state = &"None"
-	combo_stage = 0
-	combo_queued = false
-	if punch_hitbox:
-		punch_hitbox.monitoring = false
+	clear_transient_pose_state()
 	punch_hit_targets.clear()
-	jump_squat_left = 0.0
 	landing_left = 0.0
 	air_time = 0.0
 	jump_phase = &"Grounded"
-	_reset_wall_runtime()
 	pose_composer.base_pose.clear()
 	move_intent = 0.0
 	jump_requested = false
@@ -966,6 +973,11 @@ func get_state_animation(state_name: StringName) -> StringName:
 	return anim_name
 
 func sync_weapon_animation() -> void:
+	# A new grip starts from the authored animation pose, never stale action IK.
+	if is_instance_valid(pose_composer):
+		pose_composer.restore_base()
+		pose_composer.reset_transient()
+	impact_accent_offset = Vector2.ZERO
 	if state in [&"Idle", &"Walk", &"Run", &"Jump", &"Fall"]:
 		var target_anim := get_state_animation(state)
 		if anim_player and anim_player.current_animation != target_anim:
@@ -1033,6 +1045,7 @@ func _physics_process(delta: float) -> void:
 		reaction_time += delta
 		if reaction_time >= reaction_duration:
 			reaction_state = &"None"
+			reaction_push_offset = Vector2.ZERO
 
 	if stability_cooldown_timer > 0.0:
 		stability_cooldown_timer = maxf(0.0, stability_cooldown_timer - delta)
@@ -1088,11 +1101,13 @@ func _physics_process(delta: float) -> void:
 	velocity.x = move_toward(velocity.x, move_intent * move_speed * atk_mult, horizontal_acceleration * delta)
 	if move_intent != 0 and not is_attacking() and not is_blocking() and wall_action == &"None": facing = signf(move_intent)
 	if not grounded: velocity.y += gravity * movement_assist.get_gravity_multiplier() * delta
-	_update_wall_before_move(delta)
 	var wall_jump_requested := jump_requested or movement_assist.has_buffered_jump()
+	var started_wall_jump := false
 	if wall_jump_requested and _can_start_wall_jump():
 		_start_wall_jump()
-	elif jump_squat_left <= 0:
+		started_wall_jump = true
+	_update_wall_before_move(delta)
+	if not started_wall_jump and jump_squat_left <= 0:
 		_try_start_assisted_jump(grounded)
 	if jump_squat_left > 0:
 		jump_squat_left = maxf(0.0,jump_squat_left-delta)
@@ -1257,7 +1272,7 @@ func receive_hit(hit_data: Variant) -> void:
 			reaction_push_offset = event.direction * 3.5
 			stability = max_stability * 0.25
 			block_requested = false
-			action_state = &"None"
+			cancel_attack_pose()
 		else:
 			reaction_state = &"BlockHit"
 			reaction_time = 0.0
@@ -1276,6 +1291,10 @@ func receive_hit(hit_data: Variant) -> void:
 		_request_confirmed_hitstop(event)
 		return
 
+	# A hit reaction owns the pose above Wall IK. Detach before composing the
+	# reaction so stale hand targets cannot keep writing the arm chain.
+	if wall_action != &"None":
+		_detach_wall_pose_for_reaction()
 	health = maxf(health - event.damage, 0.0)
 	event.damage_dealt = event.damage
 	damaged.emit(event.damage)
@@ -1356,11 +1375,7 @@ func receive_hit(hit_data: Variant) -> void:
 		
 	# Interrupt action on HeavyHit or Knockdown
 	if tier in [&"HeavyHit", &"Knockdown"]:
-		action_state = &"None"
-		combo_stage = 0
-		combo_queued = false
-		if punch_hitbox:
-			punch_hitbox.monitoring = false
+		cancel_attack_pose()
 	_request_confirmed_hitstop(event)
 
 

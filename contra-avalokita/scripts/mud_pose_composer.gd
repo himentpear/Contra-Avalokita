@@ -21,6 +21,38 @@ const MudSpineController = preload("res://scripts/mud_spine_controller.gd")
 var wall_composer := MudWallPoseComposer.new()
 var spine_controller := MudSpineController.new()
 
+enum PoseLayer {
+	BASE,
+	LOCOMOTION,
+	SECONDARY,
+	ACTION,
+	WALL,
+	REACTION,
+	DEATH,
+}
+
+func get_upper_body_owner() -> PoseLayer:
+	if not is_instance_valid(character):
+		return PoseLayer.BASE
+	if character.state == &"Dead":
+		return PoseLayer.DEATH
+	if character.has_reaction() and character.reaction_state != &"BlockHit":
+		return PoseLayer.REACTION
+	if character.wall_action != &"None":
+		return PoseLayer.WALL
+	if character.is_attacking() or character.is_blocking():
+		return PoseLayer.ACTION
+	return PoseLayer.SECONDARY
+
+func reset_transient() -> void:
+	weight = 0.0
+	block_weight = 0.0
+	lower_body_weight = 0.0
+	last_action_time = -1.0
+	last_action_stage = -1
+	wall_composer.reset()
+	spine_controller.spine_wall_weight = 0.0
+
 func restore_base() -> void:
 	for pose_node in base_pose:
 		if is_instance_valid(pose_node): pose_node.transform = base_pose[pose_node]
@@ -60,13 +92,6 @@ func evaluate(delta: float) -> void:
 	else:
 		block_weight = maxf(0.0, block_weight - delta / 0.06)
 
-	if character.is_attacking():
-		apply_action()
-	elif block_weight > 0.001:
-		apply_block(block_weight)
-	if character.wall_action != &"None":
-		apply_wall_action(delta)
-
 	# Procedural Spine deformation chain:
 	if is_instance_valid(character) and character.skeleton:
 		var pelvis := character.skeleton.get_node_or_null("Pelvis") as Bone2D
@@ -75,6 +100,19 @@ func evaluate(delta: float) -> void:
 		var spine_upper := character._spine_upper_bone
 		if is_instance_valid(pelvis) and is_instance_valid(torso) and is_instance_valid(spine_lower) and is_instance_valid(spine_upper):
 			spine_controller.update(character, pelvis, torso, spine_lower, spine_upper, delta)
+
+	# Explicit ownership order: secondary -> action/block -> wall -> reaction.
+	# Higher layers run later and are the only final owner of overlapping chains.
+	var reaction_owns_upper := character.has_reaction() and character.reaction_state != &"BlockHit"
+	if not reaction_owns_upper and character.wall_action == &"None":
+		if character.is_attacking():
+			apply_action()
+		elif block_weight > 0.001:
+			apply_block(block_weight)
+	elif character.reaction_state == &"BlockHit" and block_weight > 0.001:
+		apply_block(block_weight)
+	if character.wall_action != &"None":
+		apply_wall_action(delta)
 
 	if character.has_reaction():
 		apply_reaction(delta)
@@ -100,10 +138,8 @@ func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global:
 		return
 
 	var min_dist := absf(upper_length - lower_length) + 0.15
-	var max_dist := upper_length + lower_length - 0.15
-	# 2. Max reach ratio: cap to 96% extension for legs to avoid singularity
-	if is_leg:
-		max_dist = minf(max_dist, (upper_length + lower_length) * 0.96)
+	# Hard reach cap applies to arms and legs. No IK layer may stretch bone scale.
+	var max_dist := (upper_length + lower_length) * 0.96
 	var distance := clampf(delta.length(), min_dist, max_dist)
 	var solved_target := root + delta.normalized() * distance
 	var shoulder_cos := clampf((upper_length * upper_length + distance * distance - lower_length * lower_length) / (2.0 * upper_length * distance), -1.0, 1.0)
@@ -138,6 +174,9 @@ func _solve_wall_chain(upper: Bone2D, lower: Bone2D, end: Bone2D, target_global:
 	# Use lerp_angle which already picks the shortest arc. No hard snap needed.
 	upper.rotation = lerp_angle(upper.rotation, solved_upper, weight)
 	lower.rotation = lerp_angle(lower.rotation, solved_lower, weight)
+	if OS.is_debug_build():
+		assert(upper.scale.is_equal_approx(upper.rest.get_scale()), "Wall IK changed upper-limb scale")
+		assert(lower.scale.is_equal_approx(lower.rest.get_scale()), "Wall IK changed lower-limb scale")
 
 
 func _point_foot_at_wall(foot: Bone2D, weight: float) -> void:
@@ -339,7 +378,7 @@ func apply_action() -> void:
 			torso.position.y += -locomotion_bob_y * 0.4 * weight
 		if "impact_accent_offset" in character:
 			torso.position += character.impact_accent_offset * weight
-		if character.hit_stop_duration > 0.0 or character.hit_drag_timer > 0.0:
+		if character.hit_drag_timer > 0.0:
 			var wrist: Bone2D = character._hand_front_bone if is_instance_valid(character._hand_front_bone) else null
 			if wrist:
 				wrist.rotation += -0.06 * weight

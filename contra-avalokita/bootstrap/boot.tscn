@@ -5,7 +5,6 @@
 
 [sub_resource type="Resource" id="StartupConfig_default"]
 script = ExtResource("2_config")
-initial_scene = "res://scenes/test_arena.tscn"
 
 [node name="Boot" type="Node"]
 script = ExtResource("1_boot")

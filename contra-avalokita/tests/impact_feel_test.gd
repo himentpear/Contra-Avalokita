@@ -34,17 +34,20 @@ func run() -> void:
 	# Start Jab punch
 	p.start_attack(0)
 	await ticks(5) # Reach active window and land hit on dummy
-	check(p.hit_stop_ticks >= 1, "Attacker receives hit stop ticks (freeze on impact): %d" % p.hit_stop_ticks)
-	check(p.hit_stop_duration > 0.0, "Attacker receives hit stop duration: %.3f" % p.hit_stop_duration)
+	var hitstop_manager := root.get_node("HitstopManager")
+	check(p.local_time_scale == 0.0, "Attacker receives manager-owned local hitstop")
+	check(hitstop_manager.active_actor_stops.has(p.get_instance_id()), "HitstopManager owns the active attacker stop")
 	check(p.impact_accent_offset.x < 0.0, "Attacker shoulder/wrist receives backward resistance pulse: %.2f" % p.impact_accent_offset.x)
 	check(p.hit_drag_timer > 0.0, "Attacker enters hit drag resistance window")
 	check(p.hit_drag_ratio >= 0.35, "Attacker drag slows follow-through by >= 35%% (ratio=%.2f)" % p.hit_drag_ratio)
 
-	# 2. Advance attack during drag
+	# 2. Hitstop pauses the whole actor clock; drag resumes afterward.
 	var prev_t := p.attack_time
-	p.advance_attack(1.0 / 30.0)
-	# Because hit_stop_ticks was 1, first tick was frozen
-	check(p.attack_time == prev_t, "Attack time frozen during hit stop frame")
+	await physics_frame
+	check(p.attack_time == prev_t, "Attack time frozen while local_time_scale is zero")
+	while p.local_time_scale <= 0.0:
+		await process_frame
+	prev_t = p.attack_time
 	p.advance_attack(1.0 / 30.0)
 	var dt := p.attack_time - prev_t
 	check(dt < (1.0 / 30.0) * 0.9, "Attack time progresses at reduced drag speed (dt=%.4f vs full=%.4f)" % [dt, 1.0/30.0])
