@@ -1,4 +1,4 @@
-﻿class_name DamageSystem
+class_name DamageSystem
 extends RefCounted
 
 const HitEvent = preload("res://scripts/hit_event.gd")
@@ -10,7 +10,7 @@ static func normalize_hit_event(raw_data: Variant, fallback_direction: Vector2 =
 	if raw_data is float or raw_data is int:
 		return HitEvent.from_damage(float(raw_data), fallback_direction)
 	if raw_data is Object and "damage" in raw_data:
-		var dir := raw_data.direction if "direction" in raw_data else fallback_direction
+		var dir: Vector2 = raw_data.direction if "direction" in raw_data else fallback_direction
 		return HitEvent.from_damage(float(raw_data.damage), dir)
 	return HitEvent.new()
 
