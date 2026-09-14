@@ -54,6 +54,12 @@ func _run() -> void:
 	_check(controller != null and viewport != null, "target editor and runtime controller are present")
 	_check(viewport.get_child_count() >= 6, "viewport exposes semantic target gizmos instead of bone handles")
 	_check(viewport.reference_texture != null and viewport.reference_hframes == 6, "viewport displays the six-frame Sword Attack reference")
+	var original_hand_target := viewport.pose.get_target(&"hand_r")
+	_check(viewport.begin_target_drag(original_hand_target), "target gizmo begins a drag without selecting Bone2D")
+	_check(viewport.drag_active_target(original_hand_target + Vector2(3, -2)), "target gizmo updates through target-space dragging")
+	viewport.end_target_drag()
+	_check(viewport.pose.get_target(&"hand_r").is_equal_approx(original_hand_target + Vector2(3, -2)), "drag writes the semantic hand target")
+	viewport.pose.set_target(&"hand_r", original_hand_target)
 	var before := _bone_contract(skeleton)
 	controller.current_pose = viewport.pose
 	var after := _bone_contract(skeleton)

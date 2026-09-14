@@ -57,7 +57,32 @@ func _refresh() -> void:
 	elif _graph == null:
 		_graph = _default_attack_graph()
 	_dock.set_graph(_graph)
+	if viewport != null and not viewport.target_changed.is_connected(_on_viewport_target_changed):
+		viewport.target_changed.connect(_on_viewport_target_changed)
 	_apply_selected_pose()
+
+
+func _forward_canvas_gui_input(event: InputEvent) -> bool:
+	var viewport := _find_pose_viewport(EditorInterface.get_edited_scene_root())
+	if viewport == null:
+		return false
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var local_position: Vector2 = viewport.get_global_transform_with_canvas().affine_inverse() * event.position
+		if event.pressed:
+			return viewport.begin_target_drag(local_position)
+		if viewport.drag_active_target(local_position):
+			viewport.end_target_drag()
+			return true
+		viewport.end_target_drag()
+		return false
+	if event is InputEventMouseMotion:
+		var local_position: Vector2 = viewport.get_global_transform_with_canvas().affine_inverse() * event.position
+		return viewport.drag_active_target(local_position)
+	return false
+
+
+func _on_viewport_target_changed(_target_name: StringName, _position: Vector2) -> void:
+	EditorInterface.mark_scene_as_unsaved()
 
 
 func _on_pose_selected(index: int) -> void:

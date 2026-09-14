@@ -62,12 +62,29 @@ func set_reference_frame(frame: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_active = _gizmo_at(get_global_mouse_position())
+			begin_target_drag(to_local(get_global_mouse_position()))
 		else:
-			_active = null
+			end_target_drag()
 	elif event is InputEventMouseMotion and _active != null:
-		_active.drag_to(get_global_mouse_position())
+		drag_active_target(to_local(get_global_mouse_position()))
 		get_viewport().set_input_as_handled()
+
+
+func begin_target_drag(local_position: Vector2) -> bool:
+	_active = _gizmo_at(local_position)
+	return _active != null
+
+
+func drag_active_target(local_position: Vector2) -> bool:
+	if _active == null:
+		return false
+	_active.position = local_position
+	_on_target_moved(_active.target_name, local_position)
+	return true
+
+
+func end_target_drag() -> void:
+	_active = null
 
 
 func _rebuild_gizmos() -> void:
@@ -88,9 +105,9 @@ func _rebuild_gizmos() -> void:
 		add_child(gizmo)
 
 
-func _gizmo_at(point: Vector2) -> RotoTargetGizmo:
+func _gizmo_at(local_position: Vector2) -> RotoTargetGizmo:
 	for child in get_children():
-		if child is RotoTargetGizmo and child.hit_test(point):
+		if child is RotoTargetGizmo and child.position.distance_to(local_position) <= child.radius + 5.0:
 			return child
 	return null
 
