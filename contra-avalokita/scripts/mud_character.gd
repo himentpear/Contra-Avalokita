@@ -13,6 +13,9 @@ const EquipmentController = preload("res://scripts/components/equipment_controll
 const WeaponManager = preload("res://scripts/weapon_manager.gd")
 const EquipmentManager = preload("res://scripts/equipment_manager.gd")
 const WeaponData = preload("res://scripts/resources/weapon_data.gd")
+const CombatSystem = preload("res://scripts/systems/combat_system.gd")
+const DamageSystem = preload("res://scripts/systems/damage_system.gd")
+const HitstopSystem = preload("res://scripts/systems/hitstop_system.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -999,41 +1002,29 @@ func _get_kill_score() -> Node:
 
 func receive_hit(hit_data: Variant) -> void:
 	if state == &"Dead": return
-	var event: HitEvent
-	if hit_data is HitEvent:
-		event = hit_data
-	elif hit_data is float or hit_data is int:
-		event = HitEvent.from_damage(float(hit_data), Vector2(-facing, 0.0))
-	elif hit_data is Object and "damage" in hit_data:
-		event = HitEvent.from_damage(float(hit_data.damage), Vector2(-facing, 0.0))
-	else:
-		event = HitEvent.new()
+	var event := DamageSystem.normalize_hit_event(hit_data, Vector2(-facing, 0.0))
 	event.victim = self
 	
 	# Frontal Block Check
 	var is_frontal: bool = (event.direction.x * facing) <= 0.1
-	if is_blocking() and is_frontal:
-		var block_dmg_mult := 0.15 if is_armed() else 0.35
-		var block_poise_mult := 0.30 if is_armed() else 0.50
-		var actual_dmg := event.damage * block_dmg_mult
-		health = maxf(health - actual_dmg, 0.0)
-		event.damage_dealt = actual_dmg
+	var block_res := DamageSystem.calculate_block(event, self, is_frontal)
+	if block_res["is_blocked"]:
+		var actual_dmg: float = block_res["damage"]
+		var actual_poise: float = block_res["poise_damage"]
 		event.is_blocked = true
-		damaged.emit(actual_dmg)
-		var ks := _get_kill_score()
-		if ks: ks.record_hit(self,event,actual_dmg)
-		preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,actual_dmg)
+		DamageSystem.apply_damage(self, event, actual_dmg)
 		if health <= 0.0:
 			event.is_kill = true
 			_request_confirmed_hitstop(event)
 			die()
 			return
-		stability = maxf(0.0, stability - event.poise_damage * block_poise_mult)
+		stability = maxf(0.0, stability - actual_poise)
 		stability_cooldown_timer = stability_recovery_cooldown
 		if stability <= 0.0:
 			event.is_armor_break = true
 			# Guard Broken! Heavy stagger
 			reaction_state = &"HeavyHit"
+			var ks := _get_kill_score()
 			if event.hit_type not in [&"HeavyHit", &"Knockdown"] and ks: ks.note_heavy_hit(self)
 			reaction_time = 0.0
 			reaction_duration = 0.45
@@ -1065,12 +1056,7 @@ func receive_hit(hit_data: Variant) -> void:
 	# reaction so stale hand targets cannot keep writing the arm chain.
 	if wall_action != &"None":
 		_detach_wall_pose_for_reaction()
-	health = maxf(health - event.damage, 0.0)
-	event.damage_dealt = event.damage
-	damaged.emit(event.damage)
-	var ks := _get_kill_score()
-	if ks: ks.record_hit(self,event,event.damage)
-	preload("res://scripts/realm_hit_feedback.gd").emit_hit(self,event.damage)
+	DamageSystem.apply_damage(self, event, event.damage)
 	
 	if health <= 0.0:
 		event.is_kill = true
@@ -1085,40 +1071,24 @@ func receive_hit(hit_data: Variant) -> void:
 	event.is_armor_break = poise_broken
 	
 	# Determine reaction tier
-	var tier: StringName = event.hit_type
-	if tier == &"Knockdown" or event.poise_damage >= 80.0:
-		tier = &"Knockdown"
-	elif poise_broken or tier == &"HeavyHit":
-		tier = &"HeavyHit"
+	var reaction := CombatSystem.resolve_reaction(event, self, not is_on_floor(), poise_broken)
+	var tier: StringName = reaction["tier"]
+	if tier == &"HeavyHit" and poise_broken:
 		# Reset stability after poise break to grant recovery window
 		stability = max_stability * 0.35
-	elif not is_on_floor():
-		tier = &"AirHit"
-	elif tier == &"MicroHit":
-		tier = &"MicroHit"
-	else:
-		tier = &"LightHit"
 		
+	var ks := _get_kill_score()
 	if tier in [&"HeavyHit", &"Knockdown"] and event.hit_type not in [&"HeavyHit", &"Knockdown"]:
 		if ks: ks.note_heavy_hit(self)
 	reaction_state = tier
 	reaction_time = 0.0
 	reaction_direction = event.direction
 	reaction_region = event.hit_region
-	reaction_intensity = clampf(event.impact_force / 80.0, 0.5, 2.2)
+	reaction_intensity = reaction["intensity"]
+	reaction_push_offset = reaction["push_offset"]
+	reaction_impact_local = reaction["impact_local"]
+	reaction_duration = reaction["duration"]
 	
-	# Target Instant Push-First linear displacement along attack direction
-	reaction_push_offset = event.direction * event.target_push_distance
-
-	# Local impact position for SDF dent and opposite bulge
-	if event.impact_point != Vector2.ZERO:
-		reaction_impact_local = to_local(event.impact_point)
-	else:
-		match reaction_region:
-			&"HEAD": reaction_impact_local = Vector2(0.0, -42.0)
-			&"LOWER_TORSO", &"LEG": reaction_impact_local = Vector2(0.0, -18.0)
-			_: reaction_impact_local = Vector2(0.0, -32.0)
-			
 	if sdf_body_component:
 		sdf_body_component.apply_impact(reaction_impact_local, event.direction, facing, reaction_intensity)
 	elif body_renderer:
@@ -1130,18 +1100,8 @@ func receive_hit(hit_data: Variant) -> void:
 		body_renderer.impact_bulge_radius = 7.5
 		body_renderer.impact_bulge_height = 1.8 * reaction_intensity
 
-	# Durations
-	match tier:
-		&"MicroHit": reaction_duration = 0.08
-		&"LightHit": reaction_duration = 0.15
-		&"AirHit": reaction_duration = 0.20
-		&"HeavyHit": reaction_duration = 0.35
-		&"Knockdown": reaction_duration = 0.48
-		_: reaction_duration = 0.15
-		
 	# Physical knockback impulse (world physics)
-	var air_mult: float = 1.25 if not is_on_floor() else 1.0
-	velocity += event.direction * (event.impact_force * air_mult)
+	velocity += CombatSystem.calculate_knockback(event, not is_on_floor())
 	if tier == &"Knockdown":
 		velocity.y = minf(velocity.y, -180.0)
 		
@@ -1152,8 +1112,7 @@ func receive_hit(hit_data: Variant) -> void:
 
 
 func _request_confirmed_hitstop(event: HitEvent) -> void:
-	if combat_component:
-		combat_component.request_confirmed_hitstop(event)
+	HitstopSystem.request_hitstop(event, self)
 
 func _clear_managed_hitstop() -> void:
 	if combat_component:
