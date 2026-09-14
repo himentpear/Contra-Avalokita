@@ -3,6 +3,7 @@ extends CharacterBody2D
 @export var blade_footwork: Resource = preload("res://resources/blade_footwork.tres")
 const HitEvent = preload("res://scripts/hit_event.gd")
 const IntentComponentScript = preload("res://gameplay/components/movement/intent_component.gd")
+const MovementComponent = preload("res://scripts/components/movement_component.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -19,324 +20,123 @@ signal jump_executed(source: MudMovementAssist.JumpSource)
 @export var hard_landing_speed := 280.0
 @export var apex_threshold := 35.0
 @export var landing_recovery_duration := 0.07
-@export_group("Movement Assist")
-@export_range(0.0, 0.40, 0.005) var base_coyote_time := 0.10
-@export_range(0.0, 0.30, 0.005) var base_jump_buffer_time := 0.08
 @export var movement_assist_debug := false
-@export_group("")
-var air_time := 0.0
-var last_air_velocity_y := 0.0
-var jump_phase: StringName = &"Grounded"
-var jump_squat_left := 0.0
-var landing_left := 0.0
-var landing_animation: StringName = &""
-var grounded_resume_phase := 0.0
-var movement_assist := MudMovementAssist.new()
-var item_inventory := MudItemInventory.new()
-var pending_jump_source := MudMovementAssist.JumpSource.NONE
+var movement_component: MovementComponent
 
-@export_group("Wall Movement")
-@export var wall_slide_speed := 58.0
-@export var wall_hang_duration := 0.24
-@export var wall_stick_speed := 18.0
-@export var wall_grab_upward_limit := 85.0
-@export var wall_climb_jump_velocity := 245.0
-@export var wall_climb_detach_velocity := 55.0
-@export var wall_jump_horizontal_speed := 185.0
-@export var wall_jump_vertical_speed := 238.0
-@export var wall_kick_horizontal_velocity := 260.0
-@export var wall_kick_velocity := 205.0
-@export var wall_push_duration := 0.075
-@export var wall_release_duration := 0.14
-@export_range(0.0, 0.30, 0.005) var wall_coyote_time := 0.12
-@export_range(0.0, 0.30, 0.005) var wall_detach_time := 0.14
-@export_range(0.0, 0.12, 0.005) var wall_detach_grace := 0.06
-@export_range(0.0, 0.30, 0.005) var wall_jump_control_lock_time := 0.10
-@export_range(0.0, 1.0, 0.05) var wall_jump_air_control := 0.25
-@export_range(0.0, 1.0, 0.01) var wall_input_deadzone := 0.10
-@export_range(0.0, 1.0, 0.01) var same_wall_reset_time := 0.40
-@export var wall_climb_decay := PackedFloat32Array([1.00, 0.75, 0.45, 0.0])
-@export_group("Wall IK")
-@export var wall_max_foot_lag := 7.0
-@export var wall_min_foot_below_hip := 5.0
-@export_group("")
-var wall_action: StringName = &"None"
-var wall_side := 0.0
-var wall_action_time := 0.0
-var wall_hang_left := 0.0
-var wall_regrab_left := 0.0
-var wall_coyote_left := 0.0
-var wall_detach_left := 0.0
-var wall_jump_control_lock_left := 0.0
-var wall_detach_grace_left := 0.0
-var wall_coyote_side := 0.0
-var wall_coyote_collider_id := 0
-var same_wall_jump_count := 0
-var same_wall_collider_id := 0
-var same_wall_side := 0.0
-var same_wall_reset_left := 0.0
-var pending_wall_jump_kind: StringName = &"Standard"
-var pending_wall_launch := Vector2.ZERO
-var wall_surface_x := INF
-var wall_hand_anchor_y := 0.0
-var wall_foot_anchor_y := 0.0
-var wall_slide_scrape_offset := 0.0
-## Knee branch sign locked at hang entry. +1=outward (away from wall), -1=inward, 0=unset.
-var wall_front_knee_sign := 0.0
-var wall_back_knee_sign := 0.0
+var air_time: float:
+	get: return movement_component.air_time if movement_component else 0.0
+	set(v): if movement_component: movement_component.air_time = v
+var last_air_velocity_y: float:
+	get: return movement_component.last_air_velocity_y if movement_component else 0.0
+	set(v): if movement_component: movement_component.last_air_velocity_y = v
+var jump_phase: StringName:
+	get: return movement_component.jump_phase if movement_component else &"Grounded"
+	set(v): if movement_component: movement_component.jump_phase = v
+var jump_squat_left: float:
+	get: return movement_component.jump_squat_left if movement_component else 0.0
+	set(v): if movement_component: movement_component.jump_squat_left = v
+var landing_left: float:
+	get: return movement_component.landing_left if movement_component else 0.0
+	set(v): if movement_component: movement_component.landing_left = v
+var landing_animation: StringName:
+	get: return movement_component.landing_animation if movement_component else &""
+	set(v): if movement_component: movement_component.landing_animation = v
+var grounded_resume_phase: float:
+	get: return movement_component.grounded_resume_phase if movement_component else 0.0
+	set(v): if movement_component: movement_component.grounded_resume_phase = v
+var movement_assist: MudMovementAssist:
+	get: return movement_component.movement_assist if movement_component else null
+var item_inventory: MudItemInventory:
+	get: return movement_component.item_inventory if movement_component else null
+var pending_jump_source: MudMovementAssist.JumpSource:
+	get: return movement_component.pending_jump_source if movement_component else MudMovementAssist.JumpSource.NONE
+	set(v): if movement_component: movement_component.pending_jump_source = v
+
+var wall_action: StringName:
+	get: return movement_component.wall_action if movement_component else &"None"
+	set(v): if movement_component: movement_component.wall_action = v
+var wall_side: float:
+	get: return movement_component.wall_side if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_side = v
+var wall_action_time: float:
+	get: return movement_component.wall_action_time if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_action_time = v
+var wall_hang_left: float:
+	get: return movement_component.wall_hang_left if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_hang_left = v
+var wall_surface_x: float:
+	get: return movement_component.wall_surface_x if movement_component else INF
+	set(v): if movement_component: movement_component.wall_surface_x = v
+var wall_hand_anchor_y: float:
+	get: return movement_component.wall_hand_anchor_y if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_hand_anchor_y = v
+var wall_foot_anchor_y: float:
+	get: return movement_component.wall_foot_anchor_y if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_foot_anchor_y = v
+var wall_slide_scrape_offset: float:
+	get: return movement_component.wall_slide_scrape_offset if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_slide_scrape_offset = v
+var wall_front_knee_sign: float:
+	get: return movement_component.wall_front_knee_sign if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_front_knee_sign = v
+var wall_back_knee_sign: float:
+	get: return movement_component.wall_back_knee_sign if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_back_knee_sign = v
+var wall_slide_speed: float:
+	get: return movement_component.wall_slide_speed if movement_component else 58.0
+	set(v): if movement_component: movement_component.wall_slide_speed = v
+var wall_climb_jump_velocity: float:
+	get: return movement_component.wall_climb_jump_velocity if movement_component else 245.0
+	set(v): if movement_component: movement_component.wall_climb_jump_velocity = v
+var wall_climb_detach_velocity: float:
+	get: return movement_component.wall_climb_detach_velocity if movement_component else 55.0
+	set(v): if movement_component: movement_component.wall_climb_detach_velocity = v
+var wall_regrab_left: float:
+	get: return movement_component.wall_regrab_left if movement_component else 0.0
+	set(v): if movement_component: movement_component.wall_regrab_left = v
+var pending_wall_jump_kind: StringName:
+	get: return movement_component.pending_wall_jump_kind if movement_component else &"Standard"
+	set(v): if movement_component: movement_component.pending_wall_jump_kind = v
+var wall_push_duration: float:
+	get: return movement_component.wall_push_duration if movement_component else 0.075
+	set(v): if movement_component: movement_component.wall_push_duration = v
+var wall_release_duration: float:
+	get: return movement_component.wall_release_duration if movement_component else 0.14
+	set(v): if movement_component: movement_component.wall_release_duration = v
+var wall_min_foot_below_hip: float:
+	get: return movement_component.wall_min_foot_below_hip if movement_component else 5.0
+	set(v): if movement_component: movement_component.wall_min_foot_below_hip = v
+var wall_max_foot_lag: float:
+	get: return movement_component.wall_max_foot_lag if movement_component else 7.0
+	set(v): if movement_component: movement_component.wall_max_foot_lag = v
+var wall_hang_duration: float:
+	get: return movement_component.wall_hang_duration if movement_component else 0.24
+	set(v): if movement_component: movement_component.wall_hang_duration = v
+var wall_stick_speed: float:
+	get: return movement_component.wall_stick_speed if movement_component else 18.0
+	set(v): if movement_component: movement_component.wall_stick_speed = v
+var wall_grab_upward_limit: float:
+	get: return movement_component.wall_grab_upward_limit if movement_component else 85.0
+	set(v): if movement_component: movement_component.wall_grab_upward_limit = v
 
 func is_wall_attached() -> bool:
-	return wall_action in [&"WallHang", &"WallSlide"]
+	return movement_component.is_wall_attached() if movement_component else false
 
 func is_wall_jump_action() -> bool:
-	return wall_action in [&"WallPush", &"WallRelease"]
-
-func _set_wall_action(next: StringName) -> void:
-	if wall_action == next:
-		return
-	var previous := wall_action
-	wall_action = next
-	wall_action_time = 0.0
-	wall_action_changed.emit(previous, wall_action)
-	# Clear locked knee branch when leaving wall entirely
-	if next == &"None" or next == &"WallRelease":
-		wall_front_knee_sign = 0.0
-		wall_back_knee_sign = 0.0
-
-func _contact_wall_side() -> float:
-	if not is_on_wall():
-		return 0.0
-	var normal := get_wall_normal()
-	if absf(normal.x) < 0.7:
-		return 0.0
-	return -signf(normal.x)
-
-func _can_hold_wall(side: float) -> bool:
-	return side != 0.0 and move_intent * side > wall_input_deadzone and wall_detach_left <= 0.0
-
-func _contact_wall_collider_id(side: float) -> int:
-	if side == 0.0:
-		return 0
-	for i in get_slide_collision_count():
-		var collision := get_slide_collision(i)
-		var normal := collision.get_normal()
-		if absf(normal.x) >= 0.7 and is_equal_approx(-signf(normal.x), side):
-			var collider := collision.get_collider()
-			if is_instance_valid(collider):
-				return collider.get_instance_id()
-	return 0
-
-func _same_wall_matches(collider_id: int, side: float) -> bool:
-	if same_wall_side == 0.0:
-		return false
-	if collider_id != 0 and same_wall_collider_id != 0:
-		return collider_id == same_wall_collider_id
-	return is_equal_approx(side, same_wall_side)
-
-func _reset_same_wall_tracking(collider_id := 0, side := 0.0) -> void:
-	same_wall_jump_count = 0
-	same_wall_collider_id = collider_id
-	same_wall_side = side
-	same_wall_reset_left = same_wall_reset_time if side != 0.0 else 0.0
-
-func _reset_wall_runtime() -> void:
-	wall_side = 0.0
-	wall_hang_left = 0.0
-	wall_regrab_left = 0.0
-	wall_coyote_left = 0.0
-	wall_detach_left = 0.0
-	wall_jump_control_lock_left = 0.0
-	wall_detach_grace_left = 0.0
-	wall_coyote_side = 0.0
-	wall_coyote_collider_id = 0
-	pending_wall_jump_kind = &"Standard"
-	pending_wall_launch = Vector2.ZERO
-	_reset_same_wall_tracking()
-	_set_wall_action(&"None")
-
-func _detach_wall_pose_for_reaction() -> void:
-	wall_side = 0.0
-	wall_hang_left = 0.0
-	wall_coyote_left = 0.0
-	wall_coyote_side = 0.0
-	wall_coyote_collider_id = 0
-	wall_detach_left = wall_detach_time
-	wall_regrab_left = wall_detach_time
-	_set_wall_action(&"None")
-	if is_instance_valid(pose_composer) and pose_composer.wall_composer:
-		pose_composer.wall_composer.reset()
-
-func _update_wall_memory(delta: float, grounded: bool) -> void:
-	wall_regrab_left = maxf(0.0, wall_regrab_left - delta)
-	wall_detach_left = maxf(0.0, wall_detach_left - delta)
-	wall_jump_control_lock_left = maxf(0.0, wall_jump_control_lock_left - delta)
-	if grounded:
-		wall_coyote_left = 0.0
-		wall_coyote_side = 0.0
-		wall_coyote_collider_id = 0
-		_reset_same_wall_tracking()
-		return
-
-	var side := _contact_wall_side()
-	if side != 0.0 and wall_detach_left <= 0.0:
-		var collider_id := _contact_wall_collider_id(side)
-		wall_coyote_left = wall_coyote_time
-		wall_coyote_side = side
-		wall_coyote_collider_id = collider_id
-		if same_wall_side == 0.0 or not _same_wall_matches(collider_id, side):
-			_reset_same_wall_tracking(collider_id, side)
-		else:
-			same_wall_reset_left = same_wall_reset_time
-	else:
-		wall_coyote_left = maxf(0.0, wall_coyote_left - delta)
-		same_wall_reset_left = maxf(0.0, same_wall_reset_left - delta)
-		if same_wall_reset_left <= 0.0:
-			_reset_same_wall_tracking()
-
-func _capture_wall_surface(side: float) -> void:
-	for i in get_slide_collision_count():
-		var collision := get_slide_collision(i)
-		var normal := collision.get_normal()
-		if absf(normal.x) >= 0.7 and is_equal_approx(-signf(normal.x), side):
-			wall_surface_x = collision.get_position().x
-			return
-	if is_inf(wall_surface_x):
-		wall_surface_x = global_position.x + side * 10.0
+	return movement_component.is_wall_jump_action() if movement_component else false
 
 func wall_plane_local_x() -> float:
-	if wall_side == 0.0 or is_inf(wall_surface_x):
-		return 10.0
-	var wall_global := Vector2(wall_surface_x, global_position.y)
-	return visual.to_local(wall_global).x
+	return movement_component.wall_plane_local_x() if movement_component else 10.0
 
-func _enter_wall_hang(side: float) -> void:
-	wall_side = side
-	facing = side
-	_capture_wall_surface(side)
-	wall_hand_anchor_y = global_position.y - 51.0
-	wall_foot_anchor_y = global_position.y - 22.0
-	wall_slide_scrape_offset = 0.0
-	wall_hang_left = wall_hang_duration
-	velocity.y = 0.0
-	cancel_attack_pose()
+func _reset_wall_runtime() -> void:
+	if movement_component:
+		movement_component.reset_wall_runtime()
+
+func _detach_wall_pose_for_reaction() -> void:
+	if movement_component:
+		movement_component.detach_wall_pose_for_reaction()
 	if is_instance_valid(pose_composer) and pose_composer.wall_composer:
 		pose_composer.wall_composer.reset()
-	_set_wall_action(&"WallHang")
-
-
-func _update_wall_before_move(delta: float) -> void:
-	wall_action_time += delta
-	if is_on_floor():
-		wall_side = 0.0
-		wall_hang_left = 0.0
-		_set_wall_action(&"None")
-		return
-	if wall_action == &"WallPush":
-		velocity = Vector2(wall_side * wall_stick_speed, 0.0)
-		if wall_action_time >= wall_push_duration:
-			var launch := pending_wall_launch
-			velocity = launch
-			wall_detach_left = wall_detach_time
-			wall_regrab_left = wall_detach_time
-			wall_jump_control_lock_left = wall_jump_control_lock_time
-			_set_wall_action(&"WallRelease")
-			wall_jumped.emit(launch)
-		return
-	if wall_action == &"WallRelease":
-		if wall_action_time >= wall_release_duration:
-			_set_wall_action(&"None")
-		return
-
-	var side := _contact_wall_side()
-	var wants_away := side != 0.0 and move_intent * side < -wall_input_deadzone
-	if is_wall_attached() and wants_away:
-		wall_detach_grace_left += delta
-	else:
-		wall_detach_grace_left = 0.0
-	var within_detach_grace := is_wall_attached() and wants_away and wall_detach_grace_left < wall_detach_grace
-	if not _can_hold_wall(side) and not within_detach_grace:
-		if is_wall_attached():
-			_set_wall_action(&"None")
-		return
-	if not is_wall_attached():
-		if velocity.y >= -wall_grab_upward_limit:
-			_enter_wall_hang(side)
-		else:
-			return
-
-	wall_side = side
-	_capture_wall_surface(side)
-	facing = side
-	velocity.x = wall_side * wall_stick_speed
-	if wall_action == &"WallHang":
-		wall_hang_left = maxf(0.0, wall_hang_left - delta)
-		velocity.y = 0.0
-		if wall_hang_left <= 0.0:
-			_set_wall_action(&"WallSlide")
-	elif wall_action == &"WallSlide":
-		# Alternating grip/release friction gives 1-2 px pauses instead of a
-		# perfectly uniform vertical translation.
-		var scrape_cycle := fmod(wall_action_time, 0.18) / 0.18
-		var friction_scale := 0.28 if scrape_cycle < 0.16 else lerpf(0.78, 1.0, scrape_cycle)
-		velocity.y = minf(velocity.y, wall_slide_speed * friction_scale)
-		wall_hand_anchor_y += velocity.y * delta * 0.24
-		wall_hand_anchor_y = maxf(wall_hand_anchor_y, global_position.y - 58.0)
-		wall_slide_scrape_offset = sin(wall_action_time * 21.0) * 1.0
-
-
-func _update_wall_after_move() -> void:
-	if is_on_floor():
-		wall_side = 0.0
-		wall_hang_left = 0.0
-		_set_wall_action(&"None")
-		return
-	if is_wall_attached() or is_wall_jump_action():
-		return
-	var side := _contact_wall_side()
-	if _can_hold_wall(side) and velocity.y >= -wall_grab_upward_limit:
-		_enter_wall_hang(side)
-
-func _can_start_wall_jump() -> bool:
-	return wall_detach_left <= 0.0 and (is_wall_attached() or wall_coyote_left > 0.0)
-
-func _start_wall_jump() -> void:
-	if not _can_start_wall_jump():
-		return
-	var launch_side := wall_side if is_wall_attached() and wall_side != 0.0 else wall_coyote_side
-	if launch_side == 0.0:
-		return
-	var collider_id := _contact_wall_collider_id(launch_side)
-	if collider_id == 0:
-		collider_id = wall_coyote_collider_id
-	if same_wall_side == 0.0 or not _same_wall_matches(collider_id, launch_side):
-		_reset_same_wall_tracking(collider_id, launch_side)
-
-	var input_relation := move_intent * launch_side
-	wall_side = launch_side
-	facing = launch_side
-	if input_relation > wall_input_deadzone:
-		pending_wall_jump_kind = &"Climb"
-		var decay := 1.0
-		if not wall_climb_decay.is_empty():
-			var decay_index := mini(same_wall_jump_count, wall_climb_decay.size() - 1)
-			decay = wall_climb_decay[decay_index]
-		pending_wall_launch = Vector2(-launch_side * wall_climb_detach_velocity, -wall_climb_jump_velocity * decay)
-		same_wall_jump_count += 1
-	elif input_relation < -wall_input_deadzone:
-		pending_wall_jump_kind = &"Kick"
-		pending_wall_launch = Vector2(-launch_side * wall_kick_horizontal_velocity, -wall_kick_velocity)
-	else:
-		pending_wall_jump_kind = &"Standard"
-		pending_wall_launch = Vector2(-launch_side * wall_jump_horizontal_speed, -wall_jump_vertical_speed)
-	same_wall_reset_left = same_wall_reset_time
-	wall_coyote_left = 0.0
-	movement_assist.suppress_ground_departure()
-	movement_assist.jump_buffer_remaining = 0.0
-	velocity = Vector2(wall_side * wall_stick_speed, 0.0)
-	wall_hang_left = 0.0
-	_set_wall_action(&"WallPush")
-	jump_phase = &"WallPush"
-	air_time = 0.0
 
 func update_jump_animation() -> void:
 	var clip: StringName = &""
@@ -384,9 +184,26 @@ var intent_component: IntentComponent = IntentComponentScript.new()
 var health := 100.0
 var state: StringName = &"Idle"
 var attack_time := 0.0
-var land_time := 0.0
-var facing := 1.0
-var move_intent := 0.0
+var _facing := 1.0
+var facing: float:
+	get: return movement_component.facing if movement_component else _facing
+	set(v):
+		_facing = v
+		if movement_component: movement_component.facing = v
+
+var _move_intent := 0.0
+var move_intent: float:
+	get: return movement_component.move_intent if movement_component else _move_intent
+	set(v):
+		_move_intent = v
+		if movement_component: movement_component.move_intent = v
+
+var _land_time := 0.0
+var land_time: float:
+	get: return movement_component.land_time if movement_component else _land_time
+	set(v):
+		_land_time = v
+		if movement_component: movement_component.land_time = v
 var jump_requested := false
 var attack_requested := false
 @export var punch_animations := PackedStringArray(["Punch/Attack_1", "Punch/Attack_2", "Punch/Attack_3"])
@@ -709,12 +526,36 @@ var _flight_stretch_timer := 0.0
 func _ready() -> void:
 	add_to_group(&"player_input_entities")
 	health = max_health
-	movement_assist.configure(base_coyote_time, base_jump_buffer_time)
-	item_inventory.changed.connect(_recompute_movement_modifiers)
-	movement_assist.unfallen_started.connect(func(duration: float) -> void: unfallen_started.emit(duration))
-	movement_assist.unfallen_ended.connect(func() -> void: unfallen_ended.emit())
-	movement_assist.jump_executed.connect(func(source: MudMovementAssist.JumpSource) -> void: jump_executed.emit(source))
-	_recompute_movement_modifiers()
+	if has_node("Components/MovementComponent"):
+		movement_component = $Components/MovementComponent
+	elif has_node("MovementComponent"):
+		movement_component = $MovementComponent
+	else:
+		movement_component = MovementComponent.new()
+		movement_component.name = "MovementComponent"
+		var comp_root := get_node_or_null("Components")
+		if comp_root:
+			comp_root.add_child(movement_component)
+		else:
+			add_child(movement_component)
+	movement_component.setup(self)
+	movement_component.movement_state_changed.connect(func(s: StringName) -> void: transition(s))
+	movement_component.landed.connect(func(impact: float, hard: bool) -> void:
+		landed.emit(impact, hard)
+		if anim_player and movement_component.landing_animation != &"":
+			movement_component.landing_left = anim_player.get_animation(movement_component.landing_animation).length
+	)
+	movement_component.wall_action_changed.connect(func(prev: StringName, curr: StringName) -> void:
+		wall_action_changed.emit(prev, curr)
+		if curr == &"WallHang":
+			cancel_attack_pose()
+			if is_instance_valid(pose_composer) and pose_composer.wall_composer:
+				pose_composer.wall_composer.reset()
+	)
+	movement_component.wall_jumped.connect(func(dir: Vector2) -> void: wall_jumped.emit(dir))
+	movement_component.unfallen_started.connect(func(duration: float) -> void: unfallen_started.emit(duration))
+	movement_component.unfallen_ended.connect(func() -> void: unfallen_ended.emit())
+	movement_component.jump_executed.connect(func(source: MudMovementAssist.JumpSource) -> void: jump_executed.emit(source))
 	$Hurtbox.set_meta("owner_character", self)
 	weapons.owner_character = self
 	if weapons.current: weapons.current.set_meta("owner_character", self)
@@ -785,78 +626,43 @@ func set_intent(direction: float, jump := false, attack := false, block := false
 	intent_component.attack_pressed = attack
 	intent_component.block_held = block
 	move_intent = intent_component.move_direction
-	if jump:
-		movement_assist.register_jump_input()
+	if movement_component:
+		movement_component.set_move_intent(move_intent)
+		if jump:
+			movement_component.jump()
 	jump_requested = jump_requested or jump
 	attack_requested = attack_requested or attack
 	block_requested = block
 
-func _recompute_movement_modifiers() -> void:
-	movement_assist.apply_modifiers(item_inventory.aggregate_movement_modifiers())
-
 func obtain_item(item: CoyoteItem) -> void:
-	item_inventory.obtain(item)
+	if movement_component: movement_component.obtain_item(item)
 
 func remove_item(item_id: StringName) -> void:
-	item_inventory.remove(item_id)
+	if movement_component: movement_component.remove_item(item_id)
 
 func obtain_content_item(content_id: StringName) -> bool:
-	if not has_node("/root/ContentRegistry"): return false
-	var registry := get_node("/root/ContentRegistry")
-	var definition: ContentDefinition = registry.call("get_content", content_id) as ContentDefinition
-	if definition == null or not definition.resource is CoyoteItem: return false
-	obtain_item(definition.resource as CoyoteItem)
-	return true
+	return movement_component.obtain_content_item(content_id) if movement_component else false
 
 func is_unfallen() -> bool:
-	return movement_assist.is_unfallen()
+	return movement_component.is_unfallen() if movement_component else false
 
 func _draw() -> void:
-	if movement_assist_debug and movement_assist.is_unfallen():
+	if movement_assist_debug and is_unfallen():
 		draw_line(Vector2(-6.0, 3.0), Vector2(6.0, 3.0), Color(1.0, 1.0, 1.0, 0.72), 1.0)
 		draw_arc(Vector2.ZERO, 4.0, 0.0, TAU, 16, Color(1.0, 1.0, 1.0, 0.58), 1.0)
 
 func has_active_coyote_window() -> bool:
-	return movement_assist.has_active_coyote_window()
+	return movement_component.has_active_coyote_window() if movement_component else false
 
 func get_effective_coyote_time() -> float:
-	return movement_assist.get_effective_coyote_time()
+	return movement_component.get_effective_coyote_time() if movement_component else 0.0
 
 func get_effective_jump_buffer_time() -> float:
-	return movement_assist.get_effective_jump_buffer_time()
-
-func _is_coyote_source(source: MudMovementAssist.JumpSource) -> bool:
-	return source in [MudMovementAssist.JumpSource.COYOTE, MudMovementAssist.JumpSource.BUFFERED_COYOTE]
+	return movement_component.get_effective_jump_buffer_time() if movement_component else 0.0
 
 func _perform_jump(source: MudMovementAssist.JumpSource) -> void:
-	var is_coyote := _is_coyote_source(source)
-	var vertical_multiplier := movement_assist.coyote_vertical_jump_multiplier if is_coyote else 1.0
-	velocity.y = jump_velocity * vertical_multiplier
-	if is_coyote and absf(velocity.x) > 0.01:
-		# Boost only launch momentum. Normal aerial acceleration remains responsible
-		# for subsequent velocity and pulls it back toward the ordinary speed policy.
-		var launch_cap := move_speed * movement_assist.coyote_horizontal_jump_multiplier
-		velocity.x = clampf(velocity.x * movement_assist.coyote_horizontal_jump_multiplier, -launch_cap, launch_cap)
-	jump_squat_left = 0.0
-	landing_left = 0.0
-	air_time = 0.0
-	pending_jump_source = MudMovementAssist.JumpSource.NONE
-	movement_assist.report_jump_executed(source)
-
-func _try_start_assisted_jump(grounded: bool) -> bool:
-	var source := movement_assist.resolve_jump_source(grounded)
-	if source == MudMovementAssist.JumpSource.NONE:
-		return false
-	movement_assist.consume_jump(source)
-	if source == MudMovementAssist.JumpSource.GROUND:
-		pending_jump_source = source
-		jump_squat_left = jump_squat_duration
-		landing_left = 0.0
-		if state in [&"Walk", &"Run"]:
-			grounded_resume_phase = anim_player.current_animation_position / maxf(anim_player.current_animation_length, .001)
-	else:
-		_perform_jump(source)
-	return true
+	if movement_component:
+		movement_component.perform_jump(source)
 
 func die() -> void:
 	if state == &"Dead": return
@@ -1063,9 +869,7 @@ func _physics_process(delta: float) -> void:
 		pose_composer.restore_base()
 
 	var grounded := is_on_floor()
-	var allow_coyote_departure := reaction_state not in [&"HeavyHit", &"Knockdown"] and wall_action == &"None"
-	movement_assist.observe_grounded(grounded, allow_coyote_departure)
-	_update_wall_memory(delta, grounded)
+	var allow_coyote_departure := reaction_state not in [&"HeavyHit", &"Knockdown"]
 
 	if not is_attacking():
 		if is_blocking():
@@ -1074,8 +878,8 @@ func _physics_process(delta: float) -> void:
 			action_state = &"None"
 
 	if grounded and state in [&"Walk",&"Run"] and anim_player.current_animation == get_state_animation(state):
-		grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
-	landing_left = maxf(0.0,landing_left-delta)
+		movement_component.grounded_resume_phase = anim_player.current_animation_position/maxf(anim_player.current_animation_length,.001)
+
 	var atk_mult := 1.0
 	if is_attacking():
 		if not is_armed():
@@ -1087,25 +891,7 @@ func _physics_process(delta: float) -> void:
 		atk_mult = guard_movement_multiplier
 	if reaction_state in [&"HeavyHit", &"Knockdown"]:
 		atk_mult *= 0.35
-	var horizontal_acceleration := acceleration * (wall_jump_air_control if wall_jump_control_lock_left > 0.0 else 1.0)
-	velocity.x = move_toward(velocity.x, move_intent * move_speed * atk_mult, horizontal_acceleration * delta)
-	if move_intent != 0 and not is_attacking() and not is_blocking() and wall_action == &"None": facing = signf(move_intent)
-	if not grounded: velocity.y += gravity * movement_assist.get_gravity_multiplier() * delta
-	var wall_jump_requested := jump_requested or movement_assist.has_buffered_jump()
-	var started_wall_jump := false
-	if wall_jump_requested and _can_start_wall_jump():
-		_start_wall_jump()
-		started_wall_jump = true
-	_update_wall_before_move(delta)
-	if not started_wall_jump and jump_squat_left <= 0:
-		_try_start_assisted_jump(grounded)
-	if jump_squat_left > 0:
-		jump_squat_left = maxf(0.0,jump_squat_left-delta)
-		if not grounded: jump_squat_left = 0.0
-		elif jump_squat_left == 0 and pending_jump_source != MudMovementAssist.JumpSource.NONE:
-			_perform_jump(pending_jump_source)
-	movement_assist.advance(delta, grounded, allow_coyote_departure)
-	if not grounded or velocity.y < 0: last_air_velocity_y = velocity.y
+
 	if attack_requested:
 		if not is_attacking() and (grounded or allow_air_attack):
 			start_attack()
@@ -1113,29 +899,12 @@ func _physics_process(delta: float) -> void:
 			var buffer_start := weapons.current.combo_buffer_start if (is_armed() and weapons.current) else punch_combo_buffer_start
 			if attack_time >= attack_duration * buffer_start:
 				combo_queued = true
-	jump_requested = false
 	attack_requested = false
-	move_and_slide()
-	_update_wall_after_move()
-	var grounded_after_move := is_on_floor()
-	movement_assist.observe_grounded(grounded_after_move, allow_coyote_departure and wall_action == &"None")
-	# A stored input becomes a buffered-ground jump on the exact air-to-ground
-	# transition. It launches immediately instead of replaying the normal squat.
-	if not grounded and grounded_after_move:
-		_try_start_assisted_jump(true)
-	movement_assist.finish_step()
-	land_time = maxf(0, land_time - delta)
+
+	var is_atk_or_blk := is_attacking() or is_blocking()
+	movement_component.physics_step(delta, atk_mult, allow_coyote_departure, is_atk_or_blk, state)
 	_contact_squash_timer = maxf(0.0, _contact_squash_timer - delta)
 	_flight_stretch_timer = maxf(0.0, _flight_stretch_timer - delta)
-	if not grounded and is_on_floor():
-		if air_time >= minimum_landing_air_time and last_air_velocity_y >= soft_landing_speed:
-			var hard := last_air_velocity_y >= hard_landing_speed
-			jump_phase = &"HardLand" if hard else &"SoftLand"
-			landing_animation = StringName("Air/"+String(jump_phase))
-			landing_left = anim_player.get_animation(landing_animation).length
-			landed.emit(last_air_velocity_y,hard)
-		air_time = 0.0
-	elif not is_on_floor(): air_time += delta
 	if not is_on_floor() and velocity.y < 0:
 		_flight_stretch_timer = 2.0 / 60.0
 	if rig and rig.gait:
