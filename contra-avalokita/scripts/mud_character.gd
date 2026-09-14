@@ -6,6 +6,7 @@ const IntentComponentScript = preload("res://gameplay/components/movement/intent
 const MovementComponent = preload("res://scripts/components/movement_component.gd")
 const HealthComponent = preload("res://scripts/components/health_component.gd")
 const CombatComponent = preload("res://scripts/components/combat_component.gd")
+const AnimationController = preload("res://scripts/components/animation_controller.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -26,6 +27,7 @@ signal jump_executed(source: MudMovementAssist.JumpSource)
 var movement_component: MovementComponent
 var health_component: HealthComponent
 var combat_component: CombatComponent
+var animation_controller: AnimationController
 
 var air_time: float:
 	get: return movement_component.air_time if movement_component else 0.0
@@ -143,32 +145,8 @@ func _detach_wall_pose_for_reaction() -> void:
 		pose_composer.wall_composer.reset()
 
 func update_jump_animation() -> void:
-	var clip: StringName = &""
-	if wall_action != &"None":
-		jump_phase = wall_action
-		match wall_action:
-			&"WallHang": clip = &"Wall/Hang"
-			&"WallSlide": clip = &"Wall/Slide"
-			&"WallPush": clip = &"Wall/Push"
-			&"WallRelease": clip = &"Wall/Release"
-	elif jump_squat_left > 0: jump_phase = &"JumpSquat"
-	elif not is_on_floor():
-		if velocity.y < 0 and air_time < takeoff_duration: jump_phase = &"Takeoff"
-		elif velocity.y < -apex_threshold: jump_phase = &"Rise"
-		elif absf(velocity.y) <= apex_threshold: jump_phase = &"Apex"
-		else: jump_phase = &"Fall"
-	elif landing_left > 0:
-		jump_phase = &"Recovery" if landing_left <= landing_recovery_duration else StringName(String(landing_animation).get_slice("/",1))
-	else: jump_phase = &"Grounded"
-	if jump_phase != &"Grounded" and clip == &"": clip = StringName("Air/"+String(jump_phase))
-	if is_on_floor() and landing_left > 0 and jump_squat_left <= 0: clip = landing_animation
-	if clip != &"" and anim_player.current_animation != clip:
-		anim_player.play(clip,0.025)
-	# A finished non-looping clip clears current_animation. Reconcile the desired
-	# grounded clip directly, including an empty/stopped player after landing.
-	elif clip == &"" and state in [&"Idle",&"Walk",&"Run"] and (anim_player.current_animation != get_state_animation(state) or not anim_player.is_playing()):
-		anim_player.play(get_state_animation(state),0.09)
-		if state in [&"Walk",&"Run"]: anim_player.seek(grounded_resume_phase*anim_player.current_animation_length,true)
+	if animation_controller:
+		animation_controller.update_jump_animation()
 @export var score_profile: EnemyScoreProfile
 @export var score_credit_enabled := false
 @export var score_combat_power := 1.0
@@ -648,6 +626,21 @@ func _ready() -> void:
 	if anim_player:
 		anim_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 		anim_player.play(&"Idle")
+
+	if has_node("Components/AnimationController"):
+		animation_controller = $Components/AnimationController
+	elif has_node("AnimationController"):
+		animation_controller = $AnimationController
+	else:
+		animation_controller = AnimationController.new()
+		animation_controller.name = "AnimationController"
+		var comp_root := get_node_or_null("Components")
+		if comp_root:
+			comp_root.add_child(animation_controller)
+		else:
+			add_child(animation_controller)
+	animation_controller.setup(self, anim_player)
+
 	pose_composer = MudPoseComposer.new()
 	pose_composer.character = self
 	pose_composer.blade_footwork = blade_footwork
@@ -805,76 +798,18 @@ func is_armed() -> bool:
 	return weapons != null and is_instance_valid(weapons.current)
 
 func is_retreating() -> bool:
-	if not is_attacking() or not is_on_floor():
-		return false
-	if move_intent != 0.0 and facing * move_intent < -0.01:
-		return true
-	if absf(move_intent) <= 0.01 and facing * velocity.x < -5.0:
-		return true
-	return false
+	return animation_controller.is_retreating() if animation_controller else false
 
 func get_state_animation(state_name: StringName) -> StringName:
-	var anim_name := state_name
-	if is_retreating() and state_name in [&"Walk", &"Run"]:
-		anim_name = &"Backstep"
-	if not is_armed():
-		var unarmed_name := StringName(String(anim_name) + "_Unarmed")
-		if anim_player and anim_player.has_animation(unarmed_name):
-			return unarmed_name
-	return anim_name
+	return animation_controller.get_state_animation(state_name) if animation_controller else state_name
 
 func sync_weapon_animation() -> void:
-	# A new grip starts from the authored animation pose, never stale action IK.
-	if is_instance_valid(pose_composer):
-		pose_composer.restore_base()
-		pose_composer.reset_transient()
-	impact_accent_offset = Vector2.ZERO
-	if state in [&"Idle", &"Walk", &"Run", &"Jump", &"Fall"]:
-		var target_anim := get_state_animation(state)
-		if anim_player and anim_player.current_animation != target_anim:
-			var prev_len := anim_player.current_animation_length
-			var norm_pos := anim_player.current_animation_position / maxf(prev_len, 0.001) if prev_len > 0 else 0.0
-			anim_player.play(target_anim, 0.12)
-			var next_len := anim_player.current_animation_length
-			anim_player.seek(norm_pos * next_len, true)
+	if animation_controller:
+		animation_controller.sync_weapon_animation()
 
 func transition(next: StringName) -> void:
-	if next == &"Attack":
-		start_attack()
-		return
-	if state == next: return
-	if state == &"Dead" and next != &"Dead": return
-	var previous := state
-	state = next
-	state_changed.emit(previous, state)
-	if anim_player:
-		var target_anim := get_state_animation(next)
-		# Preserve gait phase between Walk and Run so supporting foot is preserved
-		if (previous == &"Walk" or previous == &"Run") and (next == &"Walk" or next == &"Run"):
-			if anim_player.current_animation != target_anim:
-				var prev_len := anim_player.current_animation_length
-				var norm_pos := anim_player.current_animation_position / maxf(prev_len, 0.001) if prev_len > 0 else 0.0
-				anim_player.play(target_anim, 0.10)
-				var next_len := anim_player.current_animation_length
-				anim_player.seek(norm_pos * next_len, true)
-		elif next == &"Idle" and (previous == &"Walk" or previous == &"Run"):
-			# Settle into idle over 4-6 frames (~0.08 - 0.10s)
-			anim_player.play(target_anim, 0.09)
-		elif next == &"Idle" and (previous == &"Fall" or previous == &"Jump"):
-			var land_anim := get_state_animation(&"Land")
-			if anim_player.has_animation(land_anim):
-				anim_player.play(land_anim, 0.04)
-				anim_player.queue(target_anim)
-			else:
-				anim_player.play(target_anim, 0.10)
-		else:
-			match next:
-				&"Idle": anim_player.play(target_anim, 0.15)
-				&"Walk": anim_player.play(target_anim, 0.12)
-				&"Run": anim_player.play(target_anim, 0.12)
-				&"Jump": anim_player.play(target_anim, 0.08)
-				&"Fall": anim_player.play(target_anim, 0.10)
-				&"Dead": pass
+	if animation_controller:
+		animation_controller.transition(next)
 
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return
