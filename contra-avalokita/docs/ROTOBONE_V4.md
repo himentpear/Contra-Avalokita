@@ -12,7 +12,7 @@ RotoBone v4 is a pose-annotation system. Editors manipulate semantic targets and
 
 1. Open `res://tests/rotopose_mud_test.tscn`.
 2. Select an animation phase in the **RotoPose v4** dock.
-3. Drag hand, foot, weapon-tip, or body target gizmos in the viewport. Do not select or drag `Bone2D` nodes.
+3. The Sword Attack sprite strip is shown behind the target gizmos. Selecting a pose phase also selects its corresponding reference frame. Drag hand, foot, weapon-tip, or body target gizmos in the viewport; do not select or drag `Bone2D` nodes.
 4. Use **Capture Pose** to add a semantic pose node.
 5. Use **Export AI Data** for readable `.rotodata`, or **Bake Runtime** to create the compact `current_pose` playback track.
 

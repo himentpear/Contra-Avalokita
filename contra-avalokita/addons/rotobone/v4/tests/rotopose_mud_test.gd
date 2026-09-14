@@ -14,6 +14,8 @@ func _process(_delta: float) -> void:
 
 
 func _sync_renderer() -> void:
+	if Engine.is_editor_hint():
+		return
 	var skeleton := get_node_or_null("MudCharacter/Visual/PoseRoot/Skeleton2D") as Skeleton2D
 	var renderer := get_node_or_null("MudCharacter/Visual/MudBodyRenderer")
 	if skeleton != null and renderer != null and renderer.has_method("sync_skeleton"):

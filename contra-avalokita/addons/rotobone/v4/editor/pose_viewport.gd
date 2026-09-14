@@ -10,12 +10,53 @@ signal target_changed(target_name: StringName, position: Vector2)
 		_rebuild_gizmos()
 @export_node_path("Skeleton2D") var skeleton_path: NodePath
 @export var enabled_targets := PackedStringArray(["head", "hand_r", "hand_l", "foot_r", "foot_l", "weapon_tip", "body"])
+@export var reference_texture: Texture2D:
+	set(value):
+		reference_texture = value
+		queue_redraw()
+@export var reference_hframes := 1:
+	set(value):
+		reference_hframes = maxi(value, 1)
+		queue_redraw()
+@export var reference_vframes := 1:
+	set(value):
+		reference_vframes = maxi(value, 1)
+		queue_redraw()
+@export var reference_frame := 0:
+	set(value):
+		reference_frame = maxi(value, 0)
+		queue_redraw()
+@export var reference_pivot := Vector2(24, 48):
+	set(value):
+		reference_pivot = value
+		queue_redraw()
+@export_range(0.0, 1.0, 0.01) var reference_opacity := 0.55:
+	set(value):
+		reference_opacity = clampf(value, 0.0, 1.0)
+		queue_redraw()
 
 var _active: RotoTargetGizmo
 
 
 func _ready() -> void:
 	_rebuild_gizmos()
+	queue_redraw()
+
+
+func _draw() -> void:
+	if reference_texture == null:
+		return
+	var columns := maxi(reference_hframes, 1)
+	var rows := maxi(reference_vframes, 1)
+	var cell := Vector2(reference_texture.get_width() / columns, reference_texture.get_height() / rows)
+	var frame_count := columns * rows
+	var frame := posmod(reference_frame, frame_count)
+	var source := Rect2(Vector2(frame % columns, frame / columns) * cell, cell)
+	draw_texture_rect_region(reference_texture, Rect2(-reference_pivot, cell), source, Color(1, 1, 1, reference_opacity))
+
+
+func set_reference_frame(frame: int) -> void:
+	reference_frame = frame
 
 
 func _unhandled_input(event: InputEvent) -> void:

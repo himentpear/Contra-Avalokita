@@ -1,10 +1,11 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="1_mud"]
 [ext_resource type="Script" path="res://addons/rotobone/v4/tests/rotopose_mud_test.gd" id="2_test"]
 [ext_resource type="Script" path="res://addons/rotobone/v4/runtime/pose_controller.gd" id="3_controller"]
 [ext_resource type="Script" path="res://addons/rotobone/v4/core/roto_pose.gd" id="4_pose"]
 [ext_resource type="Script" path="res://addons/rotobone/v4/editor/pose_viewport.gd" id="5_viewport"]
+[ext_resource type="Texture2D" path="res://assets/2D-Pixel-Art-Character-Template/2D-Pixel-Art-Character-Template/Sword Attack/player sword atk 64x64.png" id="6_sword_reference"]
 
 [sub_resource type="Resource" id="RotoPose_start"]
 script = ExtResource("4_pose")
@@ -76,9 +77,14 @@ current_pose = SubResource("RotoPose_start")
 
 [node name="PoseViewport" type="Node2D" parent="."]
 position = Vector2(320, 230)
+z_index = 10
 script = ExtResource("5_viewport")
 pose = SubResource("RotoPose_start")
 skeleton_path = NodePath("../MudCharacter/Visual/PoseRoot/Skeleton2D")
+reference_texture = ExtResource("6_sword_reference")
+reference_hframes = 6
+reference_pivot = Vector2(32, 48)
+reference_opacity = 0.55
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {&"": SubResource("AnimationLibrary_pose")}

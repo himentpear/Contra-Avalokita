@@ -53,6 +53,7 @@ func _run() -> void:
 	var viewport := scene.get_node("PoseViewport") as RotoPoseViewport
 	_check(controller != null and viewport != null, "target editor and runtime controller are present")
 	_check(viewport.get_child_count() >= 6, "viewport exposes semantic target gizmos instead of bone handles")
+	_check(viewport.reference_texture != null and viewport.reference_hframes == 6, "viewport displays the six-frame Sword Attack reference")
 	var before := _bone_contract(skeleton)
 	controller.current_pose = viewport.pose
 	var after := _bone_contract(skeleton)
