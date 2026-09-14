@@ -512,6 +512,12 @@ var _flight_stretch_timer := 0.0
 
 func _ready() -> void:
 	add_to_group(&"player_input_entities")
+	var comp_root: Node = get_node_or_null("Components")
+	if not comp_root:
+		comp_root = Node.new()
+		comp_root.name = "Components"
+		add_child(comp_root)
+
 	if has_node("Components/HealthComponent"):
 		health_component = $Components/HealthComponent
 	elif has_node("HealthComponent"):
@@ -519,11 +525,7 @@ func _ready() -> void:
 	else:
 		health_component = HealthComponent.new()
 		health_component.name = "HealthComponent"
-		var comp_root := get_node_or_null("Components")
-		if comp_root:
-			comp_root.add_child(health_component)
-		else:
-			add_child(health_component)
+		comp_root.add_child(health_component)
 	health_component.setup(max_health, max_stability)
 	health_component.damaged.connect(func(amount: float) -> void: damaged.emit(amount))
 	health_component.died.connect(func() -> void: die())
@@ -535,11 +537,7 @@ func _ready() -> void:
 	else:
 		movement_component = MovementComponent.new()
 		movement_component.name = "MovementComponent"
-		var comp_root := get_node_or_null("Components")
-		if comp_root:
-			comp_root.add_child(movement_component)
-		else:
-			add_child(movement_component)
+		comp_root.add_child(movement_component)
 	movement_component.setup(self)
 	movement_component.movement_state_changed.connect(func(s: StringName) -> void: transition(s))
 	movement_component.landed.connect(func(impact: float, hard: bool) -> void:
@@ -566,11 +564,7 @@ func _ready() -> void:
 	else:
 		combat_component = CombatComponent.new()
 		combat_component.name = "CombatComponent"
-		var comp_root := get_node_or_null("Components")
-		if comp_root:
-			comp_root.add_child(combat_component)
-		else:
-			add_child(combat_component)
+		comp_root.add_child(combat_component)
 	combat_component.setup(self)
 	combat_component.attack_duration = _attack_duration
 	combat_component.allow_air_attack = _allow_air_attack
@@ -634,11 +628,7 @@ func _ready() -> void:
 	else:
 		animation_controller = AnimationController.new()
 		animation_controller.name = "AnimationController"
-		var comp_root := get_node_or_null("Components")
-		if comp_root:
-			comp_root.add_child(animation_controller)
-		else:
-			add_child(animation_controller)
+		comp_root.add_child(animation_controller)
 	animation_controller.setup(self, anim_player)
 
 	pose_composer = MudPoseComposer.new()
