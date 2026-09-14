@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "character": "res://scenes/mud_character.tscn",
+  "skeleton": "Visual/PoseRoot/Skeleton2D",
+  "animation_player": "AnimationPlayer",
+  "semantic_map": {
+    "root": "Pelvis",
+    "body": "Pelvis/Torso",
+    "head": "Pelvis/Torso/Head",
+    "arm_r": "Pelvis/Torso/UpperArmFront",
+    "forearm_r": "Pelvis/Torso/UpperArmFront/ForearmFront",
+    "hand_r": "Pelvis/Torso/UpperArmFront/ForearmFront/HandFront",
+    "arm_l": "Pelvis/Torso/UpperArmBack",
+    "forearm_l": "Pelvis/Torso/UpperArmBack/ForearmBack",
+    "hand_l": "Pelvis/Torso/UpperArmBack/ForearmBack/HandBack",
+    "leg_r": "Pelvis/ThighFront",
+    "shin_r": "Pelvis/ThighFront/ShinFront",
+    "foot_r": "Pelvis/ThighFront/ShinFront/FootFront",
+    "leg_l": "Pelvis/ThighBack",
+    "shin_l": "Pelvis/ThighBack/ShinBack",
+    "foot_l": "Pelvis/ThighBack/ShinBack/FootBack"
+  },
+  "editing_contract": {
+    "editable": ["targets", "body_lean", "rotation_hints", "timeline_markers"],
+    "forbidden": ["rest", "length", "bone_position", "bone_scale"]
+  }
+}

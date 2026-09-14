@@ -1,0 +1,84 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="1_mud"]
+[ext_resource type="Script" path="res://addons/rotobone/v4/tests/rotopose_mud_test.gd" id="2_test"]
+[ext_resource type="Script" path="res://addons/rotobone/v4/runtime/pose_controller.gd" id="3_controller"]
+[ext_resource type="Script" path="res://addons/rotobone/v4/core/roto_pose.gd" id="4_pose"]
+[ext_resource type="Script" path="res://addons/rotobone/v4/editor/pose_viewport.gd" id="5_viewport"]
+
+[sub_resource type="Resource" id="RotoPose_start"]
+script = ExtResource("4_pose")
+pose_name = &"attack_start"
+time = 0.0
+targets = {"hand_r": Vector2(8, -34), "hand_l": Vector2(-8, -31), "foot_r": Vector2(6, 0), "foot_l": Vector2(-6, 0), "weapon_tip": Vector2(-18, -25), "body": Vector2(0, -22)}
+rotation_hints = {"hand_r_bend": -1.0, "hand_l_bend": 1.0}
+body_lean = 3.0
+tags = PackedStringArray("preparation")
+
+[sub_resource type="Resource" id="RotoPose_windup"]
+script = ExtResource("4_pose")
+pose_name = &"windup"
+time = 0.15
+targets = {"hand_r": Vector2(-8, -52), "hand_l": Vector2(-12, -35), "foot_r": Vector2(8, 0), "foot_l": Vector2(-8, 0), "weapon_tip": Vector2(-32, -60), "body": Vector2(0, -22)}
+rotation_hints = {"hand_r_bend": -1.0, "hand_l_bend": 1.0}
+body_lean = -8.0
+tags = PackedStringArray("windup", "force")
+
+[sub_resource type="Resource" id="RotoPose_impact"]
+script = ExtResource("4_pose")
+pose_name = &"impact"
+time = 0.22
+targets = {"hand_r": Vector2(17, -25), "hand_l": Vector2(4, -31), "foot_r": Vector2(8, 0), "foot_l": Vector2(-8, 0), "weapon_tip": Vector2(48, -21), "body": Vector2(0, -22)}
+rotation_hints = {"hand_r_bend": 1.0, "hand_l_bend": 1.0}
+body_lean = 15.0
+tags = PackedStringArray("impact", "damage", "hitstop")
+
+[sub_resource type="Resource" id="RotoPose_recover"]
+script = ExtResource("4_pose")
+pose_name = &"recover"
+time = 0.4
+targets = {"hand_r": Vector2(10, -17), "hand_l": Vector2(-5, -29), "foot_r": Vector2(6, 0), "foot_l": Vector2(-6, 0), "weapon_tip": Vector2(23, 8), "body": Vector2(0, -22)}
+rotation_hints = {"hand_r_bend": -1.0, "hand_l_bend": 1.0}
+body_lean = 4.0
+tags = PackedStringArray("recovery")
+
+[sub_resource type="Animation" id="Animation_attack_slash"]
+resource_name = "attack_slash"
+length = 0.401
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("PoseController:current_pose")
+tracks/0/interp = 0
+tracks/0/loop_wrap = false
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.15, 0.22, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [SubResource("RotoPose_start"), SubResource("RotoPose_windup"), SubResource("RotoPose_impact"), SubResource("RotoPose_recover")]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_pose"]
+_data = {&"attack_slash": SubResource("Animation_attack_slash")}
+
+[node name="RotoPoseMudTest" type="Node2D"]
+script = ExtResource("2_test")
+
+[node name="MudCharacter" parent="." instance=ExtResource("1_mud")]
+process_mode = 4
+position = Vector2(320, 230)
+
+[node name="PoseController" type="Node" parent="."]
+script = ExtResource("3_controller")
+skeleton_path = NodePath("../MudCharacter/Visual/PoseRoot/Skeleton2D")
+semantic_map = {"root": "Pelvis", "body": "Pelvis/Torso", "head": "Pelvis/Torso/Head", "arm_r": "Pelvis/Torso/UpperArmFront", "forearm_r": "Pelvis/Torso/UpperArmFront/ForearmFront", "hand_r": "Pelvis/Torso/UpperArmFront/ForearmFront/HandFront", "arm_l": "Pelvis/Torso/UpperArmBack", "forearm_l": "Pelvis/Torso/UpperArmBack/ForearmBack", "hand_l": "Pelvis/Torso/UpperArmBack/ForearmBack/HandBack", "leg_r": "Pelvis/ThighFront", "shin_r": "Pelvis/ThighFront/ShinFront", "foot_r": "Pelvis/ThighFront/ShinFront/FootFront", "leg_l": "Pelvis/ThighBack", "shin_l": "Pelvis/ThighBack/ShinBack", "foot_l": "Pelvis/ThighBack/ShinBack/FootBack"}
+current_pose = SubResource("RotoPose_start")
+
+[node name="PoseViewport" type="Node2D" parent="."]
+position = Vector2(320, 230)
+script = ExtResource("5_viewport")
+pose = SubResource("RotoPose_start")
+skeleton_path = NodePath("../MudCharacter/Visual/PoseRoot/Skeleton2D")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {&"": SubResource("AnimationLibrary_pose")}
