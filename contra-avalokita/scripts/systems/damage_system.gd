@@ -37,9 +37,13 @@ static func calculate_critical(event: HitEvent, victim: Node = null) -> bool:
 	if event.hit_region == &"HEAD":
 		event.is_critical = true
 		return true
-	if victim and victim.get("reaction_state") in [&"HeavyHit", &"Knockdown"]:
-		event.is_critical = true
-		return true
+	if victim:
+		var state = victim.get("reaction_state")
+		if state == null and victim.has_meta("reaction_state"):
+			state = victim.get_meta("reaction_state")
+		if state in [&"HeavyHit", &"Knockdown"]:
+			event.is_critical = true
+			return true
 	return false
 
 static func evaluate_poise_break(current_stability: float, poise_damage: float) -> bool:
