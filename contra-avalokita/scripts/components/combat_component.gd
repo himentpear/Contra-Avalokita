@@ -9,6 +9,7 @@ signal hit_confirmed(target: Node)
 signal animation_request(clip: StringName, blend: float)
 signal damage_requested(amount: float)
 signal reaction_started(tier: StringName, direction: Vector2)
+signal hit_flash_changed(amount: float, color: Color)
 
 @export var attack_duration := 0.62
 @export var allow_air_attack := true
@@ -347,20 +348,14 @@ func trigger_hit_flash(event: HitData = null) -> void:
 	hit_flash_remaining = maxf(hit_flash_remaining, duration)
 	_hit_flash_total = maxf(_hit_flash_total, hit_flash_remaining)
 	_hit_flash_active_peak = maxf(_hit_flash_active_peak, intensity)
-	if character:
-		var body_renderer = character.get_node_or_null("Visual/MudBodyRenderer")
-		if body_renderer:
-			body_renderer.set_hit_flash(_hit_flash_active_peak, hit_flash_color)
+	hit_flash_changed.emit(_hit_flash_active_peak, hit_flash_color)
 
 func update_hit_flash(delta: float) -> void:
 	if hit_flash_remaining <= 0.0:
 		return
 	hit_flash_remaining = maxf(0.0, hit_flash_remaining - delta)
 	var weight := pow(hit_flash_remaining / maxf(_hit_flash_total, 0.001), 0.65)
-	if character:
-		var body_renderer = character.get_node_or_null("Visual/MudBodyRenderer")
-		if body_renderer:
-			body_renderer.set_hit_flash(_hit_flash_active_peak * weight, hit_flash_color)
+	hit_flash_changed.emit(_hit_flash_active_peak * weight, hit_flash_color)
 	if hit_flash_remaining == 0.0:
 		_hit_flash_total = 0.0
 		_hit_flash_active_peak = 0.0
@@ -369,7 +364,4 @@ func clear_hit_flash() -> void:
 	hit_flash_remaining = 0.0
 	_hit_flash_total = 0.0
 	_hit_flash_active_peak = 0.0
-	if character:
-		var body_renderer = character.get_node_or_null("Visual/MudBodyRenderer")
-		if body_renderer:
-			body_renderer.set_hit_flash(0.0, hit_flash_color)
+	hit_flash_changed.emit(0.0, hit_flash_color)

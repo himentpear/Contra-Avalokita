@@ -7,6 +7,7 @@ const MovementComponent = preload("res://scripts/components/movement_component.g
 const HealthComponent = preload("res://scripts/components/health_component.gd")
 const CombatComponent = preload("res://scripts/components/combat_component.gd")
 const AnimationController = preload("res://scripts/components/animation_controller.gd")
+const SDFBodyComponent = preload("res://scripts/components/sdf_body_component.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -28,6 +29,7 @@ var movement_component: MovementComponent
 var health_component: HealthComponent
 var combat_component: CombatComponent
 var animation_controller: AnimationController
+var sdf_body_component: SDFBodyComponent
 
 var air_time: float:
 	get: return movement_component.air_time if movement_component else 0.0
@@ -404,7 +406,9 @@ func clear_transient_pose_state(clear_reaction := true) -> void:
 	if is_instance_valid(pose_composer):
 		pose_composer.restore_base()
 		pose_composer.reset_transient()
-	if is_instance_valid(body_renderer):
+	if sdf_body_component:
+		sdf_body_component.reset_impact()
+	elif is_instance_valid(body_renderer):
 		body_renderer.impact_depth = 0.0
 		body_renderer.impact_bulge_height = 0.0
 
@@ -631,6 +635,23 @@ func _ready() -> void:
 		comp_root.add_child(animation_controller)
 	animation_controller.setup(self, anim_player)
 
+	if has_node("Components/SDFBodyComponent"):
+		sdf_body_component = $Components/SDFBodyComponent
+	elif has_node("SDFBodyComponent"):
+		sdf_body_component = $SDFBodyComponent
+	else:
+		sdf_body_component = SDFBodyComponent.new()
+		sdf_body_component.name = "SDFBodyComponent"
+		comp_root.add_child(sdf_body_component)
+	sdf_body_component.setup(self, body_renderer)
+
+	combat_component.hit_flash_changed.connect(func(amount: float, color: Color) -> void:
+		if sdf_body_component:
+			sdf_body_component.set_hit_flash(amount, color)
+		elif body_renderer:
+			body_renderer.set_hit_flash(amount, color)
+	)
+
 	pose_composer = MudPoseComposer.new()
 	pose_composer.character = self
 	pose_composer.blade_footwork = blade_footwork
@@ -763,7 +784,9 @@ func revive(animated: bool = false) -> void:
 		for bone in skeleton.find_children("*", "Bone2D"):
 			if bone is Bone2D:
 				bone.apply_rest()
-	if body_renderer:
+	if sdf_body_component:
+		sdf_body_component.reset_death()
+	elif body_renderer:
 		body_renderer.death_progress = 0.0
 		body_renderer.death_dissolve = 0.0
 	if death_ascension:
@@ -887,40 +910,53 @@ func _sync_visual(delta: float) -> void:
 	if is_armed() and is_attacking():
 		right_depth = weapons.blade_depth if combo_stage == 1 else (-1.0 if attack_time < .18 else 1.0)
 	elif is_armed() and is_blocking(): right_depth = 1.0
-	body_renderer.facing_depth = facing
-	body_renderer.weapon_arm_depth = right_depth
-	body_renderer.offhand_arm_depth = -facing
+	if sdf_body_component:
+		sdf_body_component.facing_depth = facing
+		sdf_body_component.weapon_arm_depth = right_depth
+		sdf_body_component.offhand_arm_depth = -facing
+	else:
+		body_renderer.facing_depth = facing
+		body_renderer.weapon_arm_depth = right_depth
+		body_renderer.offhand_arm_depth = -facing
 	if is_instance_valid(weapons):
 		weapons.hand_depth = right_depth
 	if state == &"Dead" and death_controller:
-		body_renderer.death_progress = death_controller.death_progress
-		body_renderer.death_dissolve = death_controller.dissolve_progress()
-		body_renderer.puddle_spread_ratio = death_controller.puddle_spread_ratio
-		body_renderer.limb_retraction_strength = death_controller.limb_retraction_strength
-		body_renderer.torso_squash_ratio = death_controller.torso_squash_ratio
-		body_renderer.sync_skeleton(skeleton, delta)
+		if sdf_body_component:
+			sdf_body_component.sync_death(death_controller, delta, skeleton)
+		else:
+			body_renderer.death_progress = death_controller.death_progress
+			body_renderer.death_dissolve = death_controller.dissolve_progress()
+			body_renderer.puddle_spread_ratio = death_controller.puddle_spread_ratio
+			body_renderer.limb_retraction_strength = death_controller.limb_retraction_strength
+			body_renderer.torso_squash_ratio = death_controller.torso_squash_ratio
+			body_renderer.sync_skeleton(skeleton, delta)
 		eyes.sync_bone(_head_bone, delta, 0.0)
 		eyes.sync_death(death_controller.death_progress, int(death_controller.eye_death_mode))
 		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
 		equipment.sync_death(death_controller.death_progress, death_controller.embed_equipment)
 		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, false, delta)
 	else:
-		body_renderer.death_progress = 0.0
-		body_renderer.death_dissolve = 0.0
-		if has_reaction():
-			body_renderer.impact_center = reaction_impact_local
-			body_renderer.impact_radius = 8.5
-			var opp_offset := reaction_direction.x * facing * 12.0
-			body_renderer.impact_bulge_center = reaction_impact_local + Vector2(opp_offset, 0.0)
-			body_renderer.impact_bulge_radius = 7.5
-			var progress: float = clampf(reaction_time / maxf(reaction_duration, 0.001), 0.0, 1.0)
-			body_renderer.impact_depth = lerpf(3.2 * reaction_intensity, 0.0, progress)
-			body_renderer.impact_bulge_height = lerpf(1.8 * reaction_intensity, 0.0, progress)
-			body_renderer.impact_ripple_phase += delta * 4.5
+		if sdf_body_component:
+			sdf_body_component.reset_death()
+			sdf_body_component.update_impact_deformation(delta, has_reaction(), reaction_time, reaction_duration, reaction_intensity, reaction_impact_local, reaction_direction, facing)
+			sdf_body_component.sync_skeleton(skeleton, delta)
 		else:
-			body_renderer.impact_depth = move_toward(body_renderer.impact_depth, 0.0, delta * 20.0)
-			body_renderer.impact_bulge_height = move_toward(body_renderer.impact_bulge_height, 0.0, delta * 20.0)
-		body_renderer.sync_skeleton(skeleton, delta)
+			body_renderer.death_progress = 0.0
+			body_renderer.death_dissolve = 0.0
+			if has_reaction():
+				body_renderer.impact_center = reaction_impact_local
+				body_renderer.impact_radius = 8.5
+				var opp_offset := reaction_direction.x * facing * 12.0
+				body_renderer.impact_bulge_center = reaction_impact_local + Vector2(opp_offset, 0.0)
+				body_renderer.impact_bulge_radius = 7.5
+				var progress: float = clampf(reaction_time / maxf(reaction_duration, 0.001), 0.0, 1.0)
+				body_renderer.impact_depth = lerpf(3.2 * reaction_intensity, 0.0, progress)
+				body_renderer.impact_bulge_height = lerpf(1.8 * reaction_intensity, 0.0, progress)
+				body_renderer.impact_ripple_phase += delta * 4.5
+			else:
+				body_renderer.impact_depth = move_toward(body_renderer.impact_depth, 0.0, delta * 20.0)
+				body_renderer.impact_bulge_height = move_toward(body_renderer.impact_bulge_height, 0.0, delta * 20.0)
+			body_renderer.sync_skeleton(skeleton, delta)
 		eyes.sync_bone(_head_bone, delta, absf(move_intent))
 		eyes.sync_death(0.0)
 		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
@@ -1057,7 +1093,9 @@ func receive_hit(hit_data: Variant) -> void:
 			&"LOWER_TORSO", &"LEG": reaction_impact_local = Vector2(0.0, -18.0)
 			_: reaction_impact_local = Vector2(0.0, -32.0)
 			
-	if body_renderer:
+	if sdf_body_component:
+		sdf_body_component.apply_impact(reaction_impact_local, event.direction, facing, reaction_intensity)
+	elif body_renderer:
 		body_renderer.impact_center = reaction_impact_local
 		body_renderer.impact_radius = 8.5
 		body_renderer.impact_depth = 3.2 * reaction_intensity
