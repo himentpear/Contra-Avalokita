@@ -1,6 +1,6 @@
-# RotoBone Animation Interface v0.1
+# RotoBone Animation Interface v0.2
 
-This interface separates **reference motion** from **gameplay animation state**. RotoBone never assumes that a sprite frame is a bone pose; the sprite is evidence used to trace a pose.
+This interface separates **reference motion**, **reference registration**, and **gameplay animation state**. A sprite frame is evidence for a pose, not a bone pose by itself.
 
 ## 1. Reference clip contract
 
@@ -19,16 +19,47 @@ source_facing: "right" | "left" | "side" | "back" | "front" | "neutral"
 tags: PackedStringArray
 ```
 
-The important design choice is that timing is an **array**, not only FPS. The sample pack contains mostly uniform frame timings, but `Punch Jab` already uses mixed 40/50 ms frames.
+Timing remains an array rather than a single FPS because the supplied sample pack contains animations with non-uniform frame durations.
 
-## 2. Skeleton semantic interface
+## 2. Two coordinate spaces
 
-Recommended semantic joint names for later retargeting:
+V0.2 deliberately separates two things that were mixed together in V0.1.
+
+### Scene-space position
 
 ```text
-root
+RotoBoneAnchor : Marker2D
+    position.x -> reference world X
+    position.y -> reference world Y
+```
+
+The user moves this node with Godot's normal 2D transform gizmo. There is no second visible `Offset X/Y` control in the dock.
+
+### Sprite-space pivot
+
+```text
+anchor_px / Pivot X/Y
+```
+
+This identifies the pixel *inside one sprite frame* that is placed exactly on `RotoBoneAnchor`.
+
+Therefore:
+
+```text
+world placement               = RotoBoneAnchor.global_transform
+sprite internal registration  = anchor_px
+```
+
+This split prevents selecting a different `Bone2D` from moving the reference image.
+
+## 3. Skeleton semantic interface
+
+Recommended semantic joint names:
+
+```text
 pelvis
 torso
+chest
 head
 arm_back_upper
 arm_back_lower
@@ -45,9 +76,37 @@ foot_front
 weapon_socket
 ```
 
-Do not hard-code NodePaths into reference data. A later retarget map should bind these semantic names to the project's actual `Bone2D` paths.
+Reference data should not hard-code project-specific NodePaths. A later retarget map should bind semantic names to the project's actual `Bone2D` paths.
 
-## 3. Gameplay animation IDs covered by the supplied sample pack
+## 4. Standard rig contract
+
+The **+ Rig** action generates a compact side-view tracing scaffold sized for the supplied 48×48 template family.
+
+```text
+RotoBoneRig
+├── Skeleton2D
+│   └── pelvis
+│       ├── torso
+│       │   └── chest
+│       │       ├── head
+│       │       ├── arm_front_upper -> arm_front_lower -> hand_front
+│       │       └── arm_back_upper  -> arm_back_lower  -> hand_back
+│       ├── leg_front_upper -> leg_front_lower -> foot_front
+│       └── leg_back_upper  -> leg_back_lower  -> foot_back
+└── AnimationPlayer
+```
+
+Creation-time behavior:
+
+- uses real `Bone2D` nodes so the user can manipulate them with Godot's native skeleton editor;
+- gives every bone a fixed initial gizmo length and angle;
+- captures each initial local transform into `Bone2D.rest` exactly once;
+- attaches a `rotobone_semantic` metadata value to each bone;
+- creates an empty `trace_pose` animation in `AnimationPlayer`.
+
+The rig root is pelvis-centered. When inserted, RotoBone estimates the visual hip around 52% of frame height and places the pelvis under that point. This gives a useful first alignment for both feet-anchored locomotion and contact-anchored traversal without binding the rig to one specific animation.
+
+## 5. Gameplay animation IDs covered by the supplied sample pack
 
 ### Locomotion
 `idle`, `walk`, `run`, `crouch_idle`, `crouch_walk`, `sword_idle`, `sword_run`, `katana_walk`, `katana_run`.
@@ -61,47 +120,55 @@ Do not hard-code NodePaths into reference data. A later retarget map should bind
 ### Interaction / reaction
 `push`, `pull`, `push_pull_idle`, `hurt`, `death`.
 
-## 4. Current shown example: climb_back
+## 6. Current shown example: climb_back
 
-The image shown in the conversation is byte-identical to:
+The shown reference corresponds to:
 
-`Climb (facing back of player)/player climb-back 48x48.png`
+```text
+Climb (facing back of player)/player climb-back 48x48.png
+```
 
-Metadata extracted from the accompanying Aseprite file:
+Its catalog metadata is:
 
 ```text
 frame size      48 × 48
 frame count     4
 duration/frame  185 ms
 cycle duration  740 ms
-reference role  traversal / contact-anchored
+anchor mode     contact
+anchor_px       (24.0, 26.88)
 ```
 
-For this action, do not use a feet anchor. The character is constrained by the climbing surface, so the reference should be aligned around a body/contact anchor and then fine-tuned with `Offset X/Y`.
+Because this is a contact/traversal animation, the reference pivot sits substantially above the feet. The standard rig therefore estimates a hip point separately instead of assuming the position marker always means "feet".
 
-## 5. V0.1 safety contract
+## 7. Safety contract
 
-RotoBone v0.1 is intentionally non-destructive:
+The tracing overlay does not automatically write:
 
-- never writes `Bone2D.rest`;
-- never changes bone length;
-- never changes bone scale;
-- never inserts animation keys;
-- never edits scene transforms;
-- only draws an editor viewport overlay.
+- `Bone2D.rest` after sample-rig creation;
+- bone scale;
+- bone length after sample-rig creation;
+- animation keys;
+- CharacterBody2D/runtime movement.
 
-This means the first version can be used while manually posing bones with Godot's normal Skeleton2D tools without risking rest-pose drift.
-
-## 6. Planned interface extensions
-
-The next safe additions are:
+The only intentional scene edits in V0.2 are explicit user actions:
 
 ```text
-PoseMarker[]        manual head/shoulder/elbow/wrist/hip/knee/ankle markers
-BoneSemanticMap     semantic joint -> Bone2D NodePath
-PoseKeyWriter       rotation-only key insertion through EditorUndoRedoManager
-TwoBoneIKHint       limb target + bend direction / pole hint
-ContactMarker[]     wall/ground/weapon contact constraints
++ Pos -> create a Marker2D position anchor
++ Rig -> create a disposable sample Skeleton2D hierarchy
 ```
 
-The plugin should only gain transform-writing capabilities after those operations are Undo/Redo-safe and explicitly separated from rest-pose editing.
+Both actions are routed through editor Undo/Redo.
+
+## 8. Next safe extension
+
+The next animation-writing layer should be:
+
+```text
+PoseMarker[]
+    -> BoneSemanticMap
+    -> rotation-only PoseKeyWriter
+    -> EditorUndoRedoManager
+```
+
+Only after this is stable should the plugin add two-bone IK and contact constraints. This keeps pose editing separate from rest-pose editing and prevents the tracing tool from becoming another source of skeleton drift.
