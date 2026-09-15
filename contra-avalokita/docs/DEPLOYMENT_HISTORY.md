@@ -2,6 +2,30 @@
 
 This document records repository-level engineering deployments that change build, test, release, or runtime infrastructure. Git history remains the source of truth for exact diffs.
 
+## 2026-09-15 — Regression Gate stabilization
+
+### Issue
+
+- Component migration caused integration tests to call removed `MudCharacter` APIs.
+- The mechanics lab depended on hardcoded `WallTower` coordinates.
+- A runtime script error aborted the test coroutine before `SceneTree.quit()`, leaving the CI process alive until the job timeout.
+
+### Fix
+
+- Migrated tests to public component and character APIs.
+- Added a 90-second per-test timeout and explicit timeout diagnostics.
+- Replaced coordinate assumptions with semantic node lookup.
+- Added a gate that rejects private-function calls such as `character._internal_function()` in the regression suite.
+
+### Result
+
+- 9 regression tests passed.
+- Runtime: 11.3 seconds.
+
+### Refactoring rule
+
+Regression tests exercise public behavior from the tested object's point of view. They must not call another object's underscore-prefixed implementation methods. If a test needs a capability such as starting a wall jump, expose a semantic API such as `movement_component.request_wall_jump()` or `character.perform_jump()` instead of coupling the test to an internal helper.
+
 ## 2026-09-14 — Godot 4.7 headless CI baseline
 
 **Type:** QA / CI infrastructure  

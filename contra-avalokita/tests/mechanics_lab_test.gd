@@ -123,7 +123,8 @@ func run() -> void:
 	# 7. Respawn System preserves inventory
 	p.obtain_item(arena.COYOTE_ITEMS[0])
 	p.position = Vector2(500.0, arena.TEST_KILL_Y + 50.0) # Below kill threshold
-	arena._process(0.016)
+	await process_frame
+	await process_frame
 	check(p.item_inventory.has(&"base:wile_glance"), "Respawn preserves equipped debug items")
 	check(p.global_position.y < arena.TEST_KILL_Y, "Respawn resets player above kill boundary")
 	

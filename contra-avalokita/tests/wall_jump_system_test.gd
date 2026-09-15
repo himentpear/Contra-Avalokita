@@ -63,22 +63,25 @@ func run() -> void:
 
 	for side in [1.0, -1.0]:
 		var climb := await launch_from_wall(side, side)
-		check(climb.pending_wall_jump_kind == &"Climb", "Toward + Jump selects Wall Climb on side %.0f" % side)
-		check(climb.velocity.x * side < 0.0 and absf(climb.velocity.x) < climb.wall_jump_horizontal_speed, "Wall Climb has the smallest horizontal detach")
-		check(climb.velocity.y <= -climb.wall_climb_jump_velocity * 0.75, "Wall Climb has high vertical launch")
+		var climb_movement := climb.movement_component
+		check(climb_movement.pending_wall_jump_kind == &"Climb", "Toward + Jump selects Wall Climb on side %.0f" % side)
+		check(climb.velocity.x * side < 0.0 and absf(climb.velocity.x) < climb_movement.wall_jump_horizontal_speed, "Wall Climb has the smallest horizontal detach")
+		check(climb.velocity.y <= -climb_movement.wall_climb_jump_velocity * 0.75, "Wall Climb has high vertical launch")
 		await release_actor(climb)
 
 		var standard := await launch_from_wall(side, 0.0)
-		check(standard.pending_wall_jump_kind == &"Standard", "Neutral + Jump selects Standard Wall Jump on side %.0f" % side)
-		check(standard.velocity.x * side < -standard.wall_jump_horizontal_speed * 0.70, "Standard Wall Jump launches away from the wall")
-		check(standard.velocity.y <= -standard.wall_jump_vertical_speed * 0.75, "Standard Wall Jump preserves medium-high vertical speed")
+		var standard_movement := standard.movement_component
+		check(standard_movement.pending_wall_jump_kind == &"Standard", "Neutral + Jump selects Standard Wall Jump on side %.0f" % side)
+		check(standard.velocity.x * side < -standard_movement.wall_jump_horizontal_speed * 0.70, "Standard Wall Jump launches away from the wall")
+		check(standard.velocity.y <= -standard_movement.wall_jump_vertical_speed * 0.75, "Standard Wall Jump preserves medium-high vertical speed")
 		await release_actor(standard)
 
 		var kick := await launch_from_wall(side, -side)
-		check(kick.pending_wall_jump_kind == &"Kick", "Away + Jump selects Wall Kick on side %.0f" % side)
-		check(kick.velocity.x * side < -kick.wall_jump_horizontal_speed, "Wall Kick has the strongest horizontal launch")
-		check(kick.velocity.y < 0.0 and absf(kick.velocity.y) < kick.wall_jump_vertical_speed, "Wall Kick trades vertical height for horizontal force")
-		check(kick.wall_detach_left > 0.0 and kick.wall_jump_control_lock_left > 0.0, "Wall Kick enables detach and horizontal-control locks")
+		var kick_movement := kick.movement_component
+		check(kick_movement.pending_wall_jump_kind == &"Kick", "Away + Jump selects Wall Kick on side %.0f" % side)
+		check(kick.velocity.x * side < -kick_movement.wall_jump_horizontal_speed, "Wall Kick has the strongest horizontal launch")
+		check(kick.velocity.y < 0.0 and absf(kick.velocity.y) < kick_movement.wall_jump_vertical_speed, "Wall Kick trades vertical height for horizontal force")
+		check(kick_movement.wall_detach_left > 0.0 and kick_movement.wall_jump_control_lock_left > 0.0, "Wall Kick enables detach and horizontal-control locks")
 		await release_actor(kick)
 
 	var coyote := await attach(1.0)
@@ -87,36 +90,43 @@ func run() -> void:
 		await physics_frame
 		if not coyote.is_wall_attached():
 			break
-	check(not coyote.is_wall_attached() and coyote.wall_coyote_left > 0.0, "Moving away leaves a short wall-coyote window")
+	check(not coyote.is_wall_attached() and coyote.movement_component.wall_coyote_left > 0.0, "Moving away leaves a short wall-coyote window")
 	coyote.set_intent(-1.0, true)
 	await physics_frame
-	check(coyote.wall_action == &"WallPush" and coyote.pending_wall_jump_kind == &"Kick", "Away then Jump succeeds through wall coyote time")
+	check(coyote.wall_action == &"WallPush" and coyote.movement_component.pending_wall_jump_kind == &"Kick", "Away then Jump succeeds through wall coyote time")
 	await release_actor(coyote)
 
 	var decay_actor := preload("res://scenes/mud_character.tscn").instantiate() as MudCharacter
 	decay_actor.player_controlled = false
 	root.add_child(decay_actor)
+	var decay_movement := decay_actor.movement_component
 	var climb_speeds := PackedFloat32Array()
 	for attempt in 10:
-		decay_actor._set_wall_action(&"None")
-		decay_actor.wall_detach_left = 0.0
-		decay_actor.wall_coyote_left = 1.0
-		decay_actor.wall_coyote_side = 1.0
-		decay_actor.wall_coyote_collider_id = wall_body.get_instance_id()
-		decay_actor.move_intent = 1.0
-		decay_actor._start_wall_jump()
-		climb_speeds.append(absf(decay_actor.pending_wall_launch.y))
+		decay_movement.cancel_wall_action()
+		decay_movement.wall_detach_left = 0.0
+		decay_movement.wall_coyote_left = 1.0
+		decay_movement.wall_coyote_side = 1.0
+		decay_movement.wall_coyote_collider_id = wall_body.get_instance_id()
+		decay_movement.move_intent = 1.0
+		decay_movement.request_wall_jump()
+		climb_speeds.append(absf(decay_movement.pending_wall_launch.y))
 	var monotonically_decays := true
 	for i in range(1, climb_speeds.size()):
 		if climb_speeds[i] > climb_speeds[i - 1] + 0.01:
 			monotonically_decays = false
 	check(monotonically_decays, "Ten same-wall climb impulses decay monotonically")
 	check(climb_speeds[0] > climb_speeds[4] and climb_speeds[9] == 0.0, "Same-wall climb eventually becomes detach-only instead of an infinite elevator")
-	check(decay_actor.same_wall_jump_count == 10, "Same-wall climb count is tracked per climb jump")
-	decay_actor._reset_same_wall_tracking(12345, -1.0)
-	check(decay_actor.same_wall_jump_count == 0, "Switching to a different wall resets climb decay")
-	decay_actor._reset_same_wall_tracking()
-	check(decay_actor.same_wall_jump_count == 0 and decay_actor.same_wall_side == 0.0, "Floor/time reset clears same-wall identity")
+	check(decay_movement.same_wall_jump_count == 10, "Same-wall climb count is tracked per climb jump")
+	decay_movement.cancel_wall_action()
+	decay_movement.wall_detach_left = 0.0
+	decay_movement.wall_coyote_left = 1.0
+	decay_movement.wall_coyote_side = -1.0
+	decay_movement.wall_coyote_collider_id = wall_body.get_instance_id() + 1
+	decay_movement.move_intent = -1.0
+	decay_movement.request_wall_jump()
+	check(decay_movement.same_wall_jump_count == 1 and is_equal_approx(absf(decay_movement.pending_wall_launch.y), decay_movement.wall_climb_jump_velocity), "Switching to a different wall resets climb decay")
+	decay_movement.reset_wall_runtime()
+	check(decay_movement.same_wall_jump_count == 0 and decay_movement.same_wall_side == 0.0, "Wall runtime reset clears same-wall identity")
 	await release_actor(decay_actor)
 
 	var corridor_left := platform(Vector2(400, 205), Vector2(20, 500))

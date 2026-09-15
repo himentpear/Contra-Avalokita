@@ -24,6 +24,17 @@ func make_wall() -> StaticBody2D:
 	root.add_child(body)
 	return body
 
+func make_floor() -> StaticBody2D:
+	var body := StaticBody2D.new()
+	body.position = Vector2(100, 110)
+	var collision := CollisionShape2D.new()
+	var shape := RectangleShape2D.new()
+	shape.size = Vector2(200, 20)
+	collision.shape = shape
+	body.add_child(collision)
+	root.add_child(body)
+	return body
+
 func attach_left_wall() -> MudCharacter:
 	var actor := preload("res://scenes/mud_character.tscn").instantiate() as MudCharacter
 	actor.player_controlled = false
@@ -46,6 +57,7 @@ func free_actor(actor: MudCharacter) -> void:
 
 func run() -> void:
 	wall = make_wall()
+	var floor_body := make_floor()
 
 	var toward := await attach_left_wall()
 	toward.set_intent(-1.0, true)
@@ -92,28 +104,33 @@ func run() -> void:
 	var movement := fatigue.movement_component
 	var impulses := PackedFloat32Array()
 	for attempt in 4:
-		movement._set_wall_action(&"None")
+		movement.cancel_wall_action()
 		movement.wall_detach_left = 0.0
 		movement.wall_coyote_left = 1.0
 		movement.wall_coyote_side = -1.0
 		movement.wall_coyote_collider_id = wall.get_instance_id()
 		movement.move_intent = -1.0
-		movement._start_wall_jump()
+		movement.request_wall_jump()
 		impulses.append(absf(movement.pending_wall_launch.y))
 	check(impulses[0] > impulses[1] and impulses[1] > impulses[2] and impulses[3] == 0.0, "E: same-wall vertical impulse decays to zero")
-	movement._set_wall_action(&"None")
+	movement.cancel_wall_action()
 	movement.wall_detach_left = 0.0
 	movement.wall_coyote_left = 1.0
 	movement.wall_coyote_side = 1.0
 	movement.wall_coyote_collider_id = wall.get_instance_id() + 1
 	movement.move_intent = 1.0
-	movement._start_wall_jump()
+	movement.request_wall_jump()
 	check(is_equal_approx(absf(movement.pending_wall_launch.y), movement.wall_climb_jump_velocity), "F: opposite/new wall restores full strength")
-	movement._update_wall_memory(1.0 / 60.0, true)
-	check(movement.same_wall_jump_count == 0 and movement.same_wall_side == 0.0, "G: landing resets same-wall fatigue")
+	movement.cancel_wall_action()
+	fatigue.position = Vector2(100, 98)
+	fatigue.velocity = Vector2.ZERO
+	for frame in 8:
+		await physics_frame
+	check(fatigue.is_on_floor() and movement.same_wall_jump_count == 0 and movement.same_wall_side == 0.0, "G: landing resets same-wall fatigue")
 	await free_actor(fatigue)
 
 	wall.queue_free()
+	floor_body.queue_free()
 	await process_frame
 	print("WALL JUMP INTEGRATION RESULT: ", failures, " failures")
 	quit(1 if failures else 0)
