@@ -1,8 +1,11 @@
 class_name AnimationController
 extends Node
 
+const AnimationLayerManagerScript = preload("res://scripts/components/animation/animation_layer_manager.gd")
+
 var character: CharacterBody2D
 var anim_player: AnimationPlayer
+var layer_manager: AnimationLayerManager
 
 func setup(p_character: CharacterBody2D, p_anim_player: AnimationPlayer = null) -> void:
 	character = p_character
@@ -10,6 +13,20 @@ func setup(p_character: CharacterBody2D, p_anim_player: AnimationPlayer = null) 
 		anim_player = p_anim_player
 	elif character:
 		anim_player = character.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	setup_layer_manager()
+
+func setup_layer_manager() -> void:
+	layer_manager = get_node_or_null("AnimationLayerManager") as AnimationLayerManager
+	if layer_manager == null:
+		layer_manager = AnimationLayerManagerScript.new()
+		layer_manager.name = "AnimationLayerManager"
+		add_child(layer_manager)
+	var skeleton := character.get_node_or_null("Visual/PoseRoot/Skeleton2D") as Skeleton2D if character else null
+	layer_manager.setup(character, anim_player, skeleton)
+
+func update_layers(delta: float) -> void:
+	if layer_manager:
+		layer_manager.update_layers(delta)
 
 func is_retreating() -> bool:
 	if not character: return false
