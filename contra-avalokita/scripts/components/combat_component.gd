@@ -3,6 +3,9 @@ extends Node
 
 const HitEvent = preload("res://scripts/hit_event.gd")
 const HitData = preload("res://scripts/combat/hit_data.gd")
+const CombatSystem = preload("res://scripts/systems/combat_system.gd")
+const DamageSystem = preload("res://scripts/systems/damage_system.gd")
+const HitstopSystem = preload("res://scripts/systems/hitstop_system.gd")
 
 signal attack_started(id: StringName)
 signal hit_confirmed(target: Node)
@@ -279,8 +282,9 @@ func advance_attack(delta: float) -> void:
 	if attack_time < attack_duration: return
 	var weapons = character.get("weapons") if character else null
 	var max_stages: int = weapons.current.attack_animations.size() if is_armed() and weapons.current.weapon_class == "blade" else punch_animations.size()
-	if combo_queued and combo_stage + 1 < max_stages:
-		start_attack(combo_stage + 1)
+	var combo_result := CombatSystem.evaluate_combo(combo_stage, max_stages, combo_queued)
+	if combo_result["continue_combo"]:
+		start_attack(combo_result["next_stage"])
 	else:
 		combo_stage = 0
 		combo_queued = false
@@ -317,69 +321,30 @@ func update_punch_attack(_delta: float) -> void:
 
 func _on_punch_area_entered(area: Area2D) -> void:
 	if not is_attacking() or is_armed() or not character: return
-	var owner_node = area.get_meta("owner_character", null)
-	if owner_node == character: return
-	var id := area.get_instance_id()
-	if punch_hit_targets.has(id): return
-	punch_hit_targets.append(id)
 	var dmg: float = punch_damages[combo_stage] if combo_stage < punch_damages.size() else 8.0
-	var facing: float = character.get("facing") if "facing" in character else 1.0
-	var event := HitEvent.new()
-	event.attacker = character
-	event.attack_name = attack_animation()
-	event.attack_token = score_attack_serial
-	event.damage = dmg
-	event.direction = Vector2(facing, 0.0)
-	event.attacker_velocity = character.velocity
-	event.weapon_type = &"punch"
-	event.impact = punch_impacts[combo_stage] if combo_stage < punch_impacts.size() else 1.0
-	event.hit_index = punch_hit_targets.size() - 1
-	event.impact_point = punch_hitbox.global_position
-	if combo_stage == 0:
-		event.hit_type = &"LightHit"
-		event.poise_damage = 12.0
-		event.impact_force = 55.0
-		event.hit_region = &"HEAD"
-		event.target_push_distance = 1.8
-		event.attacker_drag_ratio = 0.35
-		event.camera_shake_strength = 0.0
-	elif combo_stage == 1:
-		event.hit_type = &"LightHit"
-		event.poise_damage = 18.0
-		event.impact_force = 90.0
-		event.hit_region = &"UPPER_TORSO"
-		event.target_push_distance = 2.5
-		event.attacker_drag_ratio = 0.40
-		event.camera_shake_strength = 0.0
-	else:
-		event.hit_type = &"HeavyHit"
-		event.poise_damage = 35.0
-		event.impact_force = 135.0
-		event.hit_region = &"HEAD"
-		event.target_push_distance = 4.0
-		event.attacker_drag_ratio = 0.50
-		event.camera_shake_strength = 0.0
-
-	hit_drag_timer = 0.10
-	hit_drag_ratio = event.attacker_drag_ratio
-	if "impact_accent_offset" in character:
-		character.impact_accent_offset = Vector2(-facing * 1.0, 0.0)
-
-	if enable_camera_shake:
-		var tree := character.get_tree()
-		if tree and tree.current_scene and tree.current_scene.has_method("trigger_camera_shake"):
-			tree.current_scene.call("trigger_camera_shake", event.direction, event.camera_shake_strength, 0.08)
-
-	if area.has_method("receive_hit"):
-		area.call("receive_hit", event)
-	elif area.get_parent() and area.get_parent().has_method("receive_hit"):
-		area.get_parent().call("receive_hit", event)
-
-	var splatter = character.get_node_or_null("Visual/PixelMudSplatter")
-	if splatter and is_instance_valid(area):
-		splatter.burst(area.global_position, 5)
-
-	hit_confirmed.emit(area)
+	var attack_info := {
+		"combo_stage": combo_stage,
+		"attack_name": attack_animation(),
+		"attack_token": score_attack_serial,
+		"damage": dmg,
+		"weapon_type": &"punch",
+		"impact": punch_impacts[combo_stage] if combo_stage < punch_impacts.size() else 1.0,
+		"enable_camera_shake": enable_camera_shake,
+	}
+	var event: HitEvent = CombatSystem.process_hitbox_overlap(
+		character,
+		punch_hitbox,
+		area,
+		attack_info,
+		punch_hit_targets
+	)
+	if event:
+		hit_drag_timer = 0.10
+		hit_drag_ratio = event.attacker_drag_ratio
+		var facing: float = character.get("facing") if "facing" in character else 1.0
+		if "impact_accent_offset" in character:
+			character.impact_accent_offset = Vector2(-facing * 1.0, 0.0)
+		hit_confirmed.emit(area)
 
 func get_arm_extension_ratio(back_arm := false) -> float:
 	var upper: Bone2D = _upper_arm_back_bone if back_arm else _upper_arm_front_bone
@@ -402,28 +367,15 @@ func set_local_time_scale(scale: float) -> void:
 
 func request_confirmed_hitstop(event: HitEvent) -> void:
 	trigger_hit_flash(event)
-	if character and character.is_inside_tree():
-		var manager := character.get_node_or_null("/root/HitstopManager")
-		if manager:
-			manager.request_hitstop(event)
+	HitstopSystem.request_hitstop(event, character)
 
 func clear_managed_hitstop() -> void:
-	if character and character.is_inside_tree():
-		var manager := character.get_node_or_null("/root/HitstopManager")
-		if manager:
-			manager.clear_actor_stop(character)
-		else:
-			set_local_time_scale(1.0)
+	HitstopSystem.clear_actor_hitstop(character)
 
 func trigger_hit_flash(event: HitData = null) -> void:
-	var authored_impact := event.impact if event else 1.0
-	var intensity := hit_flash_peak * clampf(0.65 + authored_impact * 0.25, 0.65, 1.0)
-	if event and event.is_blocked:
-		intensity *= 0.70
-	if event and (event.is_critical or event.is_kill or event.is_armor_break or event.is_parry):
-		intensity = hit_flash_peak
-	var duration_scale := clampf(0.85 + authored_impact * 0.15, 0.85, 1.15)
-	var duration := hit_flash_duration * duration_scale
+	var flash_data := HitstopSystem.calculate_hit_flash(event, hit_flash_duration, hit_flash_peak)
+	var intensity: float = flash_data["intensity"]
+	var duration: float = flash_data["duration"]
 	hit_flash_remaining = maxf(hit_flash_remaining, duration)
 	_hit_flash_total = maxf(_hit_flash_total, hit_flash_remaining)
 	_hit_flash_active_peak = maxf(_hit_flash_active_peak, intensity)

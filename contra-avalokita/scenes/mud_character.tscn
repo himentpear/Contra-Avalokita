@@ -7382,10 +7382,3 @@ shape = SubResource("CapsuleShape2D_u37ux")
 
 [node name="PoseValidation" type="Node" parent="." unique_id=309501750]
 script = ExtResource("10_cgwm4")
-
-[node name="RotoBoneAnchor" type="Marker2D" parent="." unique_id=621805669]
-position = Vector2(2, -31.000002)
-scale = Vector2(2.4069269, 2.6137412)
-gizmo_extents = 13.0
-metadata/rotobone_anchor = true
-metadata/rotobone_role = "reference_xy_origin"
