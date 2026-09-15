@@ -109,9 +109,12 @@ func run() -> void:
 	
 	# 6. Wall Mechanics Tower
 	arena.player.player_controlled = false
-	arena.player.position = Vector2(3395.0, 92.0)
-	arena.player.velocity = Vector2(70.0, 25.0)
-	arena.player.set_intent(1.0)
+	var tower_wall := arena.get_node_or_null("World/GameplayWorld/Platforms/WallTowerRight") as StaticBody2D
+	check(tower_wall != null, "Wall tower exposes its climbable fixture")
+	if tower_wall != null:
+		arena.player.position = tower_wall.global_position + Vector2(25.0, 62.0)
+		arena.player.velocity = Vector2(-70.0, 25.0)
+		arena.player.set_intent(-1.0)
 	for tick in 20:
 		await physics_frame
 		if arena.player.is_wall_attached(): break
@@ -120,7 +123,8 @@ func run() -> void:
 	# 7. Respawn System preserves inventory
 	p.obtain_item(arena.COYOTE_ITEMS[0])
 	p.position = Vector2(500.0, arena.TEST_KILL_Y + 50.0) # Below kill threshold
-	arena._process(0.016)
+	await process_frame
+	await process_frame
 	check(p.item_inventory.has(&"base:wile_glance"), "Respawn preserves equipped debug items")
 	check(p.global_position.y < arena.TEST_KILL_Y, "Respawn resets player above kill boundary")
 	

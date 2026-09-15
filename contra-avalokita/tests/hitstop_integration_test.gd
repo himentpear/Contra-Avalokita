@@ -96,13 +96,16 @@ func run() -> void:
 
 	var wall_actor := make_actor()
 	await physics_frame
-	wall_actor.wall_side = 1.0
-	wall_actor.wall_coyote_side = 1.0
-	wall_actor.wall_coyote_left = 0.1
-	wall_actor.move_intent = 0.0
-	wall_actor._start_wall_jump()
-	wall_actor.wall_action_time = wall_actor.wall_push_duration
-	wall_actor._update_wall_before_move(0.0)
+	var wall_movement := wall_actor.movement_component
+	wall_movement.wall_side = 1.0
+	wall_movement.wall_coyote_side = 1.0
+	wall_movement.wall_coyote_left = 0.1
+	wall_movement.move_intent = 0.0
+	wall_movement.request_wall_jump()
+	for frame in 10:
+		await physics_frame
+		if wall_actor.wall_action == &"WallRelease":
+			break
 	var wall_hit := HitEvent.new(5.0, Vector2.LEFT, wall_actor.global_position, 60.0, 10.0, &"LightHit", &"unarmed")
 	wall_actor.receive_hit(wall_hit)
 	var frozen_wall_time := wall_actor.wall_action_time

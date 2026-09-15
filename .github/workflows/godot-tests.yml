@@ -43,6 +43,22 @@ jobs:
           )
           for test_script in "${tests[@]}"; do
             echo "::group::$test_script"
-            godot --headless --path . --script "$test_script"
-            echo "::endgroup::"
+            if private_calls=$(grep -nE '\._[[:alnum:]_]+[[:space:]]*\(' "$test_script"); then
+              echo "::error file=$test_script::Regression tests must not call private functions"
+              echo "$private_calls"
+              echo "::endgroup::"
+              exit 1
+            fi
+            if timeout --signal=TERM --kill-after=10s 90s \
+              godot --headless --path . --script "$test_script"; then
+              echo "::endgroup::"
+              continue
+            else
+              status=$?
+              echo "::endgroup::"
+              if [[ "$status" -eq 124 ]]; then
+                echo "::error file=$test_script::Regression test timed out after 90 seconds"
+              fi
+              exit "$status"
+            fi
           done

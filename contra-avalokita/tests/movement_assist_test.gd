@@ -93,12 +93,11 @@ func run() -> void:
 	actor.player_controlled = false
 	root.add_child(actor)
 	await process_frame
-	actor.set_physics_process(false)
 	actor.movement_assist.reset(true)
 	actor.movement_assist.observe_grounded(false)
 	var frozen_coyote := actor.movement_assist.get_coyote_remaining()
 	actor.local_time_scale = 0.0
-	actor._physics_process(0.05)
+	await physics_frame
 	check(near(actor.movement_assist.get_coyote_remaining(), frozen_coyote), "Local hit stop freezes movement-assist timers")
 	actor.local_time_scale = 1.0
 	actor.item_inventory.clear()
@@ -106,15 +105,15 @@ func run() -> void:
 	actor.obtain_item(HERMES)
 	actor.velocity = Vector2(80.0, 0.0)
 	actor.facing = 1.0
-	actor._perform_jump(MudMovementAssist.JumpSource.COYOTE)
+	actor.perform_jump(MudMovementAssist.JumpSource.COYOTE)
 	var right_launch := actor.velocity
 	check(near(right_launch.x, 89.6) and near(right_launch.y, actor.jump_velocity*1.10), "G/H Coyote launch applies +12% horizontal and +10% vertical")
 	actor.velocity = Vector2(-80.0, 0.0)
 	actor.facing = -1.0
-	actor._perform_jump(MudMovementAssist.JumpSource.COYOTE)
+	actor.perform_jump(MudMovementAssist.JumpSource.COYOTE)
 	check(near(actor.velocity.x, -right_launch.x) and near(actor.velocity.y, right_launch.y), "L Coyote launch is symmetric for both facings")
 	actor.velocity = Vector2(80.0, 0.0)
-	actor._perform_jump(MudMovementAssist.JumpSource.GROUND)
+	actor.perform_jump(MudMovementAssist.JumpSource.GROUND)
 	check(near(actor.velocity.x, 80.0) and near(actor.velocity.y, actor.jump_velocity), "G/H normal ground launch remains unchanged")
 
 	# Content and UI use the existing registry definition shape and one reusable card.

@@ -231,6 +231,9 @@ func is_wall_attached() -> bool:
 func is_wall_jump_action() -> bool:
 	return wall_action in [&"WallPush", &"WallRelease"]
 
+func cancel_wall_action() -> void:
+	_set_wall_action(&"None")
+
 func _set_wall_action(next: StringName) -> void:
 	if wall_action == next:
 		return
@@ -436,12 +439,12 @@ func _update_wall_after_move() -> void:
 func _can_start_wall_jump() -> bool:
 	return wall_detach_left <= 0.0 and (is_wall_attached() or wall_coyote_left > 0.0)
 
-func _start_wall_jump() -> void:
+func request_wall_jump() -> bool:
 	if not _can_start_wall_jump() or not character:
-		return
+		return false
 	var launch_side := wall_side if is_wall_attached() and wall_side != 0.0 else wall_coyote_side
 	if launch_side == 0.0:
-		return
+		return false
 	var collider_id := _contact_wall_collider_id(launch_side)
 	if collider_id == 0:
 		collider_id = wall_coyote_collider_id
@@ -474,6 +477,7 @@ func _start_wall_jump() -> void:
 	_set_wall_action(&"WallPush")
 	jump_phase = &"WallPush"
 	air_time = 0.0
+	return true
 
 func _recompute_movement_modifiers() -> void:
 	movement_assist.apply_modifiers(item_inventory.aggregate_movement_modifiers())
@@ -564,9 +568,8 @@ func physics_step(delta: float, atk_mult: float, allow_coyote_departure: bool, i
 
 	var wall_jump_req := jump_requested or movement_assist.has_buffered_jump()
 	var started_wall_jump := false
-	if wall_jump_req and _can_start_wall_jump():
-		_start_wall_jump()
-		started_wall_jump = true
+	if wall_jump_req:
+		started_wall_jump = request_wall_jump()
 	_update_wall_before_move(delta)
 	if not started_wall_jump and jump_squat_left <= 0:
 		_try_start_assisted_jump(grounded, current_state)

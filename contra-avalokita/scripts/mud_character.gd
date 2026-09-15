@@ -731,7 +731,7 @@ func get_effective_coyote_time() -> float:
 func get_effective_jump_buffer_time() -> float:
 	return movement_component.get_effective_jump_buffer_time() if movement_component else 0.0
 
-func _perform_jump(source: MudMovementAssist.JumpSource) -> void:
+func perform_jump(source: MudMovementAssist.JumpSource) -> void:
 	if movement_component:
 		movement_component.perform_jump(source)
 
