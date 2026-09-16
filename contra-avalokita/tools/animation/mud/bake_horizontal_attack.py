@@ -1,7 +1,7 @@
-"""Replace only Blade/Attack_2: side-view projection of a depth-axis horizontal cut."""
+"""Replace Mud Blade/Attack_2 with a side-view horizontal cut."""
 from pathlib import Path
 import math, re
-path=Path(__file__).resolve().parents[1]/'scenes/mud_character.tscn'
+path=Path(__file__).resolve().parents[3]/'characters/mud/animation/blade_animation_library.tres'
 text=path.read_text(encoding='utf-8')
 base=re.search(r'\[sub_resource type="Animation" id="BladeAttack1"\](.*?)(?=\n\[)',text,re.S).group(1)
 paths=re.findall(r'tracks/\d+/path = NodePath\("(.*?)"\)',base)

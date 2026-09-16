@@ -1,9 +1,11 @@
-"""Author three editable, non-looping sword/saber attacks in the Blade library."""
+"""Author Mud's editable, non-looping blade AnimationLibrary resource."""
 from pathlib import Path
 import math
 import re
 
-scene = Path(__file__).resolve().parents[1] / 'scenes/mud_character.tscn'
+project = Path(__file__).resolve().parents[3]
+scene = project / 'scenes/mud_character.tscn'
+output = project / 'characters/mud/animation/blade_animation_library.tres'
 text = scene.read_text(encoding='utf-8')
 run = re.search(r'\[sub_resource type="Animation" id="Animation_4t4rj"\](.*?)(?=\n\[sub_resource)', text, re.S).group(1)
 paths = re.findall(r'tracks/\d+/path = NodePath\("(.*?)"\)',run)
@@ -43,15 +45,10 @@ for index,(duration,times,blade,upper) in enumerate(specs,1):
         block += f'tracks/{track}/type = "value"\ntracks/{track}/path = NodePath("{path}")\ntracks/{track}/interp = 1\ntracks/{track}/loop_wrap = false\ntracks/{track}/keys = {{\n'
         block += '"times": PackedFloat32Array('+', '.join(map(str,times))+'),\n"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),\n"update": 0,\n"values": ['+', '.join(fmt(s[track]) for s in samples)+']\n}\n'
     blocks.append(block)
-blocks.append('[sub_resource type="AnimationLibrary" id="BladeLibrary"]\n_data = {\n'+',\n'.join(f'&"Attack_{i}": SubResource("BladeAttack{i}")' for i in range(1,4))+'\n}\n')
-# Idempotent, preserve all existing resources and non-attack tracks.
-text=re.sub(r'\[sub_resource type="(?:Animation|AnimationLibrary)" id="(?:BladeAttack[123]|BladeLibrary)"\].*?(?=\n\[)', '',text,flags=re.S)
-pos=text.index('[node name="MudCharacter"')
-text=text[:pos]+'\n'.join(blocks)+'\n'+text[pos:]
-text=re.sub(r'\nlibraries/Blade = SubResource\("BladeLibrary"\)', '',text)
-text=re.sub(r'(\[node name="AnimationPlayer"[^\n]*\]\n)',r'\1libraries/Blade = SubResource("BladeLibrary")\n',text)
-scene.write_text(text,encoding='utf-8',newline='\n')
-print('Authored Blade/Attack_1, Blade/Attack_2, Blade/Attack_3')
+library = '[resource]\n_data = {\n'+',\n'.join(f'&"Attack_{i}": SubResource("BladeAttack{i}")' for i in range(1,4))+'\n}\n'
+output.parent.mkdir(parents=True, exist_ok=True)
+output.write_text('[gd_resource type="AnimationLibrary" load_steps=4 format=3]\n\n'+'\n'.join(blocks)+'\n'+library,encoding='utf-8',newline='\n')
+print(f'Authored {output}: Blade/Attack_1, Blade/Attack_2, Blade/Attack_3')
 # Apply the dedicated horizontal second attack after the shared first/third authoring.
 import runpy
-runpy.run_path(str(scene.parents[1]/'tools/bake_horizontal_attack.py'))
+runpy.run_path(str(Path(__file__).with_name('bake_horizontal_attack.py')))
