@@ -16,7 +16,6 @@
 [ext_resource type="Texture2D" uid="uid://dt5uyybxj30ss" path="res://assets/shelter/structure.png" id="9_f6iex"]
 [ext_resource type="PackedScene" uid="uid://b2k8y4xv6mlaq" path="res://scenes/environment/foreground_pipe_cluster.tscn" id="9_pipe"]
 [ext_resource type="PackedScene" uid="uid://bhdxbr7je0wnp" path="res://scenes/mud_character.tscn" id="10_char"]
-[ext_resource type="Texture2D" uid="uid://tytqw8ajegik" path="res://scenes/levels/stationBG.png" id="11_bg"]
 [ext_resource type="Script" uid="uid://bfritix3gwca7" path="res://scripts/training_dummy.gd" id="12_dummy"]
 [ext_resource type="Script" uid="uid://ctpajsn6xutyt" path="res://scripts/test_dummy_target.gd" id="13_test_dummy"]
 [ext_resource type="Script" uid="uid://blgv0t8wkgw47" path="res://scripts/coyote_item_pickup.gd" id="14_pickup"]
@@ -35,9 +34,6 @@ size = Vector2(24, 600)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(795, 20)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_legacy_floor"]
-size = Vector2(1563, 38)
-
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_coyote_lower"]
 size = Vector2(614, 32)
 
@@ -46,36 +42,6 @@ size = Vector2(120, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ledge_160"]
 size = Vector2(160, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_plat_64"]
-size = Vector2(64, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_plat_80"]
-size = Vector2(439, 40)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_recovery_1300"]
-size = Vector2(1819, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_prec_96"]
-size = Vector2(96, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_prec_48"]
-size = Vector2(48, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_prec_32"]
-size = Vector2(32, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ceiling_100"]
-size = Vector2(100, 16)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_tower_ground"]
-size = Vector2(300, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_combat_floor"]
-size = Vector2(570, 32)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_knockback_plat"]
-size = Vector2(140, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_climb_wall"]
 size = Vector2(16, 260)
@@ -111,14 +77,6 @@ screen_atmosphere = NodePath("../ScreenFX/ScreenAtmosphere")
 
 [node name="BackgroundWorld" type="Node2D" parent="World" unique_id=734173879]
 
-[node name="StationBG" type="Sprite2D" parent="World/BackgroundWorld" unique_id=1507301451]
-visible = false
-texture_filter = 2
-position = Vector2(-3.0000005, -179)
-scale = Vector2(1.143132, 1.1198556)
-texture = ExtResource("11_bg")
-centered = false
-
 [node name="FarBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=479807024]
 z_index = -90
 texture_filter = 2
@@ -128,7 +86,7 @@ repeat_times = 10
 
 [node name="Horizon" type="Sprite2D" parent="World/BackgroundWorld/FarBackground" unique_id=2078875379]
 position = Vector2(1916, -24)
-scale = Vector2(1.4380777, 1.3388265)
+scale = Vector2(2.039985, 2.0646238)
 texture = ExtResource("4_1fgoy")
 
 [node name="DistantStructures" type="Parallax2D" parent="World/BackgroundWorld" unique_id=1949508087]
@@ -163,7 +121,7 @@ color = Color(0.16, 0.19, 0.22, 0.6)
 polygon = PackedVector2Array(400, -200, 430, -200, 430, 200, 400, 200, 1100, -200, 1130, -200, 1130, 200, 1100, 200, 2000, -200, 2030, -200, 2030, 200, 2000, 200, 3100, -200, 3130, -200, 3130, 200, 3100, 200, 4000, -200, 4030, -200, 4030, 200, 4000, 200)
 
 [node name="Structure" type="Sprite2D" parent="World/BackgroundWorld" unique_id=437977564]
-position = Vector2(3627.0002, -19.000002)
+position = Vector2(3571.0002, -19)
 scale = Vector2(1.7048612, 1.7048612)
 texture = ExtResource("9_f6iex")
 
@@ -177,8 +135,8 @@ scale = Vector2(1.2250606, 1.5770936)
 texture = ExtResource("6_23o81")
 
 [node name="Image(13)" type="Sprite2D" parent="World/BackgroundWorld" unique_id=134312768]
-position = Vector2(2247, -75)
-scale = Vector2(1.5346022, 1.534602)
+position = Vector2(2313.2986, -52.875)
+scale = Vector2(1.6877165, 1.6877161)
 texture = ExtResource("7_krr3f")
 
 [node name="Image(14)" type="Sprite2D" parent="World/BackgroundWorld" unique_id=1503171800]
@@ -224,26 +182,6 @@ points = PackedVector2Array(-400, -10, 400, -10)
 width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
-[node name="LegacyFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=981487721]
-position = Vector2(435, 303)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/LegacyFloor" unique_id=1375943761]
-position = Vector2(331.5, 0)
-shape = SubResource("RectangleShape2D_legacy_floor")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/LegacyFloor" unique_id=2009280395]
-z_index = -5
-position = Vector2(313, 0)
-scale = Vector2(1.6955556, 1)
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-450, -19, 478.30927, -28, 450, 0.33099365, 450, 19, -450, 19)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/LegacyFloor" unique_id=1711561292]
-z_index = -4
-points = PackedVector2Array(-450, -19, 450, -19)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
 [node name="CoyoteLowerFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=865602785]
 position = Vector2(1130, 176)
 
@@ -281,7 +219,7 @@ width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
 [node name="CoyoteLedgeB" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1896212416]
-position = Vector2(633, 28)
+position = Vector2(634, 7)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/CoyoteLedgeB" unique_id=1940877081]
 shape = SubResource("RectangleShape2D_ledge_160")
@@ -298,7 +236,7 @@ width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
 [node name="CoyoteLedgeC" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1840451396]
-position = Vector2(653, -63)
+position = Vector2(651, -91)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/CoyoteLedgeC" unique_id=675456028]
 shape = SubResource("RectangleShape2D_ledge_120")
@@ -353,405 +291,13 @@ default_color = Color(0.831, 0.855, 0.878, 1)
 position = Vector2(1620, 144)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform0" unique_id=153777418]
-position = Vector2(2, -173)
-polygon = PackedVector2Array(-68, -30, -26, -19, 397, -22, 401, -3, 481, 5, 645, 5, 801, 1, 866, -3, 933, -21, 1290, -20, 1290, 41, -24, 41)
+position = Vector2(11, -173)
+scale = Vector2(1.0853873, 1.0853873)
+polygon = PackedVector2Array(-68, -30, -26.718506, 0.9213295, 382.35205, 0.9213295, 393.40796, 23.954582, 529.7649, 32.24655, 667.9645, 32.24655, 805.24255, 29.482563, 898.297, 15.662611, 939.7567, 6.4493103, 1299.0756, 3.68532, 1299.0756, 87.52636, -24, 41)
 
 [node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform0" unique_id=1533096145]
-polygon = PackedVector2Array(1066, -23, 1321, -22, 1320, -15, 1339, -16, 1378, 13, 1659, 13, 1720, -25, 1933, -21, 1933, 109, 1068, 109)
-
-[node name="GapPlatform1" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1392907637]
-visible = false
-position = Vector2(1740, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform1" unique_id=439705997]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform1" unique_id=1069349852]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform1" unique_id=564797654]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="GapPlatform2" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=756977880]
-visible = false
-position = Vector2(1868, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform2" unique_id=47109757]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform2" unique_id=1662794742]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform2" unique_id=1391491823]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="GapPlatform3" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1528384291]
-visible = false
-position = Vector2(2012, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform3" unique_id=1796559128]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform3" unique_id=1555979654]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform3" unique_id=1994113595]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="GapPlatform4" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1827225257]
-visible = false
-position = Vector2(2172, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform4" unique_id=1405331449]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform4" unique_id=2021166925]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform4" unique_id=2048433442]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="GapPlatform5" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1315272318]
-visible = false
-position = Vector2(2348, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform5" unique_id=1910674175]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform5" unique_id=1082299427]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform5" unique_id=873425159]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="GapPlatform6" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1846693020]
-visible = false
-position = Vector2(2540, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform6" unique_id=805904790]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform6" unique_id=1940564787]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform6" unique_id=785559184]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="GapPlatform7" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1127532413]
-visible = false
-position = Vector2(2772, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform7" unique_id=581468424]
-shape = SubResource("RectangleShape2D_plat_80")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform7" unique_id=1485678175]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-40, -16, 40, -16, 40, 16, -40, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform7" unique_id=646944297]
-z_index = -4
-points = PackedVector2Array(-40, -16, 40, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="GapLowerRecoveryFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1577361158]
-visible = false
-position = Vector2(2200, 256)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GapLowerRecoveryFloor" unique_id=416895828]
-position = Vector2(259.5, 0)
-shape = SubResource("RectangleShape2D_recovery_1300")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GapLowerRecoveryFloor" unique_id=1041671954]
-z_index = -5
-color = Color(0.239, 0.267, 0.298, 1)
-polygon = PackedVector2Array(-650, -16, 1173, -15, 1168, 1, 1166, 9, -650, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GapLowerRecoveryFloor" unique_id=1496268174]
-z_index = -4
-points = PackedVector2Array(-650, -16, 650, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="PrecisionPlatform1" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=152285728]
-visible = false
-position = Vector2(1688, 208)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform1" unique_id=1669799647]
-shape = SubResource("RectangleShape2D_prec_96")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform1" unique_id=788901753]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-48, -16, 48, -16, 48, 16, -48, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform1" unique_id=1536459377]
-z_index = -4
-points = PackedVector2Array(-48, -16, 48, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="PrecisionPlatform2" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1659109810]
-visible = false
-position = Vector2(1816, 208)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform2" unique_id=710326112]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform2" unique_id=2036437745]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform2" unique_id=1609038289]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="PrecisionPlatform3" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=443277313]
-visible = false
-position = Vector2(1920, 208)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform3" unique_id=1351090051]
-shape = SubResource("RectangleShape2D_prec_48")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform3" unique_id=497125909]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-24, -16, 24, -16, 24, 16, -24, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform3" unique_id=1323439377]
-z_index = -4
-points = PackedVector2Array(-24, -16, 24, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="PrecisionPlatform4" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=687574778]
-visible = false
-position = Vector2(2008, 208)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform4" unique_id=1128901303]
-shape = SubResource("RectangleShape2D_prec_32")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform4" unique_id=1199072744]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/PrecisionPlatform4" unique_id=2075268060]
-z_index = -4
-points = PackedVector2Array(-16, -16, 16, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="JumpBufferDropPlatform" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=283002624]
-visible = false
-position = Vector2(2870, -32)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/JumpBufferDropPlatform" unique_id=65155259]
-shape = SubResource("RectangleShape2D_plat_80")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/JumpBufferDropPlatform" unique_id=1203234720]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-40, -16, 40, -16, 40, 16, -40, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/JumpBufferDropPlatform" unique_id=1950628071]
-z_index = -4
-points = PackedVector2Array(-40, -16, 40, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="StaircaseStep1" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=387237103]
-visible = false
-position = Vector2(3067, 54)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep1" unique_id=1952882418]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep1" unique_id=792514641]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep1" unique_id=1519052379]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="StaircaseStep2" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1505576473]
-visible = false
-position = Vector2(2661, 68)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep2" unique_id=13075682]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep2" unique_id=1644849501]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep2" unique_id=1306110543]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="StaircaseStep3" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1214784985]
-visible = false
-position = Vector2(2923, 146)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep3" unique_id=876755265]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep3" unique_id=1218776543]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep3" unique_id=1225276802]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="StaircaseStep4" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1289106367]
-visible = false
-position = Vector2(3192, 144)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep4" unique_id=1455402709]
-shape = SubResource("RectangleShape2D_plat_64")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep4" unique_id=1588202037]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-32, -16, 32, -16, 32, 16, -32, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/StaircaseStep4" unique_id=936247851]
-z_index = -4
-points = PackedVector2Array(-32, -16, 32, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="StaircaseGround" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1147541637]
-visible = false
-position = Vector2(3272, 176)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/StaircaseGround" unique_id=1819593106]
-shape = SubResource("RectangleShape2D_plat_80")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/StaircaseGround" unique_id=427154703]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-40, -16, 40, -16, 40, 16, -40, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/StaircaseGround" unique_id=690398996]
-z_index = -4
-points = PackedVector2Array(-40, -16, 40, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="LowCeilingPlatform" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=335030845]
-visible = false
-position = Vector2(3310, 98)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/LowCeilingPlatform" unique_id=1296854811]
-shape = SubResource("RectangleShape2D_ceiling_100")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/LowCeilingPlatform" unique_id=1356450101]
-z_index = -5
-color = Color(0.353, 0.384, 0.416, 1)
-polygon = PackedVector2Array(-50, -8, 50, -8, 50, 8, -50, 8)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/LowCeilingPlatform" unique_id=555163535]
-z_index = -4
-points = PackedVector2Array(-50, -8, 50, -8)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="WallTowerGround" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=290411804]
-position = Vector2(3520, 176)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/WallTowerGround" unique_id=350098391]
-shape = SubResource("RectangleShape2D_tower_ground")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/WallTowerGround" unique_id=639166844]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-130, -14, 150, -16, 150, 16, -163, 64)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/WallTowerGround" unique_id=650059043]
-z_index = -4
-points = PackedVector2Array(-150, -16, 150, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
-[node name="CombatMainFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=1012120591]
-position = Vector2(3965, 176)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/CombatMainFloor" unique_id=1988358540]
-shape = SubResource("RectangleShape2D_combat_floor")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/CombatMainFloor" unique_id=46212731]
-z_index = -5
-color = Color(0.478, 0.42, 0.561, 1)
-polygon = PackedVector2Array(-285, -16, 285, -16, 285, 16, -285, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/CombatMainFloor" unique_id=1539034588]
-z_index = -4
-points = PackedVector2Array(-285, -16, 285, -16)
-width = 1.0
-default_color = Color(0.71, 0.635, 0.8, 1)
-
-[node name="KnockbackPlatform" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=841210751]
-position = Vector2(4350, 176)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/KnockbackPlatform" unique_id=955180021]
-shape = SubResource("RectangleShape2D_knockback_plat")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/KnockbackPlatform" unique_id=316612566]
-z_index = -5
-color = Color(0.561, 0.357, 0.357, 1)
-polygon = PackedVector2Array(-70, -16, 70, -16, 70, 16, -70, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/KnockbackPlatform" unique_id=1856264024]
-z_index = -4
-points = PackedVector2Array(-70, -16, 70, -16)
-width = 1.0
-default_color = Color(0.8, 0.573, 0.573, 1)
+position = Vector2(171, -55)
+polygon = PackedVector2Array(1066, -23, 2481, -19, 1933, 109, 1068, 109)
 
 [node name="RightBoundaryWall" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=126677367]
 position = Vector2(4460, 0)
@@ -787,7 +333,7 @@ width = 1.0
 default_color = Color(0.541, 0.886, 0.925, 1)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="World/GameplayWorld/Platforms/WallTowerLeft" unique_id=2096948369]
-polygon = PackedVector2Array(-6, 128, -3, -159, 47, -158, 46, -97, 207, -96, 207, -87, 248, -86, 248, -73)
+polygon = PackedVector2Array(-230, 84, -21, 84, -21, -82, -13, -83, -13, -103, -8, -108, -6, -153, 54, -153, 55, -129, 50, -96, 207, -96, 207, -87, 248, -86, 248, -73, 1, 110, -231, 107)
 
 [node name="WallTowerRight" type="StaticBody2D" parent="World/GameplayWorld/Platforms" unique_id=291322891 groups=["climbable_surface"]]
 position = Vector2(1027, 77)
@@ -828,6 +374,7 @@ default_color = Color(0.541, 0.886, 0.925, 1)
 z_index = -2
 
 [node name="TestActors" type="Node2D" parent="World/GameplayWorld" unique_id=266274575]
+position = Vector2(-303, -95)
 
 [node name="Dummy" type="Node2D" parent="World/GameplayWorld/TestActors" unique_id=462477958]
 position = Vector2(411, 136)
@@ -853,7 +400,7 @@ script = ExtResource("13_test_dummy")
 dummy_type = 3
 
 [node name="LedgeDummy" type="CharacterBody2D" parent="World/GameplayWorld/TestActors" unique_id=413339418]
-position = Vector2(4230, 158)
+position = Vector2(4171, 158)
 script = ExtResource("13_test_dummy")
 
 [node name="ItemPickups" type="Node2D" parent="World/GameplayWorld" unique_id=303007870]
@@ -894,19 +441,19 @@ content_id = &"base:three_eyed_pardon"
 position = Vector2(400, 136)
 
 [node name="Checkpoint_02" type="Node2D" parent="World/GameplayWorld/Checkpoints" unique_id=1238274229]
-position = Vector2(900, 62)
+position = Vector2(875, -69)
 
 [node name="Checkpoint_03" type="Node2D" parent="World/GameplayWorld/Checkpoints" unique_id=43516157]
-position = Vector2(1620, 126)
+position = Vector2(1725, -36)
 
 [node name="Checkpoint_04" type="Node2D" parent="World/GameplayWorld/Checkpoints" unique_id=1366218578]
-position = Vector2(2952, 30)
+position = Vector2(2838, -31)
 
 [node name="Checkpoint_05" type="Node2D" parent="World/GameplayWorld/Checkpoints" unique_id=1309319688]
-position = Vector2(3452, 158)
+position = Vector2(3405, 58)
 
 [node name="Checkpoint_06" type="Node2D" parent="World/GameplayWorld/Checkpoints" unique_id=1150291700]
-position = Vector2(3780, 158)
+position = Vector2(4202, 59)
 
 [node name="Enemies" type="Node2D" parent="World/GameplayWorld" unique_id=1187555570]
 

@@ -147,14 +147,16 @@ func _setup_from_scene_tree() -> void:
 		actors_node = gameplay_world.get_node_or_null("TestActors")
 		checkpoints_node = gameplay_world.get_node_or_null("Checkpoints")
 	
-	checkpoints = [
-		Vector2(400, 136),   # 1: Baseline & Symmetry
-		Vector2(900, 62),    # 2: Coyote Steps & Gravity Drop
-		Vector2(1620, 126),  # 3: Gaps & Precision Array
-		Vector2(2952, 30),   # 4: Jump Buffer & Height Wall
-		Vector2(3452, 158),  # 5: Wall Mechanics Tower
-		Vector2(3780, 158),  # 6: Combat Arena & Knockback
-	]
+	# Scene checkpoints are the source of truth so moving them in the editor also
+	# updates number-key teleporting and respawn positions.
+	checkpoints.clear()
+	if checkpoints_node:
+		for child in checkpoints_node.get_children():
+			var checkpoint := child as Node2D
+			if checkpoint:
+				checkpoints.append(gameplay_world.to_local(checkpoint.global_position))
+	if checkpoints.is_empty():
+		_setup_checkpoints()
 	
 	if actors_node:
 		dummy = actors_node.get_node_or_null("Dummy")
