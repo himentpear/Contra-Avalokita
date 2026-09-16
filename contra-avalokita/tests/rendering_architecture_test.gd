@@ -81,6 +81,7 @@ func test_test_arena() -> void:
 	verify_atmosphere_split(level, "TestArena")
 	verify_lighting_domains(level, "TestArena")
 	verify_emissive_policy(level, "TestArena")
+	verify_test_arena_near_scenery(level)
 	verify_runtime_apis(level, "TestArena")
 	
 	level.queue_free()
@@ -278,6 +279,26 @@ func verify_emissive_policy(level: LevelRoot, level_name: String) -> void:
 			"%s GlowVisual uses additive blending for visible glow" % level_name)
 		check(point_light != null and (point_light.range_item_cull_mask & 12 != 0),
 			"%s PointLight2D illuminates gameplay geometry and actors via range_item_cull_mask" % level_name)
+
+func verify_test_arena_near_scenery(level: LevelRoot) -> void:
+	var horizon := level.background_world.get_node_or_null("FarBackground/Horizon") as Sprite2D
+	var gameplay_scenery := level.gameplay_world.get_node_or_null("Scenery") as Node2D
+	check(horizon != null and horizon.get_parent() == level.background_world.get_node("FarBackground"),
+		"TestArena keeps Horizon as the sole authored far-background image")
+	var near_names := [&"DistantGirders", &"MidFramework", &"RearColumns", &"Structure", &"Image(12)", &"Bridge", &"Image(13)", &"Image(14)"]
+	var all_gameplay_and_opaque := gameplay_scenery != null
+	for item_name in near_names:
+		var item := gameplay_scenery.get_node_or_null(NodePath(item_name)) as CanvasItem if gameplay_scenery else null
+		all_gameplay_and_opaque = all_gameplay_and_opaque and item != null and is_equal_approx(item.modulate.a, 1.0) and item.light_mask == 4
+	check(all_gameplay_and_opaque, "TestArena bridge and scenery are opaque and share the non-parallax gameplay domain with collisions")
+	var gameplay_lights := level.lighting.get_node_or_null("GameplayLights")
+	var foreground_lights := level.lighting.get_node_or_null("ForegroundLights")
+	check(gameplay_lights != null and gameplay_lights.get_child_count() >= 5 and foreground_lights != null and foreground_lights.get_child_count() >= 2,
+		"TestArena provides distributed gameplay and foreground practical lights")
+	var near_lamp := foreground_lights.get_child(0) if foreground_lights and foreground_lights.get_child_count() > 0 else null
+	var near_light := near_lamp.get_node_or_null("PointLight2D") as PointLight2D if near_lamp else null
+	check(near_light != null and (near_light.range_item_cull_mask & 16) != 0,
+		"TestArena practical lights illuminate the foreground light-mask channel")
 
 func verify_runtime_apis(level: LevelRoot, level_name: String) -> void:
 	# Test VFX spawning via router

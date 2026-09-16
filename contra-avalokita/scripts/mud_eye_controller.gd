@@ -9,6 +9,14 @@ var look := 0.0
 var hurt_amount := 0.0
 var dead := false
 
+func _ready() -> void:
+	if z_index < 5:
+		z_index = 5
+	if not material:
+		var mat := ShaderMaterial.new()
+		mat.shader = preload("res://shaders/character/emissive_character.gdshader")
+		material = mat
+
 func sync_bone(head_bone: Bone2D, delta: float, look_direction: float) -> void:
 	if is_instance_valid(head_bone):
 		position = get_parent().to_local(head_bone.global_position)

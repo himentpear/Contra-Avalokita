@@ -1,0 +1,78 @@
+﻿[gd_scene load_steps=5 format=3 uid="uid://clightingtestarena01"]
+
+[ext_resource type="PackedScene" path="res://scenes/mud_character.tscn" id="1_player"]
+
+[sub_resource type="Gradient" id="Gradient_light"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ground"]
+size = Vector2(1400, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_plat"]
+size = Vector2(300, 30)
+
+[node name="LightingTestArena" type="Node2D"]
+
+[node name="CanvasModulate" type="CanvasModulate" parent="."]
+color = Color(0.2, 0.22, 0.28, 1)
+
+[node name="Ground" type="StaticBody2D" parent="."]
+position = Vector2(500, 550)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground"]
+shape = SubResource("RectangleShape2D_ground")
+
+[node name="Visual" type="Polygon2D" parent="Ground"]
+color = Color(0.18, 0.2, 0.24, 1)
+polygon = PackedVector2Array(-700, -30, 700, -30, 700, 30, -700, 30)
+
+[node name="ElevatedPlatform" type="StaticBody2D" parent="."]
+position = Vector2(250, 400)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ElevatedPlatform"]
+shape = SubResource("RectangleShape2D_plat")
+
+[node name="Visual" type="Polygon2D" parent="ElevatedPlatform"]
+color = Color(0.22, 0.25, 0.3, 1)
+polygon = PackedVector2Array(-150, -15, 150, -15, 150, 15, -150, 15)
+
+[node name="LeftWarmLight" type="PointLight2D" parent="." groups=["world_lights_2d"]]
+position = Vector2(150, 320)
+color = Color(1, 0.72, 0.4, 1)
+energy = 1.3
+range_item_cull_mask = 28
+texture = SubResource("GradientTexture2D_light")
+texture_scale = 3.0
+
+[node name="RightCoolLight" type="PointLight2D" parent="." groups=["world_lights_2d"]]
+position = Vector2(850, 320)
+color = Color(0.4, 0.7, 1, 1)
+energy = 1.3
+range_item_cull_mask = 28
+texture = SubResource("GradientTexture2D_light")
+texture_scale = 3.0
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector2(250, 350)
+
+[node name="ForegroundOccluderPillar" type="Polygon2D" parent="."]
+z_index = 50
+light_mask = 16
+color = Color(0.12, 0.14, 0.18, 1)
+polygon = PackedVector2Array(480, 250, 520, 250, 520, 520, 480, 520)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(500, 400)
+zoom = Vector2(1.2, 1.2)

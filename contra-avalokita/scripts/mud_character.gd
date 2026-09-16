@@ -18,6 +18,7 @@ const WeaponData = preload("res://scripts/resources/weapon_data.gd")
 const CombatSystem = preload("res://scripts/systems/combat_system.gd")
 const DamageSystem = preload("res://scripts/systems/damage_system.gd")
 const HitstopSystem = preload("res://scripts/systems/hitstop_system.gd")
+const CharacterLightingControllerScript = preload("res://scripts/presentation/lighting/character_lighting_controller.gd")
 signal state_changed(previous: StringName, current: StringName)
 signal damaged(amount: float)
 signal footstep(side: StringName)
@@ -44,6 +45,7 @@ var animation_profile: CharacterAnimationProfile
 var sdf_body_component: SDFBodyComponent
 var character_state_component: CharacterStateComponent
 var equipment_controller: EquipmentController
+var lighting_controller: CharacterLightingControllerScript
 
 var air_time: float:
 	get: return movement_component.air_time if movement_component else 0.0
@@ -690,7 +692,12 @@ func _ready() -> void:
 			sdf_body_component.set_hit_flash(amount, color)
 		elif body_renderer:
 			body_renderer.set_hit_flash(amount, color)
+		if lighting_controller:
+			lighting_controller.context.hit_flash = amount
 	)
+
+	if has_node("Visual/CharacterLightingController"):
+		lighting_controller = $Visual/CharacterLightingController as CharacterLightingControllerScript
 
 	pose_composer = MudPoseComposer.new()
 	pose_composer.character = self

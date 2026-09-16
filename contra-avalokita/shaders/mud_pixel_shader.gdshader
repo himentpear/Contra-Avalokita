@@ -22,6 +22,18 @@ uniform vec4 impact_params = vec4(0.0, 0.0, 0.0, 0.0);
 uniform vec4 impact_bulge = vec4(0.0, 0.0, 0.0, 0.0);
 uniform float impact_ripple_phase = 0.0;
 uniform float death_dissolve : hint_range(0.0, 1.0) = 0.0;
+uniform vec2 light_direction = vec2(-0.25, -0.35);
+uniform vec4 light_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float light_energy = 1.0;
+uniform float minimum_ambient : hint_range(0.0, 1.0) = 0.55;
+uniform float mid_level : hint_range(0.0, 1.5) = 0.82;
+uniform float key_level : hint_range(0.0, 2.0) = 1.10;
+uniform vec4 shadow_color : source_color = vec4(0.40, 0.45, 0.52, 1.0);
+uniform vec4 mid_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 key_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
+uniform float rim_strength : hint_range(0.0, 2.0) = 0.35;
+uniform float rim_width : hint_range(0.0, 1.0) = 0.12;
+uniform vec4 status_tint : source_color = vec4(0.0, 0.0, 0.0, 0.0);
 
 float capsule(vec2 p, vec4 ab, vec2 radii) {
 	vec2 axis = ab.zw - ab.xy;
@@ -139,16 +151,43 @@ void fragment() {
 	}
 	int visible_depth = owner_depth < -0.5 ? -1 : (owner_depth > 0.5 ? 1 : 0);
 	if (depth_pass != 2 && visible_depth != depth_pass) { discard; }
-	surface = 0.60 + dot(gradient, vec2(-0.25, -0.35));
+	vec2 l_dir = length(light_direction) > 0.001 ? normalize(light_direction) : vec2(0.0, -1.0);
+	float n_dot_l = dot(gradient, l_dir);
+	surface = 0.50 + n_dot_l * 0.50;
 	float noise = fract(sin(dot(floor(p), vec2(12.9898, 78.233))) * 43758.5453);
 	float light = surface + (noise - 0.5) * noise_strength;
 	vec3 shade = mud_color.rgb;
-	if (light < 0.30) { shade *= 0.55; }
-	else if (light < 0.50) { shade *= 0.77; }
-	else if (light > 0.79) { shade = mix(shade, vec3(0.82, 0.87, 0.55), 0.62); }
+	if (light < 0.38) {
+		float t = clamp(light / 0.38, 0.0, 1.0);
+		shade *= mix(minimum_ambient, mid_level, t) * shadow_color.rgb;
+	} else if (light < 0.68) {
+		float t = clamp((light - 0.38) / 0.30, 0.0, 1.0);
+		shade *= mix(mid_level, 1.0, t) * mid_color.rgb;
+	} else {
+		float t = clamp((light - 0.68) / 0.32, 0.0, 1.0);
+		shade = mix(shade, vec3(0.85, 0.90, 0.65) * key_color.rgb, t * 0.65 * key_level);
+		if (light_energy > 0.0001) {
+			float energy_factor = clamp(light_energy, 0.0, 1.5);
+			vec3 lit_tint = mix(vec3(1.0), light_color.rgb, clamp(energy_factor, 0.0, 1.0) * 0.40);
+			shade *= lit_tint;
+			shade += shade * (light_color.rgb * energy_factor * 0.25);
+		}
+	}
 	if (owner_depth < -0.5) { shade *= 0.73; }
+	if (rim_strength > 0.001 && d > -rim_width * 25.0 && n_dot_l < 0.1) {
+		float rim_edge = smoothstep(-rim_width * 25.0, 0.0, d);
+		float rim_angle = clamp(1.0 - n_dot_l, 0.0, 1.0);
+		float rim_energy = clamp(light_energy, 0.0, 1.5);
+		float rim = rim_edge * rim_angle * rim_strength * rim_energy * 0.35;
+		shade += rim * light_color.rgb;
+	}
 	if (light > 0.94 && noise > 0.94 && d < -2.0) { shade = vec3(0.85, 0.9, 0.65); }
 	if (d > -edge_width) { shade = mud_color.rgb * 0.36; }
-	shade = mix(shade, hit_flash_color.rgb, hit_flash_amount);
+	if (hit_flash_amount > 0.001) {
+		shade = mix(shade, hit_flash_color.rgb, hit_flash_amount);
+	}
+	if (status_tint.a > 0.001) {
+		shade = mix(shade, status_tint.rgb, status_tint.a);
+	}
 	COLOR = vec4(shade, 1.0);
 }

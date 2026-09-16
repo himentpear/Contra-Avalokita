@@ -110,6 +110,7 @@ func _ready() -> void:
 	shader_material = ShaderMaterial.new()
 	shader_material.shader = preload("res://shaders/mud_pixel_shader.gdshader")
 	surface.material = shader_material
+	surface.light_mask = light_mask
 	add_child(surface)
 	shader_material.set_shader_parameter("bounds_origin", render_bounds.position)
 	shader_material.set_shader_parameter("bounds_size", render_bounds.size)
@@ -123,6 +124,7 @@ func _ready() -> void:
 		layer.size = render_bounds.size
 		layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		layer.z_index = -6 if depth < 0 else 4
+		layer.light_mask = light_mask
 		var material := shader_material.duplicate() as ShaderMaterial
 		material.set_shader_parameter("depth_pass",depth)
 		layer.material = material
