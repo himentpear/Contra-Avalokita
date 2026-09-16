@@ -4,15 +4,45 @@ extends Node
 signal layer_registered(layer: AnimationLayer)
 signal layer_unregistered(layer: AnimationLayer)
 
+var provider: AnimationContextProvider
+var profile: CharacterAnimationProfile
+var binding: AnimationBinding
 var context := AnimationContext.new()
 var _layers: Array[AnimationLayer] = []
 
 func setup(
-	character: Node,
-	animation_player: AnimationPlayer = null,
-	skeleton: Skeleton2D = null
+	context_provider: AnimationContextProvider,
+	animation_profile: CharacterAnimationProfile,
+	animation_binding: AnimationBinding
 ) -> void:
-	context.bind(character, animation_player, skeleton)
+	provider = context_provider
+	profile = animation_profile
+	binding = animation_binding
+	if provider != null and provider.get_parent() == null:
+		add_child(provider)
+	refresh_context()
+
+func refresh_context() -> AnimationContext:
+	context = provider.build_context() if provider != null else AnimationContext.new()
+	return context
+
+func resolve_locomotion(snapshot: AnimationContext = null) -> StringName:
+	return profile.resolve_locomotion(snapshot if snapshot != null else context) if profile != null else &""
+
+func resolve_air(snapshot: AnimationContext = null) -> StringName:
+	return profile.resolve_air(snapshot if snapshot != null else context) if profile != null else &""
+
+func resolve_wall(snapshot: AnimationContext = null) -> StringName:
+	return profile.resolve_wall(snapshot if snapshot != null else context) if profile != null else &""
+
+func resolve_combat(snapshot: AnimationContext = null) -> StringName:
+	return profile.resolve_combat(snapshot if snapshot != null else context) if profile != null else &""
+
+func resolve_reaction(snapshot: AnimationContext = null) -> StringName:
+	return profile.resolve_reaction(snapshot if snapshot != null else context) if profile != null else &""
+
+func play(animation: StringName, blend_time := -1.0) -> bool:
+	return binding != null and binding.play(animation, blend_time)
 
 func register_layer(layer: AnimationLayer) -> bool:
 	if layer == null or _layers.has(layer):
@@ -53,9 +83,7 @@ func get_dominant_layer() -> AnimationLayer:
 	return active[0] if not active.is_empty() else null
 
 func update_layers(delta: float, override_context: AnimationContext = null) -> void:
-	var active_context := override_context if override_context != null else context
-	if override_context == null:
-		active_context.refresh()
+	var active_context := override_context if override_context != null else refresh_context()
 	for layer in _layers:
 		if is_instance_valid(layer):
 			layer.update(delta, active_context)

@@ -138,6 +138,9 @@ var hit_drag_ratio := 0.40
 
 var score_life_id := 0
 var score_attack_serial := 0
+## Presentation-owned resolver injected by the character animation package.
+## Combat keeps its legacy fallback so isolated component tests remain valid.
+var animation_resolver: Callable
 
 # Cached skeleton bones
 var _upper_arm_front_bone: Bone2D
@@ -228,6 +231,10 @@ func is_armed() -> bool:
 	return weapons != null and is_instance_valid(weapons.current)
 
 func attack_animation() -> StringName:
+	if animation_resolver.is_valid():
+		var resolved: StringName = animation_resolver.call()
+		if resolved != &"":
+			return resolved
 	var weapons = character.get("weapons") if character else null
 	if is_armed():
 		if weapons.current.weapon_class == "blade" and combo_stage < weapons.current.attack_animations.size():

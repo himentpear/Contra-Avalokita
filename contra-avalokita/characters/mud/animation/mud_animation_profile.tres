@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="CharacterAnimationProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/components/animation/character_animation_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+character_id = &"mud"
+rig_id = &"mud_humanoid_v1"
+locomotion = {
+&"Backstep": &"Backstep",
+&"Backstep.unarmed": &"Backstep_Unarmed",
+&"Dead": &"Dead",
+&"Fall": &"Fall",
+&"Fall.unarmed": &"Fall_Unarmed",
+&"Idle": &"Idle",
+&"Idle.unarmed": &"Idle_Unarmed",
+&"Jump": &"Jump",
+&"Jump.unarmed": &"Jump_Unarmed",
+&"Land": &"Land",
+&"Land.unarmed": &"Land_Unarmed",
+&"Run": &"Run",
+&"Run.unarmed": &"Run_Unarmed",
+&"Walk": &"Walk",
+&"Walk.unarmed": &"Walk_Unarmed"
+}
+air = {
+&"Apex": &"Air/Apex",
+&"Fall": &"Air/Fall",
+&"HardLand": &"Air/HardLand",
+&"JumpSquat": &"Air/JumpSquat",
+&"Recovery": &"Air/Recovery",
+&"Rise": &"Air/Rise",
+&"SoftLand": &"Air/SoftLand",
+&"Takeoff": &"Air/Takeoff"
+}
+wall = {
+&"Hang": &"Wall/Hang",
+&"Push": &"Wall/Push",
+&"Release": &"Wall/Release",
+&"Slide": &"Wall/Slide"
+}
+combat = {
+&"blade.attack.0": &"Blade/Attack_1",
+&"blade.attack.1": &"Blade/Attack_2",
+&"blade.attack.2": &"Blade/Attack_3",
+&"unarmed.attack.0": &"Punch/Attack_1",
+&"unarmed.attack.1": &"Punch/Attack_2",
+&"unarmed.attack.2": &"Punch/Attack_3"
+}
+reaction = {}
+fallback_animation = &"Idle"

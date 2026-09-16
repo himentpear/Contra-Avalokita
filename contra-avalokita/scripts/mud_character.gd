@@ -7,6 +7,8 @@ const MovementComponent = preload("res://scripts/components/movement_component.g
 const HealthComponent = preload("res://scripts/components/health_component.gd")
 const CombatComponent = preload("res://scripts/components/combat_component.gd")
 const AnimationController = preload("res://scripts/components/animation_controller.gd")
+const MudAnimationContextProviderScript = preload("res://scripts/characters/mud/mud_animation_context_provider.gd")
+const MudAnimationProfileResource = preload("res://characters/mud/animation/mud_animation_profile.tres")
 const SDFBodyComponent = preload("res://scripts/components/sdf_body_component.gd")
 const CharacterStateComponent = preload("res://scripts/components/character_state_component.gd")
 const EquipmentController = preload("res://scripts/components/equipment_controller.gd")
@@ -37,6 +39,8 @@ var movement_component: MovementComponent
 var health_component: HealthComponent
 var combat_component: CombatComponent
 var animation_controller: AnimationController
+var animation_context_provider: MudAnimationContextProvider
+var animation_profile: CharacterAnimationProfile
 var sdf_body_component: SDFBodyComponent
 var character_state_component: CharacterStateComponent
 var equipment_controller: EquipmentController
@@ -395,7 +399,7 @@ func set_local_time_scale(scale: float) -> void:
 		anim_player.speed_scale = local_time_scale
 
 func attack_animation() -> StringName:
-	return combat_component.attack_animation() if combat_component else &"Attack"
+	return animation_controller.get_attack_animation() if animation_controller else (combat_component.attack_animation() if combat_component else &"Attack")
 
 func attack() -> void:
 	if combat_component: combat_component.attack()
@@ -662,7 +666,14 @@ func _ready() -> void:
 		animation_controller = AnimationController.new()
 		animation_controller.name = "AnimationController"
 		comp_root.add_child(animation_controller)
-	animation_controller.setup(self, anim_player)
+	animation_context_provider = MudAnimationContextProviderScript.new()
+	animation_context_provider.name = "MudAnimationContextProvider"
+	animation_context_provider.configure(self, movement_component, character_state_component, combat_component, equipment_controller)
+	animation_profile = MudAnimationProfileResource.duplicate(true) as CharacterAnimationProfile
+	var animation_binding := AnimationBinding.new().bind(anim_player, skeleton)
+	animation_controller.setup(animation_context_provider, animation_profile, animation_binding)
+	animation_controller.presentation_reset_requested.connect(_reset_mud_animation_presentation)
+	combat_component.animation_resolver = animation_controller.get_attack_animation
 
 	if has_node("Components/SDFBodyComponent"):
 		sdf_body_component = $Components/SDFBodyComponent
@@ -850,8 +861,22 @@ func sync_weapon_animation() -> void:
 		animation_controller.sync_weapon_animation()
 
 func transition(next: StringName) -> void:
+	if next == &"Attack":
+		start_attack()
+		return
+	if state == next or (state == &"Dead" and next != &"Dead"):
+		return
+	var previous := state
+	state = next
+	state_changed.emit(previous, next)
 	if animation_controller:
-		animation_controller.transition(next)
+		animation_controller.transition(previous, next)
+
+func _reset_mud_animation_presentation() -> void:
+	if is_instance_valid(pose_composer):
+		pose_composer.restore_base()
+		pose_composer.reset_transient()
+	impact_accent_offset = Vector2.ZERO
 
 func _physics_process(delta: float) -> void:
 	if not is_node_ready(): return

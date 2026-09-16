@@ -1,18 +1,23 @@
 class_name AnimationController
 extends Node
 
+signal presentation_reset_requested
+
 const AnimationLayerManagerScript = preload("res://scripts/components/animation/animation_layer_manager.gd")
 
-var character: CharacterBody2D
-var anim_player: AnimationPlayer
+var provider: AnimationContextProvider
+var profile: CharacterAnimationProfile
+var binding: AnimationBinding
 var layer_manager: AnimationLayerManager
 
-func setup(p_character: CharacterBody2D, p_anim_player: AnimationPlayer = null) -> void:
-	character = p_character
-	if p_anim_player:
-		anim_player = p_anim_player
-	elif character:
-		anim_player = character.get_node_or_null("AnimationPlayer") as AnimationPlayer
+func setup(
+	context_provider: AnimationContextProvider,
+	animation_profile: CharacterAnimationProfile,
+	animation_binding: AnimationBinding
+) -> void:
+	provider = context_provider
+	profile = animation_profile
+	binding = animation_binding
 	setup_layer_manager()
 
 func setup_layer_manager() -> void:
@@ -21,141 +26,95 @@ func setup_layer_manager() -> void:
 		layer_manager = AnimationLayerManagerScript.new()
 		layer_manager.name = "AnimationLayerManager"
 		add_child(layer_manager)
-	var skeleton := character.get_node_or_null("Visual/PoseRoot/Skeleton2D") as Skeleton2D if character else null
-	layer_manager.setup(character, anim_player, skeleton)
+	layer_manager.setup(provider, profile, binding)
 
 func update_layers(delta: float) -> void:
 	if layer_manager:
 		layer_manager.update_layers(delta)
 
+func current_context() -> AnimationContext:
+	return layer_manager.refresh_context() if layer_manager != null else AnimationContext.new()
+
 func is_retreating() -> bool:
-	if not character: return false
-	var is_atk: bool = character.is_attacking() if character.has_method("is_attacking") else false
-	if not is_atk or not character.is_on_floor():
-		return false
-	var move_intent: float = character.get("move_intent") if "move_intent" in character else 0.0
-	var facing: float = character.get("facing") if "facing" in character else 1.0
-	if move_intent != 0.0 and facing * move_intent < -0.01:
-		return true
-	if absf(move_intent) <= 0.01 and facing * character.velocity.x < -5.0:
-		return true
-	return false
+	return bool(current_context().get_value(&"retreating", false))
 
 func get_state_animation(state_name: StringName) -> StringName:
-	var anim_name := state_name
-	if is_retreating() and state_name in [&"Walk", &"Run"]:
-		anim_name = &"Backstep"
-	var is_armed: bool = character.is_armed() if (character and character.has_method("is_armed")) else true
-	if not is_armed:
-		var unarmed_name := StringName(String(anim_name) + "_Unarmed")
-		if anim_player and anim_player.has_animation(unarmed_name):
-			return unarmed_name
-	return anim_name
+	var context := current_context()
+	context.locomotion_state = state_name
+	if state_name != &"Walk" and state_name != &"Run":
+		context.tags.erase(&"locomotion_variant")
+	return layer_manager.resolve_locomotion(context) if layer_manager != null else state_name
+
+func get_attack_animation() -> StringName:
+	var context := current_context()
+	return layer_manager.resolve_combat(context) if layer_manager != null else &""
 
 func sync_weapon_animation() -> void:
-	if not character: return
-	var pose_composer = character.get("pose_composer")
-	if is_instance_valid(pose_composer):
-		pose_composer.restore_base()
-		pose_composer.reset_transient()
-	if "impact_accent_offset" in character:
-		character.impact_accent_offset = Vector2.ZERO
-	var state: StringName = character.state if "state" in character else &"Idle"
-	if state in [&"Idle", &"Walk", &"Run", &"Jump", &"Fall"]:
-		var target_anim := get_state_animation(state)
-		if anim_player and anim_player.current_animation != target_anim:
-			var prev_len := anim_player.current_animation_length
-			var norm_pos := anim_player.current_animation_position / maxf(prev_len, 0.001) if prev_len > 0 else 0.0
-			anim_player.play(target_anim, 0.12)
-			var next_len := anim_player.current_animation_length
-			anim_player.seek(norm_pos * next_len, true)
+	presentation_reset_requested.emit()
+	var context := current_context()
+	if context.locomotion_state in [&"Idle", &"Walk", &"Run", &"Jump", &"Fall"]:
+		var target := layer_manager.resolve_locomotion(context)
+		_play_preserving_phase(target, 0.12)
 
-func transition(next: StringName) -> void:
-	if not character: return
-	if next == &"Attack":
-		if character.has_method("start_attack"):
-			character.start_attack()
+## Compatibility playback hook. Gameplay owns the state mutation and passes both
+## semantic states after it emits its own state_changed signal.
+func transition(previous: StringName, next: StringName) -> void:
+	if binding == null or binding.animation_player == null:
 		return
-	if character.state == next: return
-	if character.state == &"Dead" and next != &"Dead": return
-	var previous: StringName = character.state
-	character.state = next
-	if character.has_signal("state_changed"):
-		character.state_changed.emit(previous, next)
-	if anim_player:
-		var target_anim := get_state_animation(next)
-		if (previous == &"Walk" or previous == &"Run") and (next == &"Walk" or next == &"Run"):
-			if anim_player.current_animation != target_anim:
-				var prev_len := anim_player.current_animation_length
-				var norm_pos := anim_player.current_animation_position / maxf(prev_len, 0.001) if prev_len > 0 else 0.0
-				anim_player.play(target_anim, 0.10)
-				var next_len := anim_player.current_animation_length
-				anim_player.seek(norm_pos * next_len, true)
-		elif next == &"Idle" and (previous == &"Walk" or previous == &"Run"):
-			anim_player.play(target_anim, 0.09)
-		elif next == &"Idle" and (previous == &"Fall" or previous == &"Jump"):
-			var land_anim := get_state_animation(&"Land")
-			if anim_player.has_animation(land_anim):
-				anim_player.play(land_anim, 0.04)
-				anim_player.queue(target_anim)
-			else:
-				anim_player.play(target_anim, 0.10)
+	var player := binding.animation_player
+	var context := current_context()
+	context.locomotion_state = next
+	if next != &"Walk" and next != &"Run":
+		context.tags.erase(&"locomotion_variant")
+	var target := layer_manager.resolve_locomotion(context)
+	if (previous == &"Walk" or previous == &"Run") and (next == &"Walk" or next == &"Run"):
+		_play_preserving_phase(target, 0.10)
+	elif next == &"Idle" and (previous == &"Walk" or previous == &"Run"):
+		layer_manager.play(target, 0.09)
+	elif next == &"Idle" and (previous == &"Fall" or previous == &"Jump"):
+		context.locomotion_state = &"Land"
+		context.tags.erase(&"locomotion_variant")
+		var land := layer_manager.resolve_locomotion(context)
+		if binding.has_animation(land):
+			layer_manager.play(land, 0.04)
+			player.queue(target)
 		else:
-			match next:
-				&"Idle": anim_player.play(target_anim, 0.15)
-				&"Walk": anim_player.play(target_anim, 0.12)
-				&"Run": anim_player.play(target_anim, 0.12)
-				&"Jump": anim_player.play(target_anim, 0.08)
-				&"Fall": anim_player.play(target_anim, 0.10)
-				&"Dead": pass
+			layer_manager.play(target, 0.10)
+	else:
+		match next:
+			&"Idle": layer_manager.play(target, 0.15)
+			&"Walk", &"Run": layer_manager.play(target, 0.12)
+			&"Jump": layer_manager.play(target, 0.08)
+			&"Fall": layer_manager.play(target, 0.10)
 
 func update_jump_animation() -> void:
-	if not character: return
+	if binding == null or binding.animation_player == null or layer_manager == null:
+		return
+	var context := current_context()
 	var clip: StringName = &""
-	var wall_action: StringName = character.get("wall_action") if "wall_action" in character else &"None"
-	var jump_squat_left: float = character.get("jump_squat_left") if "jump_squat_left" in character else 0.0
-	var air_time: float = character.get("air_time") if "air_time" in character else 0.0
-	var takeoff_duration: float = character.get("takeoff_duration") if "takeoff_duration" in character else 0.075
-	var apex_threshold: float = character.get("apex_threshold") if "apex_threshold" in character else 35.0
-	var landing_left: float = character.get("landing_left") if "landing_left" in character else 0.0
-	var landing_recovery_duration: float = character.get("landing_recovery_duration") if "landing_recovery_duration" in character else 0.07
-	var landing_animation: StringName = character.get("landing_animation") if "landing_animation" in character else &""
-	var state: StringName = character.get("state") if "state" in character else &"Idle"
-	var grounded_resume_phase: float = character.get("grounded_resume_phase") if "grounded_resume_phase" in character else 0.0
+	if context.wall_action != &"None":
+		clip = layer_manager.resolve_wall(context)
+	elif context.jump_phase != &"Grounded":
+		clip = layer_manager.resolve_air(context)
 
-	if wall_action != &"None":
-		character.jump_phase = wall_action
-		match wall_action:
-			&"WallHang": clip = &"Wall/Hang"
-			&"WallSlide": clip = &"Wall/Slide"
-			&"WallPush": clip = &"Wall/Push"
-			&"WallRelease": clip = &"Wall/Release"
-	elif jump_squat_left > 0:
-		character.jump_phase = &"JumpSquat"
-	elif not character.is_on_floor():
-		if character.velocity.y < 0 and air_time < takeoff_duration:
-			character.jump_phase = &"Takeoff"
-		elif character.velocity.y < -apex_threshold:
-			character.jump_phase = &"Rise"
-		elif absf(character.velocity.y) <= apex_threshold:
-			character.jump_phase = &"Apex"
-		else:
-			character.jump_phase = &"Fall"
-	elif landing_left > 0:
-		character.jump_phase = &"Recovery" if landing_left <= landing_recovery_duration else StringName(String(landing_animation).get_slice("/", 1))
-	else:
-		character.jump_phase = &"Grounded"
+	var player := binding.animation_player
+	if clip != &"" and player.current_animation != clip:
+		layer_manager.play(clip, 0.025)
+	elif clip == &"" and context.locomotion_state in [&"Idle", &"Walk", &"Run"]:
+		var locomotion := layer_manager.resolve_locomotion(context)
+		if player.current_animation != locomotion or not player.is_playing():
+			layer_manager.play(locomotion, 0.09)
+			if context.locomotion_state in [&"Walk", &"Run"]:
+				var phase := float(context.get_value(&"grounded_resume_phase", 0.0))
+				player.seek(phase * player.current_animation_length, true)
 
-	if character.jump_phase != &"Grounded" and clip == &"":
-		clip = StringName("Air/" + String(character.jump_phase))
-	if character.is_on_floor() and landing_left > 0 and jump_squat_left <= 0:
-		clip = landing_animation
-
-	if not anim_player: return
-
-	if clip != &"" and anim_player.current_animation != clip:
-		anim_player.play(clip, 0.025)
-	elif clip == &"" and state in [&"Idle", &"Walk", &"Run"] and (anim_player.current_animation != get_state_animation(state) or not anim_player.is_playing()):
-		anim_player.play(get_state_animation(state), 0.09)
-		if state in [&"Walk", &"Run"]:
-			anim_player.seek(grounded_resume_phase * anim_player.current_animation_length, true)
+func _play_preserving_phase(target: StringName, blend_time: float) -> void:
+	if binding == null or binding.animation_player == null:
+		return
+	var player := binding.animation_player
+	if player.current_animation == target:
+		return
+	var previous_length := player.current_animation_length
+	var normalized := player.current_animation_position / maxf(previous_length, 0.001) if previous_length > 0.0 else 0.0
+	if layer_manager.play(target, blend_time):
+		player.seek(normalized * player.current_animation_length, true)
