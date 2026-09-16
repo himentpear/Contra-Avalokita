@@ -2,7 +2,7 @@ extends SceneTree
 ## One-time authoring helper: samples the current procedural wall poses into an
 ## external AnimationLibrary that remains editable in Godot's Animation panel.
 
-const OUTPUT := "res://resources/wall_animation_library.tres"
+const OUTPUT := "res://characters/mud/animation/wall_animation_library.tres"
 const TRACKS := [
 	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis:position", "node": "Visual/PoseRoot/Skeleton2D/Pelvis", "property": "position"},
 	{"path": "Visual/PoseRoot/Skeleton2D/Pelvis:rotation", "node": "Visual/PoseRoot/Skeleton2D/Pelvis", "property": "rotation"},
@@ -78,7 +78,7 @@ func generate() -> void:
 
 		library.add_animation(StringName(definition.name), animation)
 
-	DirAccess.make_dir_recursive_absolute("res://resources")
+	DirAccess.make_dir_recursive_absolute("res://characters/mud/animation")
 	var result := ResourceSaver.save(library, OUTPUT)
 	if result != OK:
 		push_error("Failed to save wall animation library: %s" % error_string(result))

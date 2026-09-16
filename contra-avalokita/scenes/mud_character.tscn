@@ -8,7 +8,7 @@
 [ext_resource type="Script" uid="uid://b6puxsuxcvhlw" path="res://scripts/mud_pixel_splatter.gd" id="6_lpyrd"]
 [ext_resource type="Script" uid="uid://bnocja0d1sjnh" path="res://scripts/mud_death_controller.gd" id="7_ovnsc"]
 [ext_resource type="Script" uid="uid://dwbnsywpwp26d" path="res://scripts/mud_pixel_ascension.gd" id="8_ascend"]
-[ext_resource type="AnimationLibrary" uid="uid://coeygueddnrgu" path="res://resources/wall_animation_library.tres" id="9_wall_anims"]
+[ext_resource type="AnimationLibrary" uid="uid://coeygueddnrgu" path="res://characters/mud/animation/wall_animation_library.tres" id="9_wall_anims"]
 [ext_resource type="Script" uid="uid://b3gkan17ub6t4" path="res://scripts/mud_pose_reference_validator.gd" id="10_cgwm4"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ccx8a"]

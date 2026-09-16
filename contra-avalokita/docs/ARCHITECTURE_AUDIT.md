@@ -121,7 +121,7 @@ flowchart LR
 
 | Scene | 直接依赖 |
 |---|---|
-| `scenes/mud_character.tscn` | 9 个行为/表现脚本；`resources/wall_animation_library.tres` |
+| `scenes/mud_character.tscn` | 9 个行为/表现脚本；`characters/mud/animation/wall_animation_library.tres` |
 | `scenes/test_arena.tscn` | `mud_character.tscn`、4 个环境场景、Item Gallery、测试场/渲染/假人/拾取脚本和 5 个 Coyote item 资源 |
 | `scenes/levels/bunker_station.tscn` | `mud_character.tscn`、4 个环境场景、Level/环境/VFX/Camera/Debug 脚本 |
 | `scenes/levels/level_template.tscn` | `mud_character.tscn`、Level/环境/VFX/Camera/Debug 脚本 |
