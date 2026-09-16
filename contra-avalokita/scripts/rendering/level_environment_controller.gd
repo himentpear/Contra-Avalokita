@@ -10,10 +10,10 @@ extends Node
 @export var screen_atmosphere: ColorRect
 @export var atmospheric_overlay: CanvasItem
 
-var target_ambient_color := Color("1c242c")
-var current_ambient_color := Color("1c242c")
-var target_screen_tint := Color(0, 0, 0, 0)
-var current_screen_tint := Color(0, 0, 0, 0)
+var target_ambient_color := Color(0.56, 0.63, 0.72, 1.0)
+var current_ambient_color := Color(0.56, 0.63, 0.72, 1.0)
+var target_screen_tint := Color(0.12, 0.18, 0.24, 0.07)
+var current_screen_tint := Color(0.12, 0.18, 0.24, 0.07)
 var transition_speed := 3.0
 
 enum Mood {
@@ -43,8 +43,8 @@ func set_mood(mood: Mood, instant: bool = false, duration: float = 1.0) -> void:
 	transition_speed = 1.0 / maxf(duration, 0.001)
 	match mood:
 		Mood.NORMAL:
-			target_ambient_color = Color("222b35")
-			target_screen_tint = Color(0.06, 0.08, 0.10, 0.05)
+			target_ambient_color = Color(0.56, 0.63, 0.72, 1.0)
+			target_screen_tint = Color(0.12, 0.18, 0.24, 0.07)
 		Mood.COLD_INDUSTRIAL:
 			target_ambient_color = Color("151e24")
 			target_screen_tint = Color(0.04, 0.09, 0.14, 0.10)

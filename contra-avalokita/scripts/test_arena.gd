@@ -18,7 +18,7 @@ const MAIN_SURFACE_Y := 138.0
 const TEST_KILL_Y := 480.0
 
 @export_group("Arena Presentation")
-@export var background_color := Color("111318")
+@export var background_color := Color("1a222c")
 @export_range(-1200.0, 300.0, 1.0) var camera_center_y := 0.0
 @export var camera_shake_enabled := false
 @export_group("")
@@ -235,11 +235,11 @@ func has_station_background() -> bool:
 		return false
 	for s in bg_parent.find_children("*", "Sprite2D", true, false):
 		var sprite := s as Sprite2D
-		if sprite and sprite.texture and sprite.texture.resource_path.ends_with("stationBG.png"):
+		if sprite and sprite.texture and (sprite.texture.resource_path.ends_with("stationBG.png") or sprite.texture.resource_path.ends_with("horizon.png")):
 			return true
 	for t in bg_parent.find_children("*", "TextureRect", true, false):
 		var tr := t as TextureRect
-		if tr and tr.texture and tr.texture.resource_path.ends_with("stationBG.png"):
+		if tr and tr.texture and (tr.texture.resource_path.ends_with("stationBG.png") or tr.texture.resource_path.ends_with("horizon.png")):
 			return true
 	return false
 

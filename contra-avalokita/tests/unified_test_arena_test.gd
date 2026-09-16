@@ -12,7 +12,7 @@ func check(ok: bool, message: String) -> void:
 
 func run() -> void:
 	var startup := StartupConfig.new()
-	check(startup.initial_scene == "res://scenes/test_arena.tscn", "StartupConfig uses the one formal test arena")
+	check(startup.resolved_initial_scene() == "res://scenes/test_arena.tscn", "StartupConfig uses the one formal test arena")
 	var arena := preload("res://scenes/test_arena.tscn").instantiate()
 	root.add_child(arena)
 	await process_frame

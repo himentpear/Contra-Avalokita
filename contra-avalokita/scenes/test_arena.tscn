@@ -49,6 +49,89 @@ size = Vector2(16, 260)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_climb_bridge"]
 size = Vector2(200, 16)
 
+[sub_resource type="Gradient" id="Gradient_radial_fog"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_particle_fog"]
+gradient = SubResource("Gradient_radial_fog")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(0.5, 0)
+
+[sub_resource type="Gradient" id="Gradient_horizon_mist"]
+offsets = PackedFloat32Array(0, 0.35, 0.7, 1)
+colors = PackedColorArray(0.72, 0.78, 0.85, 0, 0.7, 0.77, 0.85, 0.28, 0.65, 0.72, 0.8, 0.15, 0.6, 0.68, 0.76, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_horizon_mist"]
+gradient = SubResource("Gradient_horizon_mist")
+width = 64
+height = 128
+fill_from = Vector2(0, 0)
+fill_to = Vector2(0, 1)
+
+[sub_resource type="Gradient" id="Gradient_mid_mist"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.65, 0.72, 0.8, 0, 0.68, 0.75, 0.82, 0.18, 0.62, 0.7, 0.78, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_mid_mist"]
+gradient = SubResource("Gradient_mid_mist")
+width = 64
+height = 128
+fill_from = Vector2(0, 0)
+fill_to = Vector2(0, 1)
+
+[sub_resource type="Gradient" id="Gradient_abyss_mist"]
+offsets = PackedFloat32Array(0, 0.22, 0.6, 1)
+colors = PackedColorArray(0.5, 0.58, 0.68, 0, 0.42, 0.5, 0.6, 0.35, 0.32, 0.4, 0.5, 0.65, 0.22, 0.28, 0.36, 0.85)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_abyss_mist"]
+gradient = SubResource("Gradient_abyss_mist")
+width = 64
+height = 256
+fill_from = Vector2(0, 0)
+fill_to = Vector2(0, 1)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_far_fog"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(2500, 80, 1)
+direction = Vector3(1, 0, 0)
+spread = 5.0
+initial_velocity_min = 8.0
+initial_velocity_max = 16.0
+gravity = Vector3(0, 0, 0)
+scale_min = 2.0
+scale_max = 4.0
+color = Color(0.75, 0.82, 0.88, 0.12)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_mid_fog"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(2500, 60, 1)
+direction = Vector3(1, 0, 0)
+spread = 8.0
+initial_velocity_min = 12.0
+initial_velocity_max = 22.0
+gravity = Vector3(0, 0, 0)
+scale_min = 1.5
+scale_max = 3.2
+color = Color(0.68, 0.75, 0.82, 0.09)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_abyss_fog"]
+particle_flag_disable_z = true
+emission_shape = 3
+emission_box_extents = Vector3(2500, 70, 1)
+direction = Vector3(1, 0, 0)
+spread = 10.0
+initial_velocity_min = 10.0
+initial_velocity_max = 20.0
+gravity = Vector3(0, -2, 0)
+scale_min = 2.0
+scale_max = 4.5
+color = Color(0.55, 0.65, 0.75, 0.16)
+
 [node name="TestArena" type="Node2D" unique_id=238760666 node_paths=PackedStringArray("world", "background_world", "gameplay_world", "foreground_world", "lighting", "environment_fx", "runtime_fx", "camera_rig", "screen_fx", "ui", "environment_controller", "player")]
 script = ExtResource("1_arena")
 world = NodePath("World")
@@ -85,6 +168,7 @@ repeat_size = Vector2(869, 0)
 repeat_times = 10
 
 [node name="Horizon" type="Sprite2D" parent="World/BackgroundWorld/FarBackground" unique_id=2078875379]
+modulate = Color(1.32, 1.35, 1.4, 0.88)
 position = Vector2(1916, -24)
 scale = Vector2(2.039985, 2.0646238)
 texture = ExtResource("4_1fgoy")
@@ -98,7 +182,7 @@ scroll_scale = Vector2(0.25, 1)
 light_mask = 2
 points = PackedVector2Array(-200, -100, 4800, -100)
 width = 2.0
-default_color = Color(0.12, 0.15, 0.18, 0.8)
+default_color = Color(0.48, 0.54, 0.6, 0.5)
 
 [node name="MidBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=420486540]
 z_index = -50
@@ -109,7 +193,7 @@ scroll_scale = Vector2(0.5, 1)
 light_mask = 2
 points = PackedVector2Array(-200, -40, 4800, -40)
 width = 3.0
-default_color = Color(0.15, 0.18, 0.22, 0.7)
+default_color = Color(0.3, 0.36, 0.42, 0.65)
 
 [node name="NearBackground" type="Parallax2D" parent="World/BackgroundWorld" unique_id=675472668]
 z_index = -30
@@ -117,29 +201,39 @@ scroll_scale = Vector2(0.8, 1)
 
 [node name="RearColumns" type="Polygon2D" parent="World/BackgroundWorld/NearBackground" unique_id=1883138652]
 light_mask = 2
-color = Color(0.16, 0.19, 0.22, 0.6)
+color = Color(0.24, 0.29, 0.35, 0.6)
 polygon = PackedVector2Array(400, -200, 430, -200, 430, 200, 400, 200, 1100, -200, 1130, -200, 1130, 200, 1100, 200, 2000, -200, 2030, -200, 2030, 200, 2000, 200, 3100, -200, 3130, -200, 3130, 200, 3100, 200, 4000, -200, 4030, -200, 4030, 200, 4000, 200)
 
 [node name="Structure" type="Sprite2D" parent="World/BackgroundWorld" unique_id=437977564]
+z_index = -65
+modulate = Color(0.8, 0.86, 0.92, 0.72)
 position = Vector2(3571.0002, -19)
 scale = Vector2(1.7048612, 1.7048612)
 texture = ExtResource("9_f6iex")
 
 [node name="Image(12)" type="Sprite2D" parent="World/BackgroundWorld" unique_id=104544965]
+z_index = -25
+modulate = Color(0.68, 0.73, 0.8, 0.88)
 position = Vector2(1203, 17)
 texture = ExtResource("5_rp6b3")
 
 [node name="Bridge" type="Sprite2D" parent="World/BackgroundWorld" unique_id=1846963203]
+z_index = -25
+modulate = Color(0.68, 0.73, 0.8, 0.88)
 position = Vector2(318, 104)
 scale = Vector2(1.2250606, 1.5770936)
 texture = ExtResource("6_23o81")
 
 [node name="Image(13)" type="Sprite2D" parent="World/BackgroundWorld" unique_id=134312768]
+z_index = -65
+modulate = Color(0.8, 0.86, 0.92, 0.72)
 position = Vector2(2313.2986, -52.875)
 scale = Vector2(1.6877165, 1.6877161)
 texture = ExtResource("7_krr3f")
 
 [node name="Image(14)" type="Sprite2D" parent="World/BackgroundWorld" unique_id=1503171800]
+z_index = -25
+modulate = Color(0.68, 0.73, 0.8, 0.88)
 position = Vector2(3120, 159)
 texture = ExtResource("8_tkm0f")
 
@@ -467,35 +561,53 @@ z_index = 45
 scroll_scale = Vector2(1.1, 1)
 
 [node name="CoverRight" type="Sprite2D" parent="World/ForegroundWorld/NearForeground" unique_id=292053691]
+modulate = Color(0.32, 0.36, 0.42, 0.95)
 position = Vector2(326, 15.999999)
 rotation = 3.1415927
 scale = Vector2(1.9211252, -1.7200316)
 texture = ExtResource("19_23o81")
 
 [node name="CoverLeft" type="Sprite2D" parent="World/ForegroundWorld/NearForeground" unique_id=87237718]
+modulate = Color(0.32, 0.36, 0.42, 0.95)
 position = Vector2(207, 0)
 scale = Vector2(1.9896553, 1.9896551)
 texture = ExtResource("19_rp6b3")
 
 [node name="Column1" parent="World/ForegroundWorld/NearForeground" unique_id=545032566 instance=ExtResource("8_col")]
+modulate = Color(0.38, 0.42, 0.48, 1)
 position = Vector2(1308, 7)
 
 [node name="ForegroundPipes" parent="World/ForegroundWorld/NearForeground" unique_id=2093904741 instance=ExtResource("9_pipe")]
+modulate = Color(0.32, 0.36, 0.42, 1)
 position = Vector2(1400, 0)
 
 [node name="Column2" parent="World/ForegroundWorld/NearForeground" unique_id=1248922997 instance=ExtResource("8_col")]
+modulate = Color(0.38, 0.42, 0.48, 1)
 position = Vector2(1577, 12)
 
 [node name="FrontOccluders" type="Parallax2D" parent="World/ForegroundWorld" unique_id=2043171089]
 z_index = 65
 scroll_scale = Vector2(1.22, 1)
 
+[node name="TopTrussFraming" type="Line2D" parent="World/ForegroundWorld/FrontOccluders" unique_id=1938562145]
+points = PackedVector2Array(-200, -165, 4800, -165)
+width = 8.0
+default_color = Color(0.11, 0.14, 0.17, 0.95)
+
+[node name="LeftFramePost" type="Polygon2D" parent="World/ForegroundWorld/FrontOccluders" unique_id=1849204859]
+color = Color(0.09, 0.11, 0.14, 0.95)
+polygon = PackedVector2Array(-20, -200, 16, -200, 16, 240, -20, 240)
+
+[node name="RightFramePost" type="Polygon2D" parent="World/ForegroundWorld/FrontOccluders" unique_id=1738492051]
+color = Color(0.09, 0.11, 0.14, 0.95)
+polygon = PackedVector2Array(4430, -200, 4470, -200, 4470, 240, 4430, 240)
+
 [node name="Lighting" type="Node2D" parent="World" unique_id=1097732201]
 
 [node name="GlobalLighting" type="Node2D" parent="World/Lighting" unique_id=157077928]
 
 [node name="CanvasModulate" type="CanvasModulate" parent="World/Lighting/GlobalLighting" unique_id=1165044306]
-color = Color(0.85, 0.88, 0.9, 1)
+color = Color(0.56, 0.63, 0.72, 1)
 
 [node name="BackgroundLights" type="Node2D" parent="World/Lighting" unique_id=2136445501]
 
@@ -519,9 +631,35 @@ texture_filter = 1
 z_index = -85
 scroll_scale = Vector2(0.12, 1)
 
+[node name="FarHorizonMist" type="Sprite2D" parent="World/EnvironmentFX/FarFX" unique_id=1284792019]
+position = Vector2(2200, 10)
+scale = Vector2(80, 2.5)
+texture = SubResource("GradientTexture2D_horizon_mist")
+
+[node name="FarFogParticles" type="GPUParticles2D" parent="World/EnvironmentFX/FarFX" unique_id=1592837401]
+position = Vector2(2200, -20)
+amount = 20
+texture = SubResource("GradientTexture2D_particle_fog")
+lifetime = 12.0
+preprocess = 6.0
+process_material = SubResource("ParticleProcessMaterial_far_fog")
+
 [node name="MidFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=2113302992]
 z_index = -45
 scroll_scale = Vector2(0.5, 1)
+
+[node name="MidMistBand" type="Sprite2D" parent="World/EnvironmentFX/MidFX" unique_id=1492837592]
+position = Vector2(2200, 60)
+scale = Vector2(80, 2.0)
+texture = SubResource("GradientTexture2D_mid_mist")
+
+[node name="MidFogParticles" type="GPUParticles2D" parent="World/EnvironmentFX/MidFX" unique_id=1739284051]
+position = Vector2(2200, 40)
+amount = 16
+texture = SubResource("GradientTexture2D_particle_fog")
+lifetime = 8.0
+preprocess = 4.0
+process_material = SubResource("ParticleProcessMaterial_mid_fog")
 
 [node name="GameplayWorldFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=1831732576]
 z_index = 12
@@ -529,9 +667,28 @@ z_index = 12
 [node name="FloorVent" parent="World/EnvironmentFX/GameplayWorldFX" unique_id=1702155818 instance=ExtResource("7_vent")]
 position = Vector2(500, 138)
 
+[node name="AbyssFogBand" type="Sprite2D" parent="World/EnvironmentFX/GameplayWorldFX" unique_id=1628394017]
+position = Vector2(2200, 290)
+scale = Vector2(80, 1.2)
+texture = SubResource("GradientTexture2D_abyss_mist")
+
+[node name="AbyssMistDrift" type="GPUParticles2D" parent="World/EnvironmentFX/GameplayWorldFX" unique_id=1492038492]
+position = Vector2(2200, 260)
+amount = 22
+texture = SubResource("GradientTexture2D_particle_fog")
+lifetime = 10.0
+preprocess = 5.0
+process_material = SubResource("ParticleProcessMaterial_abyss_fog")
+
 [node name="NearFX" type="Parallax2D" parent="World/EnvironmentFX" unique_id=1328596402]
 z_index = 50
 scroll_scale = Vector2(1.1, 1)
+
+[node name="NearAbyssMist" type="Sprite2D" parent="World/EnvironmentFX/NearFX" unique_id=1384920184]
+modulate = Color(0.5, 0.6, 0.7, 0.18)
+position = Vector2(2200, 240)
+scale = Vector2(80, 1.5)
+texture = SubResource("GradientTexture2D_mid_mist")
 
 [node name="RuntimeFX" type="Node2D" parent="." unique_id=1093563114 node_paths=PackedStringArray("world_transient_fx", "projectile_fx", "detached_character_fx", "combat_fx", "dynamic_lights")]
 script = ExtResource("3_vfx")
@@ -576,7 +733,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.06, 0.08, 0.1, 0.03)
+color = Color(0.12, 0.18, 0.24, 0.07)
 
 [node name="WorldPostFX" type="ColorRect" parent="ScreenFX" unique_id=170376610]
 visible = false

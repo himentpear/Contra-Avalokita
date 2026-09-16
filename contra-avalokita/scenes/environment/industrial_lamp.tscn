@@ -43,8 +43,8 @@ polygon = PackedVector2Array(-9, -7, 9, -7, 12, 5, 0, 10, -12, 5)
 [node name="PointLight2D" type="PointLight2D" parent="."]
 position = Vector2(0, 4)
 color = Color(1, 0.88, 0.65, 1)
-energy = 1.2
+energy = 0.65
 range_item_cull_mask = 12
 shadow_enabled = false
 texture = SubResource("GradientTexture2D_light")
-texture_scale = 1.8
+texture_scale = 1.15
