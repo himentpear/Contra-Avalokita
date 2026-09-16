@@ -76,7 +76,7 @@ func run() -> void:
 		await physics_frame
 		check(actor.facing == 1.0, "Facing direction must remain locked during attack")
 		check(actor.is_retreating(), "Facing opposite to move_intent must trigger is_retreating")
-		check(actor.anim_player.current_animation == &"Backstep", "Retreating attack must select Backstep: " + String(actor.anim_player.current_animation))
+		check(actor.anim_player.current_animation == &"Backstep", "Drawn sword retreat must select Backstep: " + String(actor.anim_player.current_animation))
 
 	print("PASS: Retreating attack (facing=1, intent=-1) plays Backstep")
 
@@ -90,7 +90,7 @@ func run() -> void:
 		actor.set_intent(-1.0, false, false)
 		await physics_frame
 	check(not actor.is_retreating(), "After attack ends, is_retreating must be false")
-	check(actor.anim_player.current_animation in [&"Walk", &"Run"], "After attack, must return to Walk/Run: " + String(actor.anim_player.current_animation))
+	check(actor.anim_player.current_animation in [&"Walk_Unarmed", &"Run_Unarmed"], "After attack, back carry returns to natural-arm Walk/Run: " + String(actor.anim_player.current_animation))
 	print("PASS: After retreating attack ends, smoothly returns to normal movement")
 
 	# 4. Test Symmetrical Retreating Attack (facing=-1, move_intent=1)
@@ -102,7 +102,7 @@ func run() -> void:
 		await physics_frame
 		check(actor.facing == -1.0, "Facing left must remain locked")
 		check(actor.is_retreating(), "Facing -1 with intent 1 must trigger is_retreating")
-		check(actor.anim_player.current_animation == &"Backstep", "Symmetric retreat must select Backstep: " + String(actor.anim_player.current_animation))
+		check(actor.anim_player.current_animation == &"Backstep", "Symmetric drawn-sword retreat must select Backstep: " + String(actor.anim_player.current_animation))
 
 	print("PASS: Symmetric retreat (facing=-1, intent=1) plays Backstep")
 

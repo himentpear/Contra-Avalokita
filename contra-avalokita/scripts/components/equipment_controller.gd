@@ -7,17 +7,31 @@ const MudWeapon = preload("res://gameplay/combat/weapons/weapon.gd")
 signal weapon_equipped(weapon: MudWeapon, data: WeaponData)
 signal weapon_unequipped()
 signal weapon_dropped_to_ground()
+signal carry_mode_changed(previous: int, current_mode: int)
+
+enum CarryMode { HAND, BACK }
 
 @export var default_weapon: PackedScene = preload("res://scenes/weapons/sword.tscn")
 @export var default_weapon_data: WeaponData = null
 
 var main_hand: Marker2D
+var back_slot: Marker2D
 var current: MudWeapon
 var current_data: WeaponData
 var owner_character: Node
 var hand_depth := 1.0
 @export var blade_projection := 1.0
 @export var blade_depth := 0.0
+@export_group("Weapon Carry")
+@export_enum("HAND", "BACK") var default_carry_mode: int = CarryMode.BACK
+# The grip sits just outside the rear torso silhouette. The blade then follows
+# the -135 degree axis (a 45 degree diagonal) toward the rear shoulder.
+@export var back_slot_offset := Vector2(-10.0, 8.0)
+@export_range(-180.0, 180.0, 1.0) var back_slot_rotation_degrees := -135.0
+@export_range(-10, 10, 1) var back_slot_z_index := -5
+@export_group("")
+var carry_mode := CarryMode.BACK
+var action_requires_hand := false
 
 var weapon_dropped := false
 var weapon_grounded := false
@@ -32,11 +46,19 @@ var weapon_spring_vel := 0.0
 var equipment_manager: Node = null
 
 func _ready() -> void:
+	main_hand = get_node_or_null("MainHandSlot") as Marker2D
 	if not main_hand:
 		main_hand = Marker2D.new()
 		main_hand.name = "MainHandSlot"
 		main_hand.set_meta("anatomical_hand", &"Right")
 		add_child(main_hand)
+	back_slot = get_node_or_null("BackSlot") as Marker2D
+	if not back_slot:
+		back_slot = Marker2D.new()
+		back_slot.name = "BackSlot"
+		add_child(back_slot)
+	back_slot.z_index = back_slot_z_index
+	carry_mode = default_carry_mode
 	if default_weapon_data:
 		equip(default_weapon_data)
 	elif default_weapon:
@@ -47,8 +69,7 @@ func setup_equipment(p_equipment: Node) -> void:
 
 func equip(source: Variant) -> void:
 	if is_instance_valid(current):
-		if is_instance_valid(main_hand) and current.get_parent() == main_hand:
-			main_hand.remove_child(current)
+		_disable_weapon_combat()
 		current.queue_free()
 	current = null
 	current_data = null
@@ -71,11 +92,54 @@ func equip(source: Variant) -> void:
 
 	if is_instance_valid(current):
 		current.set_meta("owner_character", owner_character)
-		if is_instance_valid(main_hand):
-			main_hand.add_child(current)
+		var target_slot := _slot_for_mode(carry_mode)
+		if is_instance_valid(target_slot):
+			target_slot.add_child(current)
 			if current.has_node("WeaponGrip"):
 				current.position = -current.get_node("WeaponGrip").position
+			current.rotation = 0.0
+		current.set_combat_enabled(carry_mode == CarryMode.HAND)
 		weapon_equipped.emit(current, current_data)
+
+func is_weapon_in_hand() -> bool:
+	return carry_mode == CarryMode.HAND and is_instance_valid(current) and current.get_parent() == main_hand
+
+func set_carry_mode(mode: int, _animated := false) -> void:
+	# _animated is reserved for a future draw/sheathe transition. MVP switches immediately.
+	var next_mode := clampi(mode, CarryMode.HAND, CarryMode.BACK)
+	var previous := carry_mode
+	carry_mode = next_mode
+	if next_mode == CarryMode.BACK:
+		_disable_weapon_combat()
+	if is_instance_valid(current):
+		var target_slot := _slot_for_mode(next_mode)
+		if is_instance_valid(target_slot) and current.get_parent() != target_slot:
+			current.reparent(target_slot, false)
+			current.position = -current.get_node("WeaponGrip").position if current.has_node("WeaponGrip") else Vector2.ZERO
+			current.rotation = 0.0
+		current.scale = Vector2.ONE
+		current.modulate = Color.WHITE
+		current.set_combat_enabled(next_mode == CarryMode.HAND)
+	if previous != carry_mode:
+		carry_mode_changed.emit(previous, carry_mode)
+
+func update_carry_mode(attacking: bool, blocking: bool, requires_hand := false) -> void:
+	set_carry_mode(CarryMode.HAND if attacking or blocking or requires_hand or action_requires_hand else CarryMode.BACK)
+
+func set_action_requires_hand(required: bool, animated := false) -> void:
+	# Extension seam for future draw/sheathe actions outside attack and guard.
+	action_requires_hand = required
+	var attacking := is_instance_valid(owner_character) and owner_character.has_method("is_attacking") and bool(owner_character.is_attacking())
+	var blocking := is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and bool(owner_character.is_blocking())
+	set_carry_mode(CarryMode.HAND if attacking or blocking or required else CarryMode.BACK, animated)
+
+func _slot_for_mode(mode: int) -> Marker2D:
+	return main_hand if mode == CarryMode.HAND else back_slot
+
+func _disable_weapon_combat() -> void:
+	if not is_instance_valid(current):
+		return
+	current.set_combat_enabled(false)
 
 func _apply_weapon_data(weapon: MudWeapon, data: WeaponData) -> void:
 	if not weapon or not data: return
@@ -99,9 +163,14 @@ func drop_weapon_to_ground() -> void:
 	if not is_instance_valid(current) or weapon_dropped: return
 	weapon_dropped = true
 	weapon_grounded = false
-	if is_instance_valid(main_hand):
-		drop_pos = main_hand.position
-		drop_rot = main_hand.rotation
+	if is_instance_valid(current):
+		var local_transform := global_transform.affine_inverse() * current.global_transform
+		drop_pos = local_transform.origin
+		drop_rot = local_transform.get_rotation()
+		current.reparent(self, false)
+		current.position = drop_pos
+		current.rotation = drop_rot
+		current.z_index = 6
 	else:
 		drop_pos = Vector2(10, -20)
 		drop_rot = 0.0
@@ -122,16 +191,19 @@ func _process(delta: float) -> void:
 			drop_vel = Vector2.ZERO
 			drop_rot = lerpf(drop_rot, 0.0, 0.5)
 			weapon_grounded = true
-		if is_instance_valid(main_hand):
-			main_hand.position = drop_pos
-			main_hand.rotation = drop_rot
+		if is_instance_valid(current):
+			current.position = drop_pos
+			current.rotation = drop_rot
 
-func sync_bone(hand_bone: Bone2D, forearm_bone: Bone2D, attack_time: float, attacking: bool, delta: float = 0.0167) -> void:
+func sync_bone(hand_bone: Bone2D, forearm_bone: Bone2D, attack_time: float, attacking: bool, delta: float = 0.0167, back_bone: Bone2D = null) -> void:
 	if not is_instance_valid(main_hand): return
 	if weapon_dropped: return
+	_sync_back_slot(back_bone)
+	var blocking: bool = not attacking and is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and bool(owner_character.is_blocking())
+	update_carry_mode(attacking, blocking)
 	if is_instance_valid(hand_bone):
 		main_hand.position = to_local(hand_bone.global_position)
-		var is_blocking_armed: bool = not attacking and is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and owner_character.is_blocking()
+		var is_blocking_armed: bool = blocking
 		if is_blocking_armed:
 			# Sword Guard: tilted 7° forward toward enemy (-PI/2 + 7°), hilt near body
 			var base_guard_rot: float = -PI * 0.5 + deg_to_rad(7.0)
@@ -178,7 +250,9 @@ func sync_bone(hand_bone: Bone2D, forearm_bone: Bone2D, attack_time: float, atta
 			weapon_spring_vel *= exp(-22.0 * delta)
 			current_weapon_rot += weapon_spring_vel * delta
 			main_hand.rotation = current_weapon_rot
-	var is_blocking_armed: bool = not attacking and is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and owner_character.is_blocking()
+	if carry_mode == CarryMode.BACK:
+		return
+	var is_blocking_armed: bool = blocking
 	if current:
 		var horizontal := attacking and current.weapon_class == "blade" and current.attack_stage == 1
 		current.scale = Vector2((maxf(absf(blade_projection), .08) * (-1.0 if blade_projection < 0 else 1.0)) if horizontal else 1.0, 1.0)
@@ -187,13 +261,32 @@ func sync_bone(hand_bone: Bone2D, forearm_bone: Bone2D, attack_time: float, atta
 		main_hand.z_index = 8
 	else:
 		main_hand.z_index = -4 if hand_depth < -.5 else (6 if hand_depth > .5 else 2)
-	if current: current.update_attack(attack_time, attacking)
+	if current and carry_mode == CarryMode.HAND: current.update_attack(attack_time, attacking)
+
+func _sync_back_slot(back_bone: Bone2D) -> void:
+	if not is_instance_valid(back_slot):
+		return
+	back_slot.z_index = back_slot_z_index
+	if not is_instance_valid(back_bone):
+		back_slot.position = Vector2(-10.0, -47.0)
+		back_slot.rotation = deg_to_rad(back_slot_rotation_degrees)
+		return
+	var origin := to_local(back_bone.global_position)
+	var axis := to_local(back_bone.to_global(Vector2.RIGHT)) - origin
+	var bone_angle := axis.angle() if axis.length_squared() > 0.001 else 0.0
+	back_slot.position = origin + back_slot_offset.rotated(bone_angle)
+	back_slot.rotation = bone_angle + deg_to_rad(back_slot_rotation_degrees)
 
 func sync(rig: MudRig, attack_time: float, attacking: bool, delta: float = 0.0167) -> void:
 	if not is_instance_valid(main_hand) or rig == null: return
 	if weapon_dropped: return
+	_sync_back_slot(null)
+	var blocking: bool = not attacking and is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and bool(owner_character.is_blocking())
+	update_carry_mode(attacking, blocking)
 	main_hand.position = rig.point(&"ArmFrontEnd")
-	var is_blocking_armed: bool = not attacking and is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and owner_character.is_blocking()
+	if carry_mode == CarryMode.BACK:
+		return
+	var is_blocking_armed: bool = blocking
 	if is_blocking_armed:
 		var base_guard_rot: float = -PI * 0.5 + deg_to_rad(7.0)
 		var recoil_rot := 0.0
@@ -224,7 +317,7 @@ func sync(rig: MudRig, attack_time: float, attacking: bool, delta: float = 0.016
 		current_weapon_rot += weapon_spring_vel * delta
 		main_hand.rotation = current_weapon_rot
 		main_hand.z_index = 6
-	if current: current.update_attack(attack_time, attacking)
+	if current and carry_mode == CarryMode.HAND: current.update_attack(attack_time, attacking)
 
 func equip_piece(slot: StringName, scene: PackedScene) -> void:
 	if equipment_manager and equipment_manager.has_method("equip"):

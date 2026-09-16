@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="CharacterLightingBinding" format=3 uid="uid://dmudlightingbinding01"]
+[gd_resource type="Resource" script_class="CharacterLightingBinding" format=3 uid="uid://bedfcfklewei3"]
 
-[ext_resource type="Script" path="res://scripts/presentation/lighting/character_lighting_binding.gd" id="1_light_binding"]
+[ext_resource type="Script" uid="uid://balenykk4ly07" path="res://scripts/presentation/lighting/character_lighting_binding.gd" id="1_light_binding"]
 
 [resource]
+resource_local_to_scene = true
 script = ExtResource("1_light_binding")
-body_renderer_paths = [NodePath("Visual/MudBodyRenderer")]
-weapon_renderer_paths = []
-weapon_slot_path = NodePath("Visual/WeaponSlots/MainHandSlot")
-emissive_renderer_paths = [NodePath("Visual/Eyes")]
+body_renderer_paths = Array[NodePath]([NodePath("Visual/MudBodyRenderer")])
+weapon_slot_path = NodePath("Visual/WeaponSlots")
+emissive_renderer_paths = Array[NodePath]([NodePath("Visual/Eyes")])
 local_fx_behind_path = NodePath("Visual/LocalFXBehind")
 local_fx_body_path = NodePath("Visual/LocalFXBody")
 local_fx_front_path = NodePath("Visual/LocalFXFront")

@@ -9,7 +9,19 @@ const MAX_MODIFIERS := 16
 @export_range(0.1, 4.0) var fusion_softness := 1.8
 @export var render_bounds := Rect2(-80, -104, 160, 128)
 @export_range(0.5, 2.0) var edge_width := 1.0
-@export_range(0.0, 0.05) var surface_noise := 0.025
+@export_range(0.5, 3.0) var arm_edge_width := 1.6
+@export_group("Mud Material")
+@export_range(0.0, 0.3) var macro_breakup_strength := 0.09
+@export_range(0.0, 0.2) var medium_breakup_strength := 0.055
+@export_range(0.0, 0.1) var grain_strength := 0.025
+@export_range(0.0, 1.0) var shadow_threshold := 0.36
+@export_range(0.0, 1.0) var key_threshold := 0.68
+@export_range(0.0, 0.1) var band_softness := 0.025
+@export_range(0.0, 0.4) var cavity_strength := 0.15
+@export_range(0.0, 1.0) var wetness := 0.10
+@export_range(0.5, 1.0) var wet_threshold := 0.84
+@export_range(0.0, 0.3) var wet_highlight_strength := 0.08
+@export_range(0.0, 1.0) var rim_breakup_strength := 0.70
 @export_group("Hit Feedback")
 @export var hit_flash_color := Color.WHITE
 var hit_flash_amount := 0.0
@@ -53,6 +65,7 @@ var impact_ripple_phase := 0.0
 var shader_material: ShaderMaterial
 var endpoints := PackedVector4Array()
 var properties := PackedVector4Array()
+var arm_flags := PackedFloat32Array()
 var modifier_a := PackedVector4Array()
 var modifier_b := PackedVector4Array()
 var modifier_meta := PackedVector4Array()
@@ -98,6 +111,7 @@ var _bone_spine_upper: Bone2D
 func _ready() -> void:
 	endpoints.resize(MAX_SEGMENTS)
 	properties.resize(MAX_SEGMENTS)
+	arm_flags.resize(MAX_SEGMENTS)
 	modifier_a.resize(MAX_MODIFIERS)
 	modifier_b.resize(MAX_MODIFIERS)
 	modifier_meta.resize(MAX_MODIFIERS)
@@ -260,7 +274,7 @@ func point(id: StringName) -> Vector2:
 		return auxiliary_points[id]
 	return Vector2.ZERO
 
-func add_segment(a: Vector2, b: Vector2, r1: float, r2: float, depth := 0.0) -> void:
+func add_segment(a: Vector2, b: Vector2, r1: float, r2: float, depth := 0.0, is_arm := false) -> void:
 	if segment_cursor == segments.size():
 		segments.append(MudSegment.new())
 	var s := segments[segment_cursor]
@@ -270,6 +284,7 @@ func add_segment(a: Vector2, b: Vector2, r1: float, r2: float, depth := 0.0) -> 
 	s.radius_start = r1
 	s.radius_end = r2
 	s.depth = depth
+	arm_flags[segment_cursor - 1] = 1.0 if is_arm else 0.0
 
 func _solve_arm(id: String, upper_bone: Bone2D, fore_bone: Bone2D, hand_bone: Bone2D, depth: float) -> void:
 	if not upper_bone or not fore_bone or not hand_bone: return
@@ -326,11 +341,11 @@ func _solve_arm(id: String, upper_bone: Bone2D, fore_bone: Bone2D, hand_bone: Bo
 		r *= lerpf(1.0, 0.4, death_progress)
 	var jr := r * (1.0 - compression * 0.14)
 	
-	add_segment(origin, pre, r, jr, depth)
-	add_segment(pre, joint + outer, jr, jr, depth)
-	add_segment(joint + outer, post, jr, jr, depth)
-	add_segment(post, end, jr, r * 0.78, depth)
-	add_segment(end, end + v * 2.0, r, r * 0.9, depth)
+	add_segment(origin, pre, r, jr, depth, true)
+	add_segment(pre, joint + outer, jr, jr, depth, true)
+	add_segment(joint + outer, post, jr, jr, depth, true)
+	add_segment(post, end, jr, r * 0.78, depth, true)
+	add_segment(end, end + v * 2.0, r, r * 0.9, depth, true)
 
 func _solve_leg(id: String, thigh_bone: Bone2D, shin_bone: Bone2D, foot_bone: Bone2D, depth: float) -> void:
 	if not thigh_bone or not shin_bone or not foot_bone: return
@@ -533,16 +548,31 @@ func _upload_segments() -> void:
 	shader_material.set_shader_parameter("segment_count", count)
 	shader_material.set_shader_parameter("endpoints", endpoints)
 	shader_material.set_shader_parameter("properties", properties)
+	shader_material.set_shader_parameter("arm_flags", arm_flags)
 	_upload_modifiers()
 	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
-	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("arm_edge_width", arm_edge_width)
+	_upload_mud_material()
 	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
 	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)
 	shader_material.set_shader_parameter("impact_params", Vector4(impact_center.x, impact_center.y, impact_radius, impact_depth))
 	shader_material.set_shader_parameter("impact_bulge", Vector4(impact_bulge_center.x, impact_bulge_center.y, impact_bulge_radius, impact_bulge_height))
 	shader_material.set_shader_parameter("impact_ripple_phase", impact_ripple_phase)
+
+func _upload_mud_material() -> void:
+	shader_material.set_shader_parameter("macro_breakup_strength", macro_breakup_strength)
+	shader_material.set_shader_parameter("medium_breakup_strength", medium_breakup_strength)
+	shader_material.set_shader_parameter("grain_strength", grain_strength)
+	shader_material.set_shader_parameter("shadow_threshold", shadow_threshold)
+	shader_material.set_shader_parameter("key_threshold", key_threshold)
+	shader_material.set_shader_parameter("band_softness", band_softness)
+	shader_material.set_shader_parameter("cavity_strength", cavity_strength)
+	shader_material.set_shader_parameter("wetness", wetness)
+	shader_material.set_shader_parameter("wet_threshold", wet_threshold)
+	shader_material.set_shader_parameter("wet_highlight_strength", wet_highlight_strength)
+	shader_material.set_shader_parameter("rim_breakup_strength", rim_breakup_strength)
 
 func sync(rig: MudRig) -> void:
 	if not rig: return
@@ -553,14 +583,17 @@ func sync(rig: MudRig) -> void:
 		var s := rig.segments[i]
 		endpoints[i] = Vector4(s.start_position.x, s.start_position.y, s.end_position.x, s.end_position.y)
 		properties[i] = Vector4(s.radius_start, s.radius_end, fusion_softness, s.depth)
+		arm_flags[i] = 0.0
 	shader_material.set_shader_parameter("segment_count", rig.segments.size())
 	shader_material.set_shader_parameter("endpoints", endpoints)
 	shader_material.set_shader_parameter("properties", properties)
+	shader_material.set_shader_parameter("arm_flags", arm_flags)
 	_rebuild_morph_cache_if_needed()
 	_upload_modifiers()
 	shader_material.set_shader_parameter("mud_color", _effective_mud_color if _has_mud_color_override else mud_color)
 	shader_material.set_shader_parameter("edge_width", edge_width)
-	shader_material.set_shader_parameter("noise_strength", surface_noise)
+	shader_material.set_shader_parameter("arm_edge_width", arm_edge_width)
+	_upload_mud_material()
 	shader_material.set_shader_parameter("hit_flash_amount", hit_flash_amount)
 	shader_material.set_shader_parameter("hit_flash_color", hit_flash_color)
 	shader_material.set_shader_parameter("death_dissolve", death_dissolve)

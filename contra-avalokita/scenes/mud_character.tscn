@@ -10,10 +10,10 @@
 [ext_resource type="Script" uid="uid://dwbnsywpwp26d" path="res://scripts/mud_pixel_ascension.gd" id="8_ascend"]
 [ext_resource type="AnimationLibrary" uid="uid://coeygueddnrgu" path="res://characters/mud/animation/wall_animation_library.tres" id="9_wall_anims"]
 [ext_resource type="Script" uid="uid://b3gkan17ub6t4" path="res://scripts/mud_pose_reference_validator.gd" id="10_cgwm4"]
-[ext_resource type="PackedScene" uid="uid://cshadowpresentation01" path="res://scenes/presentation/ground_shadow.tscn" id="11_gshadow"]
-[ext_resource type="Script" path="res://scripts/presentation/lighting/character_lighting_controller.gd" id="12_light_ctrl"]
-[ext_resource type="Resource" uid="uid://dmudlightingprofile01" path="res://characters/mud/lighting/mud_lighting_profile.tres" id="13_mud_profile"]
-[ext_resource type="Resource" uid="uid://dmudlightingbinding01" path="res://characters/mud/lighting/mud_lighting_binding.tres" id="14_mud_binding"]
+[ext_resource type="PackedScene" uid="uid://cxs6dx1qcc2gi" path="res://scenes/presentation/ground_shadow.tscn" id="11_gshadow"]
+[ext_resource type="Script" uid="uid://bdxqtk5b0pget" path="res://scripts/presentation/lighting/character_lighting_controller.gd" id="12_light_ctrl"]
+[ext_resource type="Resource" uid="uid://bedfqolneuci3" path="res://characters/mud/lighting/mud_lighting_profile.tres" id="13_mud_profile"]
+[ext_resource type="Resource" uid="uid://bedfcfklewei3" path="res://characters/mud/lighting/mud_lighting_binding.tres" id="14_mud_binding"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ccx8a"]
 height = 74.0
@@ -7216,11 +7216,10 @@ libraries/Wall = ExtResource("9_wall_anims")
 [node name="Visual" type="Node2D" parent="." unique_id=1034548773]
 z_index = 10
 
-[node name="GroundShadow" parent="Visual" instance=ExtResource("11_gshadow")]
+[node name="GroundShadow" parent="Visual" unique_id=76235710 instance=ExtResource("11_gshadow")]
 visible = false
-position = Vector2(0, 0)
 
-[node name="CharacterLightingController" type="Node2D" parent="Visual"]
+[node name="CharacterLightingController" type="Node2D" parent="Visual" unique_id=1627565694]
 script = ExtResource("12_light_ctrl")
 profile = ExtResource("13_mud_profile")
 binding = ExtResource("14_mud_binding")
@@ -7249,6 +7248,11 @@ script = ExtResource("4_cgwm4")
 
 [node name="WeaponSlots" type="Node2D" parent="Visual" unique_id=1961693118]
 script = ExtResource("5_ldqmi")
+
+[node name="BackSlot" type="Marker2D" parent="Visual/WeaponSlots"]
+position = Vector2(-10, -47)
+rotation = -2.35619
+z_index = -5
 
 [node name="PixelMudSplatter" type="Node2D" parent="Visual" unique_id=606854930]
 script = ExtResource("6_lpyrd")

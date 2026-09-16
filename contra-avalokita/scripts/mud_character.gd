@@ -407,6 +407,8 @@ func attack() -> void:
 	if combat_component: combat_component.attack()
 
 func start_attack(stage: int = 0) -> void:
+	if is_instance_valid(weapons):
+		weapons.update_carry_mode(true, false)
 	if combat_component: combat_component.start_attack(stage)
 
 func cancel_attack_pose() -> void:
@@ -475,6 +477,7 @@ func get_local_fx_socket(channel: StringName) -> Node2D:
 @onready var death_ascension: MudPixelAscension = $Visual/DeathAscension
 
 var _head_bone: Bone2D
+var _torso_bone: Bone2D
 var _upper_arm_front_bone: Bone2D
 var _forearm_front_bone: Bone2D
 var _hand_front_bone: Bone2D
@@ -633,6 +636,7 @@ func _ready() -> void:
 		_contact_squash_timer = 2.0 / 60.0
 	)
 	if skeleton:
+		_torso_bone = skeleton.get_node_or_null("Pelvis/Torso") as Bone2D
 		_head_bone = skeleton.get_node_or_null("Pelvis/Torso/Head") as Bone2D
 		_upper_arm_front_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmFront") as Bone2D
 		_forearm_front_bone = skeleton.get_node_or_null("Pelvis/Torso/UpperArmFront/ForearmFront") as Bone2D
@@ -705,6 +709,7 @@ func _ready() -> void:
 	pose_composer.z_index = 20
 	add_child(pose_composer)
 	pose_composer.evaluate(0.0)
+	animation_controller.sync_weapon_animation()
 	_sync_visual(0)
 
 ## Shared input seam: AI / NPC controllers use this without modifying the rig.
@@ -933,6 +938,10 @@ func _physics_process(delta: float) -> void:
 
 	if combat_component:
 		combat_component.handle_attack_input(grounded)
+	if is_instance_valid(weapons):
+		# Resolve carry once per gameplay frame before locomotion/animation routing.
+		# sync_bone performs the transform update later, after the final bone pose.
+		weapons.update_carry_mode(is_attacking(), is_blocking())
 
 	var is_atk_or_blk := is_attacking() or is_blocking()
 	movement_component.physics_step(delta, atk_mult, allow_coyote_departure, is_atk_or_blk, state)
@@ -995,7 +1004,7 @@ func _sync_visual(delta: float) -> void:
 		eyes.sync_death(death_controller.death_progress, int(death_controller.eye_death_mode))
 		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
 		equipment.sync_death(death_controller.death_progress, death_controller.embed_equipment)
-		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, false, delta)
+		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, false, delta, _torso_bone)
 	else:
 		if sdf_body_component:
 			sdf_body_component.reset_death()
@@ -1022,7 +1031,7 @@ func _sync_visual(delta: float) -> void:
 		eyes.sync_death(0.0)
 		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
 		equipment.sync_death(0.0, true)
-		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, is_attacking(), delta)
+		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, is_attacking(), delta, _torso_bone)
 		if not is_armed():
 			_update_punch_attack(delta)
 	if is_instance_valid(equipment):
@@ -1144,7 +1153,10 @@ func receive_hit(hit_data: Variant) -> void:
 
 
 func _request_confirmed_hitstop(event: HitEvent) -> void:
-	HitstopSystem.request_hitstop(event, self)
+	if combat_component:
+		combat_component.request_confirmed_hitstop(event)
+	else:
+		HitstopSystem.request_hitstop(event, self)
 
 func _clear_managed_hitstop() -> void:
 	if combat_component:

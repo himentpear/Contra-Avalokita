@@ -34,6 +34,11 @@ func build_context() -> AnimationContext:
 	context.facing = _float_from(movement_component, &"facing", 1.0)
 	context.armed = _is_armed()
 	context.weapon_class = _weapon_class() if context.armed else &"unarmed"
+	# Attack/guard semantics take ownership immediately, before the visual sync has
+	# had a chance to reparent the weapon on the first action frame.
+	var action_needs_weapon := context.action_state.begins_with("Attack") or context.action_state == &"Block"
+	if context.armed and not action_needs_weapon and is_instance_valid(equipment_controller) and equipment_controller.has_method("is_weapon_in_hand") and not bool(equipment_controller.call("is_weapon_in_hand")):
+		context.tags[&"locomotion_weapon_class"] = &"unarmed"
 	context.attack_stage = _int_from(combat_component, &"combo_stage", 0)
 	var raw_wall_action := _name_from(movement_component, &"wall_action", &"None")
 	context.wall_action = _semantic_wall_action(raw_wall_action)

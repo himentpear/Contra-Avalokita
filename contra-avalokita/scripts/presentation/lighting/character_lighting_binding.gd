@@ -58,14 +58,22 @@ func resolve(root: Node) -> void:
 	if not weapon_slot_path.is_empty():
 		weapon_slot_node = root.get_node_or_null(weapon_slot_path)
 		if is_instance_valid(weapon_slot_node):
-			if not weapon_slot_node.child_entered_tree.is_connected(_on_weapon_slot_child_entered):
-				weapon_slot_node.child_entered_tree.connect(_on_weapon_slot_child_entered)
-			if not weapon_slot_node.child_exiting_tree.is_connected(_on_weapon_slot_child_exiting):
-				weapon_slot_node.child_exiting_tree.connect(_on_weapon_slot_child_exiting)
+			_watch_weapon_container(weapon_slot_node)
 			for child in weapon_slot_node.get_children():
 				_on_weapon_slot_child_entered(child)
 
+func _watch_weapon_container(container: Node) -> void:
+	if not is_instance_valid(container):
+		return
+	if not container.child_entered_tree.is_connected(_on_weapon_slot_child_entered):
+		container.child_entered_tree.connect(_on_weapon_slot_child_entered)
+	if not container.child_exiting_tree.is_connected(_on_weapon_slot_child_exiting):
+		container.child_exiting_tree.connect(_on_weapon_slot_child_exiting)
+	for child in container.get_children():
+		_watch_weapon_container(child)
+
 func _on_weapon_slot_child_entered(node: Node) -> void:
+	_watch_weapon_container(node)
 	if node is CanvasItem and not weapon_renderers.has(node):
 		weapon_renderers.append(node as CanvasItem)
 	for child in node.find_children("*", "CanvasItem", true, false):

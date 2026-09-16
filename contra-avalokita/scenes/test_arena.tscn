@@ -23,11 +23,11 @@
 [ext_resource type="Resource" path="res://content/base/items/coyote/suspended_absurdity.tres" id="16_item_susp"]
 [ext_resource type="Resource" path="res://content/base/items/coyote/hermes_winged_boots.tres" id="17_item_herm"]
 [ext_resource type="Resource" path="res://content/base/items/coyote/dear_cruel_gravity.tres" id="18_item_grav"]
-[ext_resource type="Resource" path="res://content/base/items/coyote/three_eyed_pardon.tres" id="19_item_pard"]
 [ext_resource type="Texture2D" uid="uid://jcwnl2dubvlo" path="res://assets/shelter/cover_right.png" id="19_23o81"]
+[ext_resource type="Resource" path="res://content/base/items/coyote/three_eyed_pardon.tres" id="19_item_pard"]
 [ext_resource type="Texture2D" uid="uid://c27exnc06n0qe" path="res://assets/shelter/cover_left.png" id="19_rp6b3"]
 [ext_resource type="PackedScene" path="res://ui/items/coyote_item_gallery.tscn" id="20_gallery"]
-[ext_resource type="PackedScene" uid="uid://csheltercover01" path="res://scenes/environment/shelter_wall_cover.tscn" id="21_cover"]
+[ext_resource type="PackedScene" uid="uid://brd48ylqr4dme" path="res://scenes/environment/shelter_wall_cover.tscn" id="21_cover"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
 size = Vector2(24, 600)
@@ -235,7 +235,6 @@ texture = ExtResource("7_krr3f")
 [node name="ShelterWallCover" parent="World/GameplayWorld/Scenery" unique_id=134312799 instance=ExtResource("21_cover")]
 position = Vector2(2313.2986, -52.875)
 scale = Vector2(1.6877165, 1.6877161)
-target_sprite = NodePath("../Image(13)")
 
 [node name="Image(14)" type="Sprite2D" parent="World/GameplayWorld/Scenery" unique_id=1503171800]
 modulate = Color(0.62, 0.68, 0.76, 1)
@@ -628,6 +627,9 @@ color = Color(0.56, 0.63, 0.72, 1)
 
 [node name="GameplayLights" type="Node2D" parent="World/Lighting" unique_id=296259483]
 position = Vector2(-55, -114)
+
+[node name="StationLamp6" parent="World/Lighting/GameplayLights" unique_id=746837258 instance=ExtResource("6_lamp")]
+position = Vector2(2896, 5)
 
 [node name="StationLamp1" parent="World/Lighting/GameplayLights" unique_id=1812388797 instance=ExtResource("6_lamp")]
 position = Vector2(449, 42)

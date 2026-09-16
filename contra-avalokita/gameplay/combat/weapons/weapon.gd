@@ -27,6 +27,7 @@ var previous_blade := Vector2.ZERO
 @export var active_end := 0.35
 var hit_targets: Array[int] = []
 var active := false
+var combat_enabled := true
 @onready var hitbox: Area2D = $Hitbox
 var default_hitbox_transform: Transform2D
 var default_shape_transform: Transform2D
@@ -47,7 +48,21 @@ func begin_attack(stage: int = 0) -> void:
 	active = false
 	hitbox.set_deferred("monitoring", false)
 
+func set_combat_enabled(enabled: bool) -> void:
+	combat_enabled = enabled
+	if enabled:
+		return
+	active = false
+	trail_points.clear()
+	trail_remaining = 0.0
+	impact_flash_timer = 0.0
+	if is_instance_valid(hitbox):
+		hitbox.set_deferred("monitoring", false)
+
 func update_attack(t: float, attacking: bool) -> void:
+	if not combat_enabled:
+		set_combat_enabled(false)
+		return
 	var owner_actor = get_meta("owner_character",null)
 	if attacking and weapon_class == "blade" and attack_stage == 1 and is_instance_valid(owner_actor):
 		# Combat volume is anchored to the character, independent of projected blade scale.
@@ -124,7 +139,7 @@ func _draw() -> void:
 		draw_set_transform(Vector2.ZERO)
 
 func _on_area_entered(area: Area2D) -> void:
-	if not active or area.get_meta("owner_character", null) == get_meta("owner_character", null): return
+	if not combat_enabled or not active or area.get_meta("owner_character", null) == get_meta("owner_character", null): return
 	var id := area.get_instance_id()
 	if hit_targets.has(id): return
 	hit_targets.append(id)

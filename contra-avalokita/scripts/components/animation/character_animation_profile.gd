@@ -14,7 +14,8 @@ extends Resource
 
 func resolve_locomotion(context: AnimationContext) -> StringName:
 	var action: StringName = context.get_value(&"locomotion_variant", context.locomotion_state)
-	var qualified := StringName("%s.%s" % [action, context.weapon_class])
+	var locomotion_weapon_class: StringName = context.get_value(&"locomotion_weapon_class", context.weapon_class)
+	var qualified := StringName("%s.%s" % [action, locomotion_weapon_class])
 	return _resolve(locomotion, qualified, action)
 
 func resolve_air(context: AnimationContext) -> StringName:

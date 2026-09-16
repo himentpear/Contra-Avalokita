@@ -4,3 +4,4 @@
 
 [resource]
 script = ExtResource("1_light_profile")
+rim_strength = 0.12

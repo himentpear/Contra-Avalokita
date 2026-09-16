@@ -5,6 +5,7 @@ uniform int depth_pass = 2; // 2 = unsplit; -1/0/1 = rear/body/front surfaces.
 const int MAX_SEGMENTS = 40;
 uniform vec4 endpoints[MAX_SEGMENTS];
 uniform vec4 properties[MAX_SEGMENTS]; // radius a, radius b, fusion width, depth
+uniform float arm_flags[MAX_SEGMENTS]; // 1 for anatomical arm/hand capsules.
 uniform int segment_count = 0;
 const int MAX_MODIFIERS = 16;
 uniform vec4 modifier_a[MAX_MODIFIERS]; // start xy, radius, softness
@@ -17,7 +18,18 @@ uniform vec4 mud_color : source_color = vec4(0.42, 0.49, 0.27, 1.0);
 uniform vec4 hit_flash_color : source_color = vec4(1.0);
 uniform float hit_flash_amount : hint_range(0.0, 1.0) = 0.0;
 uniform float edge_width : hint_range(0.5, 2.0) = 1.0;
-uniform float noise_strength : hint_range(0.0, 0.05) = 0.025;
+uniform float arm_edge_width : hint_range(0.5, 3.0) = 1.6;
+uniform float macro_breakup_strength : hint_range(0.0, 0.3) = 0.09;
+uniform float medium_breakup_strength : hint_range(0.0, 0.2) = 0.055;
+uniform float grain_strength : hint_range(0.0, 0.1) = 0.025;
+uniform float shadow_threshold : hint_range(0.0, 1.0) = 0.36;
+uniform float key_threshold : hint_range(0.0, 1.0) = 0.68;
+uniform float band_softness : hint_range(0.0, 0.1) = 0.025;
+uniform float cavity_strength : hint_range(0.0, 0.4) = 0.15;
+uniform float wetness : hint_range(0.0, 1.0) = 0.10;
+uniform float wet_threshold : hint_range(0.5, 1.0) = 0.84;
+uniform float wet_highlight_strength : hint_range(0.0, 0.3) = 0.08;
+uniform float rim_breakup_strength : hint_range(0.0, 1.0) = 0.70;
 uniform vec4 impact_params = vec4(0.0, 0.0, 0.0, 0.0);
 uniform vec4 impact_bulge = vec4(0.0, 0.0, 0.0, 0.0);
 uniform float impact_ripple_phase = 0.0;
@@ -31,7 +43,7 @@ uniform float key_level : hint_range(0.0, 2.0) = 1.10;
 uniform vec4 shadow_color : source_color = vec4(0.40, 0.45, 0.52, 1.0);
 uniform vec4 mid_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 uniform vec4 key_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
-uniform float rim_strength : hint_range(0.0, 2.0) = 0.35;
+uniform float rim_strength : hint_range(0.0, 2.0) = 0.12;
 uniform float rim_width : hint_range(0.0, 1.0) = 0.12;
 uniform vec4 status_tint : source_color = vec4(0.0, 0.0, 0.0, 0.0);
 
@@ -65,10 +77,27 @@ float smooth_subtract(float body, float cutter, float softness) {
 	return mix(-cutter, body, h) + k * h * (1.0 - h);
 }
 
+// Stable character-local value noise stays attached to the deforming mud body.
+float hash21(vec2 cell) {
+	return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float value_noise(vec2 coord) {
+	vec2 cell = floor(coord);
+	vec2 f = fract(coord);
+	f = f * f * (3.0 - 2.0 * f);
+	float a = hash21(cell);
+	float b = hash21(cell + vec2(1.0, 0.0));
+	float c = hash21(cell + vec2(0.0, 1.0));
+	float e = hash21(cell + vec2(1.0, 1.0));
+	return mix(mix(a, b, f.x), mix(c, e, f.x), f.y);
+}
+
 void fragment() {
 	vec2 p = UV * bounds_size + bounds_origin;
 	float d = 1000.0;
 	float owner_depth = -2.0;
+	float owner_is_arm = 0.0;
 	float surface = 0.0;
 	vec2 gradient = vec2(0.0);
 	for (int i = 0; i < MAX_SEGMENTS; i++) {
@@ -84,6 +113,7 @@ void fragment() {
 		// Front surfaces win overlaps; union still has one continuous silhouette.
 		if (s < 0.0 && properties[i].w >= owner_depth) {
 			owner_depth = properties[i].w;
+			owner_is_arm = arm_flags[i];
 		}
 	}
 	// Biological growth is unioned after the base anatomy so it inherits the
@@ -100,6 +130,7 @@ void fragment() {
 		d = mix(m, d, h) - k * h * (1.0 - h);
 		if (m < 0.0 && modifier_meta[i].z >= owner_depth) {
 			owner_depth = modifier_meta[i].z;
+			owner_is_arm = 0.0;
 		}
 	}
 	if (owner_depth < -1.5) {
@@ -152,37 +183,57 @@ void fragment() {
 	int visible_depth = owner_depth < -0.5 ? -1 : (owner_depth > 0.5 ? 1 : 0);
 	if (depth_pass != 2 && visible_depth != depth_pass) { discard; }
 	vec2 l_dir = length(light_direction) > 0.001 ? normalize(light_direction) : vec2(0.0, -1.0);
-	float n_dot_l = dot(gradient, l_dir);
+	float gradient_len = length(gradient);
+	vec2 macro_normal = gradient / max(gradient_len, 0.001);
+	float n_dot_l = dot(macro_normal, l_dir);
 	surface = 0.50 + n_dot_l * 0.50;
-	float noise = fract(sin(dot(floor(p), vec2(12.9898, 78.233))) * 43758.5453);
-	float light = surface + (noise - 0.5) * noise_strength;
-	vec3 shade = mud_color.rgb;
-	if (light < 0.38) {
-		float t = clamp(light / 0.38, 0.0, 1.0);
-		shade *= mix(minimum_ambient, mid_level, t) * shadow_color.rgb;
-	} else if (light < 0.68) {
-		float t = clamp((light - 0.38) / 0.30, 0.0, 1.0);
-		shade *= mix(mid_level, 1.0, t) * mid_color.rgb;
-	} else {
-		float t = clamp((light - 0.68) / 0.32, 0.0, 1.0);
-		shade = mix(shade, vec3(0.85, 0.90, 0.65) * key_color.rgb, t * 0.65 * key_level);
-		if (light_energy > 0.0001) {
-			float energy_factor = clamp(light_energy, 0.0, 1.5);
-			vec3 lit_tint = mix(vec3(1.0), light_color.rgb, clamp(energy_factor, 0.0, 1.0) * 0.40);
-			shade *= lit_tint;
-			shade += shade * (light_color.rgb * energy_factor * 0.25);
-		}
-	}
+
+	// Break up the macro lighting before quantization. Scales are about 8 px,
+	// 3 px and 1 px respectively and never perturb the SDF silhouette.
+	float macro_sample = value_noise(p / 8.0);
+	float medium_sample = value_noise((p + vec2(19.0, -7.0)) / 3.0);
+	float detail_sample = value_noise((p + vec2(71.0, -29.0)) / 1.6);
+	float grain_sample = hash21(floor(p) + vec2(43.0, 17.0));
+	float macro_breakup = (macro_sample - 0.5) * macro_breakup_strength;
+	float medium_breakup = (medium_sample - 0.5) * medium_breakup_strength;
+	float grain = (grain_sample - 0.5) * grain_strength;
+	float material_light = clamp(surface + macro_breakup + medium_breakup + grain, 0.0, 1.0);
+	float softness = max(band_softness, 0.001);
+	float shadow_to_mid = smoothstep(shadow_threshold - softness, shadow_threshold + softness, material_light);
+	float mid_to_key = smoothstep(key_threshold - softness, key_threshold + softness, material_light);
+
+	vec3 shadow_tone = shadow_color.rgb * minimum_ambient;
+	vec3 mid_tone = mid_color.rgb * mid_level;
+	vec3 key_tone = key_color.rgb * key_level;
+	vec3 tonal_level = mix(shadow_tone, mid_tone, shadow_to_mid);
+	tonal_level = mix(tonal_level, key_tone, mid_to_key);
+	float bounded_energy = clamp(light_energy, 0.0, 1.5);
+	vec3 subtle_light_tint = mix(vec3(1.0), light_color.rgb, min(bounded_energy, 1.0) * 0.18);
+	vec3 shade = mud_color.rgb * tonal_level * subtle_light_tint;
+	shade *= 1.0 + mid_to_key * bounded_energy * 0.06;
+
+	// Low gradient coherence occurs at smooth-union junctions. Treat it as
+	// compressed, dirty mud rather than an expensive second SDF/AO pass.
+	float cavity = clamp(1.0 - gradient_len, 0.0, 1.0);
+	cavity *= cavity;
+	shade *= 1.0 - cavity * cavity_strength;
 	if (owner_depth < -0.5) { shade *= 0.73; }
-	if (rim_strength > 0.001 && d > -rim_width * 25.0 && n_dot_l < 0.1) {
-		float rim_edge = smoothstep(-rim_width * 25.0, 0.0, d);
+	if (rim_strength > 0.001 && light_energy > 0.05 && d > -rim_width * 12.0 && n_dot_l < 0.1) {
+		float rim_edge = smoothstep(-rim_width * 12.0, 0.0, d);
 		float rim_angle = clamp(1.0 - n_dot_l, 0.0, 1.0);
-		float rim_energy = clamp(light_energy, 0.0, 1.5);
-		float rim = rim_edge * rim_angle * rim_strength * rim_energy * 0.35;
+		float rim_noise = fract(detail_sample + grain_sample * 0.37);
+		float broken_rim = step(rim_breakup_strength, rim_noise);
+		float rim = rim_edge * rim_angle * rim_strength * bounded_energy * broken_rim * 0.25;
 		shade += rim * light_color.rgb;
 	}
-	if (light > 0.94 && noise > 0.94 && d < -2.0) { shade = vec3(0.85, 0.9, 0.65); }
-	if (d > -edge_width) { shade = mud_color.rgb * 0.36; }
+	// Rare 1-3 px wet fragments appear only on lit interior material.
+	float wet_density = clamp(wetness * 4.0, 0.0, 1.0);
+	float wet_mask = step(wet_threshold, detail_sample) * wet_density;
+	float interior = 1.0 - smoothstep(-3.0, -1.25, d);
+	float wet_candidate = mid_to_key * smoothstep(0.15, 0.65, bounded_energy) * wet_mask * interior;
+	shade += mud_color.rgb * subtle_light_tint * wet_candidate * wet_highlight_strength;
+	float local_edge_width = mix(edge_width, arm_edge_width, owner_is_arm);
+	if (d > -local_edge_width) { shade = mud_color.rgb * 0.36; }
 	if (hit_flash_amount > 0.001) {
 		shade = mix(shade, hit_flash_color.rgb, hit_flash_amount);
 	}

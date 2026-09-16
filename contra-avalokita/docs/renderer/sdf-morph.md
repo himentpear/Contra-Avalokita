@@ -59,3 +59,15 @@ character.body_renderer.clear_morph_profiles()
 godot --headless --path . --script res://tests/sdf_morph_test.gd
 godot --path . --script res://tests/sdf_morph_preview.gd
 ```
+
+## Form, surface and external light
+
+The renderer deliberately keeps three responsibilities separate:
+
+- **SDF controls form.** Capsules, smooth union, morph ADD/SUBTRACT, impacts and death collapse define the silhouette and anatomical mass.
+- **Mud material breakup controls surface.** Stable character-local macro patches, medium dirt, pixel grain, fusion cavity dirt and rare wet fragments break the lighting into coarse planes without changing the SDF boundary.
+- **CharacterLightingController controls external light context.** It remains the sole source of `light_direction`, `light_color` and `light_energy`; gameplay and morph resources do not tune material roughness.
+
+The SDF gradient is retained only as a macro directional normal. A narrow SHADOW/MID/KEY response quantizes the final material after breakup. Continuous Lambert-like interpolation is intentionally avoided because it reveals every capsule as a smooth wax or plastic tube. All breakup samples use body-local `p`, with no `TIME`, screen UV or camera coordinates, so the pattern remains attached while the actor moves and deforms.
+
+`MudBodyRenderer` owns the material identity controls under **Mud Material** and uploads them to the body, rear and front depth materials together. Changing these values never rebuilds the SDF or collision geometry.
