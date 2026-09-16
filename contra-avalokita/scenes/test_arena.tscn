@@ -233,8 +233,8 @@ scale = Vector2(1.6877165, 1.6877161)
 texture = ExtResource("7_krr3f")
 
 [node name="ShelterWallCover" parent="World/GameplayWorld/Scenery" unique_id=134312799 instance=ExtResource("21_cover")]
-position = Vector2(2313.2986, -52.875)
-scale = Vector2(1.6877165, 1.6877161)
+position = Vector2(2346.0002, -42)
+scale = Vector2(1.9444025, 1.8056103)
 
 [node name="Image(14)" type="Sprite2D" parent="World/GameplayWorld/Scenery" unique_id=1503171800]
 modulate = Color(0.62, 0.68, 0.76, 1)
@@ -642,10 +642,10 @@ position = Vector2(2620, 24)
 scale = Vector2(0.77351004, 0.6327779)
 
 [node name="StationLamp4" parent="World/Lighting/GameplayLights" unique_id=1757030320 instance=ExtResource("6_lamp")]
-position = Vector2(3475, -18)
+position = Vector2(3777, 88)
 
 [node name="StationLamp5" parent="World/Lighting/GameplayLights" unique_id=2130307789 instance=ExtResource("6_lamp")]
-position = Vector2(4200, 36)
+position = Vector2(4122, 90)
 
 [node name="ForegroundLights" type="Node2D" parent="World/Lighting" unique_id=1925239011]
 

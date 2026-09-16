@@ -1004,7 +1004,7 @@ func _sync_visual(delta: float) -> void:
 		eyes.sync_death(death_controller.death_progress, int(death_controller.eye_death_mode))
 		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
 		equipment.sync_death(death_controller.death_progress, death_controller.embed_equipment)
-		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, false, delta, _torso_bone)
+		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, false, delta, _torso_bone, _spine_upper_bone)
 	else:
 		if sdf_body_component:
 			sdf_body_component.reset_death()
@@ -1031,7 +1031,7 @@ func _sync_visual(delta: float) -> void:
 		eyes.sync_death(0.0)
 		equipment.sync_bones(_head_bone, _forearm_front_bone, _hand_front_bone)
 		equipment.sync_death(0.0, true)
-		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, is_attacking(), delta, _torso_bone)
+		weapons.sync_bone(_hand_front_bone, _forearm_front_bone, attack_time, is_attacking(), delta, _torso_bone, _spine_upper_bone)
 		if not is_armed():
 			_update_punch_attack(delta)
 	if is_instance_valid(equipment):

@@ -30,8 +30,17 @@ func run() -> void:
 	var back_tip := (sword.get_node("TrailOrigin") as Marker2D).global_position
 	var back_axis := back_tip - back_grip
 	check(manager.back_slot.position.x < -5.0, "Back sword grip stays tight to the rear edge of the torso")
-	check(back_axis.x < -20.0 and back_axis.y < -20.0, "Back sword uses a clear 45 degree rear-up diagonal")
+	check(is_equal_approx(manager.back_slot_vertical_drop, 16.0), "Back sword is lowered by half of its 32px blade length")
+	check(absf(back_axis.x) < 2.0 and back_axis.y > 31.0, "Back sword points blade-down with only a slight clockwise rotation: %s" % back_axis)
+	check(is_equal_approx(manager.back_slot.skew, deg_to_rad(manager.back_slot_skew_degrees)), "Back sword uses an independent perspective skew")
 	check(is_equal_approx(back_axis.length(), 32.0), "Back sword keeps its full visible blade length")
+	var spine_upper := actor.get_node("Visual/PoseRoot/Skeleton2D/Pelvis/SpineLower/SpineUpper") as Bone2D
+	var base_back_rotation := manager.back_slot.rotation
+	spine_upper.rotation += 0.1
+	manager.sync_bone(actor._hand_front_bone, actor._forearm_front_bone, actor.attack_time, false, 0.0, actor._torso_bone, spine_upper)
+	check(absf(angle_difference(base_back_rotation, manager.back_slot.rotation) - 0.1) < 0.001, "Back sword slope follows SpineUpper rotation")
+	spine_upper.rotation -= 0.1
+	manager.sync_bone(actor._hand_front_bone, actor._forearm_front_bone, actor.attack_time, false, 0.0, actor._torso_bone, spine_upper)
 	check(actor.get_state_animation(&"Idle") == &"Idle_Unarmed", "Back carry uses natural Idle arms")
 	check(actor.get_state_animation(&"Walk") == &"Walk_Unarmed", "Back carry uses natural Walk arm swing")
 	check(actor.get_state_animation(&"Run") == &"Run_Unarmed", "Back carry uses natural Run arm swing")

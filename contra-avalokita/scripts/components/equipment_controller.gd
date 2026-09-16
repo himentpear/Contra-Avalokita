@@ -24,10 +24,12 @@ var hand_depth := 1.0
 @export var blade_depth := 0.0
 @export_group("Weapon Carry")
 @export_enum("HAND", "BACK") var default_carry_mode: int = CarryMode.BACK
-# The grip sits just outside the rear torso silhouette. The blade then follows
-# the -135 degree axis (a 45 degree diagonal) toward the rear shoulder.
-@export var back_slot_offset := Vector2(-10.0, 8.0)
-@export_range(-180.0, 180.0, 1.0) var back_slot_rotation_degrees := -135.0
+# The grip sits just outside the rear torso silhouette. Rotation owns the nearly
+# vertical direction; skew supplies the shallow back-plane perspective.
+@export var back_slot_offset := Vector2(-9.0, -20.0)
+@export_range(0.0, 32.0, 1.0) var back_slot_vertical_drop := 16.0
+@export_range(-180.0, 180.0, 0.5) var back_slot_rotation_degrees := 92.0
+@export_range(-30.0, 30.0, 0.5) var back_slot_skew_degrees := 12.0
 @export_range(-10, 10, 1) var back_slot_z_index := -5
 @export_group("")
 var carry_mode := CarryMode.BACK
@@ -195,10 +197,10 @@ func _process(delta: float) -> void:
 			current.position = drop_pos
 			current.rotation = drop_rot
 
-func sync_bone(hand_bone: Bone2D, forearm_bone: Bone2D, attack_time: float, attacking: bool, delta: float = 0.0167, back_bone: Bone2D = null) -> void:
+func sync_bone(hand_bone: Bone2D, forearm_bone: Bone2D, attack_time: float, attacking: bool, delta: float = 0.0167, back_bone: Bone2D = null, spine_bone: Bone2D = null) -> void:
 	if not is_instance_valid(main_hand): return
 	if weapon_dropped: return
-	_sync_back_slot(back_bone)
+	_sync_back_slot(back_bone, spine_bone)
 	var blocking: bool = not attacking and is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and bool(owner_character.is_blocking())
 	update_carry_mode(attacking, blocking)
 	if is_instance_valid(hand_bone):
@@ -263,24 +265,30 @@ func sync_bone(hand_bone: Bone2D, forearm_bone: Bone2D, attack_time: float, atta
 		main_hand.z_index = -4 if hand_depth < -.5 else (6 if hand_depth > .5 else 2)
 	if current and carry_mode == CarryMode.HAND: current.update_attack(attack_time, attacking)
 
-func _sync_back_slot(back_bone: Bone2D) -> void:
+func _sync_back_slot(back_bone: Bone2D, spine_bone: Bone2D = null) -> void:
 	if not is_instance_valid(back_slot):
 		return
 	back_slot.z_index = back_slot_z_index
+	back_slot.skew = deg_to_rad(back_slot_skew_degrees)
 	if not is_instance_valid(back_bone):
-		back_slot.position = Vector2(-10.0, -47.0)
+		back_slot.position = Vector2(-9.0, -59.0)
 		back_slot.rotation = deg_to_rad(back_slot_rotation_degrees)
 		return
 	var origin := to_local(back_bone.global_position)
 	var axis := to_local(back_bone.to_global(Vector2.RIGHT)) - origin
 	var bone_angle := axis.angle() if axis.length_squared() > 0.001 else 0.0
-	back_slot.position = origin + back_slot_offset.rotated(bone_angle)
-	back_slot.rotation = bone_angle + deg_to_rad(back_slot_rotation_degrees)
+	var dropped_offset := back_slot_offset + Vector2.DOWN * back_slot_vertical_drop
+	back_slot.position = origin + dropped_offset.rotated(bone_angle)
+	var slope_bone := spine_bone if is_instance_valid(spine_bone) else back_bone
+	var slope_origin := to_local(slope_bone.global_position)
+	var slope_axis := to_local(slope_bone.to_global(Vector2.RIGHT)) - slope_origin
+	var spine_angle := slope_axis.angle() if slope_axis.length_squared() > 0.001 else 0.0
+	back_slot.rotation = spine_angle + deg_to_rad(back_slot_rotation_degrees)
 
 func sync(rig: MudRig, attack_time: float, attacking: bool, delta: float = 0.0167) -> void:
 	if not is_instance_valid(main_hand) or rig == null: return
 	if weapon_dropped: return
-	_sync_back_slot(null)
+	_sync_back_slot(null, null)
 	var blocking: bool = not attacking and is_instance_valid(owner_character) and owner_character.has_method("is_blocking") and bool(owner_character.is_blocking())
 	update_carry_mode(attacking, blocking)
 	main_hand.position = rig.point(&"ArmFrontEnd")

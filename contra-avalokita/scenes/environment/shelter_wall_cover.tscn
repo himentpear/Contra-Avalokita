@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://csheltercover01"]
+[gd_scene format=3 uid="uid://brd48ylqr4dme"]
 
-[ext_resource type="Script" path="res://scripts/environment/shelter_wall_cover.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://jmtg1djcwvdi" path="res://scripts/environment/shelter_wall_cover.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://cfdm5w11bymke" path="res://assets/shelter/inside.png" id="2_texture"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_left_room"]
@@ -9,43 +9,45 @@ size = Vector2(265, 160)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_right_room"]
 size = Vector2(270, 160)
 
-[node name="ShelterWallCover" type="Node2D" node_paths=PackedStringArray("left_cover_sprite", "right_cover_sprite", "left_trigger_area", "right_trigger_area")]
+[node name="ShelterWallCover" type="Node2D" unique_id=107027728 node_paths=PackedStringArray("left_cover_sprite", "right_cover_sprite", "left_trigger_area", "right_trigger_area")]
 script = ExtResource("1_script")
 left_cover_sprite = NodePath("LeftCover")
 right_cover_sprite = NodePath("RightCover")
 left_trigger_area = NodePath("LeftTriggerArea")
 right_trigger_area = NodePath("RightTriggerArea")
 
-[node name="LeftCover" type="Sprite2D" parent="."]
+[node name="LeftCover" type="Sprite2D" parent="." unique_id=826031161]
 modulate = Color(0.72, 0.78, 0.86, 1)
 light_mask = 4
 z_index = 35
-position = Vector2(-217, 0)
+position = Vector2(-207.33844, -1.4522706)
+scale = Vector2(0.9569658, 0.89963704)
 texture = ExtResource("2_texture")
 region_enabled = true
 region_rect = Rect2(0, 0, 434, 288)
 
-[node name="RightCover" type="Sprite2D" parent="."]
+[node name="RightCover" type="Sprite2D" parent="." unique_id=198789883]
 modulate = Color(0.72, 0.78, 0.86, 1)
 light_mask = 4
 z_index = 35
-position = Vector2(217, 0)
+position = Vector2(207, -2)
+scale = Vector2(0.9569658, 0.89963704)
 texture = ExtResource("2_texture")
 region_enabled = true
 region_rect = Rect2(434, 0, 434, 288)
 
-[node name="LeftTriggerArea" type="Area2D" parent="."]
+[node name="LeftTriggerArea" type="Area2D" parent="." unique_id=693374521]
 collision_layer = 0
 collision_mask = 3
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftTriggerArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="LeftTriggerArea" unique_id=702000345]
 position = Vector2(-278, -35)
 shape = SubResource("RectangleShape2D_left_room")
 
-[node name="RightTriggerArea" type="Area2D" parent="."]
+[node name="RightTriggerArea" type="Area2D" parent="." unique_id=940278795]
 collision_layer = 0
 collision_mask = 3
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="RightTriggerArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="RightTriggerArea" unique_id=1105349530]
 position = Vector2(280, -35)
 shape = SubResource("RectangleShape2D_right_room")

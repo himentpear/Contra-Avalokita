@@ -7249,10 +7249,11 @@ script = ExtResource("4_cgwm4")
 [node name="WeaponSlots" type="Node2D" parent="Visual" unique_id=1961693118]
 script = ExtResource("5_ldqmi")
 
-[node name="BackSlot" type="Marker2D" parent="Visual/WeaponSlots"]
-position = Vector2(-10, -47)
-rotation = -2.35619
+[node name="BackSlot" type="Marker2D" parent="Visual/WeaponSlots" unique_id=542830950]
 z_index = -5
+position = Vector2(-9, -75)
+rotation = 1.6057
+skew = 0.20944
 
 [node name="PixelMudSplatter" type="Node2D" parent="Visual" unique_id=606854930]
 script = ExtResource("6_lpyrd")
