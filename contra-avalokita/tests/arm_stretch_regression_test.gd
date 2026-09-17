@@ -37,7 +37,7 @@ func run() -> void:
 		p.revive()
 		p.weapons.equip(p.weapons.default_weapon)
 		p.sync_weapon_animation()
-		p.position = Vector2(base_x, 281)
+		p.position = Vector2(base_x, 136)
 		p.facing = test_facing
 		p.velocity = Vector2.ZERO
 		await ticks(6)
@@ -69,7 +69,7 @@ func run() -> void:
 		p.revive()
 		p.weapons.equip(p.weapons.default_weapon)
 		p.sync_weapon_animation()
-		p.position = Vector2(base_x - test_facing * 30.0, 281)
+		p.position = Vector2(base_x - test_facing * 30.0, 136)
 		p.facing = test_facing
 		await ticks(6)
 		p.set_intent(test_facing * 0.5, false, false) # walk
@@ -86,7 +86,7 @@ func run() -> void:
 		p.revive()
 		p.weapons.equip(p.weapons.default_weapon)
 		p.sync_weapon_animation()
-		p.position = Vector2(base_x - test_facing * 50.0, 281)
+		p.position = Vector2(base_x - test_facing * 50.0, 136)
 		p.facing = test_facing
 		await ticks(6)
 		p.set_intent(test_facing * 1.0, false, false) # sprint
@@ -103,7 +103,7 @@ func run() -> void:
 		p.revive()
 		p.weapons.equip(p.weapons.default_weapon)
 		p.sync_weapon_animation()
-		p.position = Vector2(base_x, 281)
+		p.position = Vector2(base_x, 136)
 		p.facing = test_facing
 		await ticks(6)
 		p.set_intent(0, true, false) # jump
@@ -120,7 +120,7 @@ func run() -> void:
 		p.revive()
 		p.weapons.equip(p.weapons.default_weapon)
 		p.sync_weapon_animation()
-		p.position = Vector2(100, 281) # far away from dummy
+		p.position = Vector2(100, 136) # far away from dummy
 		p.facing = test_facing
 		await ticks(6)
 		p.set_intent(0, false, true)

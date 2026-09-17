@@ -227,9 +227,9 @@ texture = ExtResource("6_23o81")
 [node name="Image(13)" type="Sprite2D" parent="World/GameplayWorld/Scenery" unique_id=134312768]
 modulate = Color(0.72, 0.78, 0.86, 1)
 light_mask = 4
-z_index = -3
-position = Vector2(2313.2986, -52.875)
-scale = Vector2(1.6877165, 1.6877161)
+z_index = -2
+position = Vector2(2346.0002, -42)
+scale = Vector2(1.9444025, 1.8056103)
 texture = ExtResource("7_krr3f")
 
 [node name="ShelterWallCover" parent="World/GameplayWorld/Scenery" unique_id=134312799 instance=ExtResource("21_cover")]
@@ -351,6 +351,7 @@ width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
 [node name="GravityDropPlatform" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=224894940]
+visible = false
 position = Vector2(1481.0001, -34)
 scale = Vector2(1.2722684, 1.7395881)
 
@@ -369,7 +370,7 @@ width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
 [node name="GravityDropFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=675562984]
-position = Vector2(1500, 176)
+position = Vector2(1479, 14)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GravityDropFloor" unique_id=1710701311]
 shape = SubResource("RectangleShape2D_ledge_160")
@@ -391,7 +392,7 @@ position = Vector2(1620, 144)
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform0" unique_id=153777418]
 position = Vector2(11, -173)
 scale = Vector2(1.0853873, 1.0853873)
-polygon = PackedVector2Array(-68, -30, -26.718506, 0.9213295, 382.35205, 0.9213295, 393.40796, 23.954582, 529.7649, 32.24655, 667.9645, 32.24655, 805.24255, 29.482563, 898.297, 15.662611, 939.7567, 6.4493103, 1299.0756, 3.68532, 1299.0756, 87.52636, -24, 41)
+polygon = PackedVector2Array(-63.571777, 1.8426609, 382.35205, 0.9213295, 393.40796, 23.954582, 529.7649, 32.24655, 667.9645, 32.24655, 805.24255, 29.482563, 898.297, 15.662611, 939.7567, 6.4493103, 1299.0756, 3.68532, 1299.0756, 87.52636, -24, 41)
 
 [node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform0" unique_id=1533096145]
 position = Vector2(171, -55)
@@ -645,7 +646,7 @@ scale = Vector2(0.77351004, 0.6327779)
 position = Vector2(3777, 88)
 
 [node name="StationLamp5" parent="World/Lighting/GameplayLights" unique_id=2130307789 instance=ExtResource("6_lamp")]
-position = Vector2(4122, 90)
+position = Vector2(4122, 87)
 
 [node name="ForegroundLights" type="Node2D" parent="World/Lighting" unique_id=1925239011]
 

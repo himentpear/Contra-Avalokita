@@ -8,8 +8,9 @@ func ticks(count: int) -> void:
 
 func capture(id: String) -> void:
 	await process_frame
-	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://artifacts/" + id + ".png")
+	if DisplayServer.get_name() != "headless":
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://artifacts/" + id + ".png")
 
 func run() -> void:
 	var arena := load("res://scenes/test_arena.tscn").instantiate() as Node2D
@@ -36,12 +37,15 @@ func run() -> void:
 	await ticks(60)
 	var times: Array[float] = []
 	var last := Time.get_ticks_usec()
-	for i in 180:
+	var sample_count := 6 if DisplayServer.get_name() == "headless" else 180
+	for i in sample_count:
 		await process_frame
 		var now := Time.get_ticks_usec()
 		times.append((now - last) / 1000.0)
 		last = now
 	times.sort()
-	print("RENDER BENCH 30 actors | median ms: %.2f | p95 ms: %.2f | renderer: %s" % [times[90], times[171], RenderingServer.get_video_adapter_name()])
+	var median_idx := times.size() / 2
+	var p95_idx := int(times.size() * 0.95)
+	print("RENDER BENCH 30 actors | median ms: %.2f | p95 ms: %.2f | renderer: %s" % [times[median_idx], times[p95_idx], RenderingServer.get_video_adapter_name()])
 	await capture("crowd_30")
 	quit()

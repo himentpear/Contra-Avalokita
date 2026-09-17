@@ -35,8 +35,8 @@ func run() -> void:
 	check(p.attack_animation() == &"Punch/Attack_1", "Default unarmed attack animation is Punch/Attack_1")
 
 	# 3. Test Punch 1 (Lead Jab) against Training Dummy
-	# Player at (370, 281), Dummy at (411, 283) -> dx = 41px, direct punching range
-	p.position = Vector2(370, 281)
+	# Player at (370, 136), Dummy at (400, 137) -> dx = 30px, direct punching range
+	p.position = Vector2(370, 136)
 	p.facing = 1.0
 	p.velocity = Vector2.ZERO
 	p.set_intent(0.0)
@@ -91,8 +91,8 @@ func run() -> void:
 	await ticks(6)
 
 	# 6. Test Symmetric Punch (Facing Left)
-	# Move dummy to the left of player: player at (370, 281), dummy at (330, 283)
-	dummy.position = Vector2(330, 283)
+	# Move dummy to the left of player: player at (370, 136), dummy at (330, 136)
+	dummy.global_position = Vector2(330, 136)
 	p.facing = -1.0
 	p.set_intent(0.0, false, true)
 	await ticks(8)

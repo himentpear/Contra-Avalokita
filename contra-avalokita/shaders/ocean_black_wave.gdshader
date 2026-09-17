@@ -28,8 +28,6 @@ uniform vec4 impact1 = vec4(-10.0, 99.0, 0.0, 0.08);
 uniform vec4 impact2 = vec4(-10.0, 99.0, 0.0, 0.08);
 uniform vec4 impact3 = vec4(-10.0, 99.0, 0.0, 0.08);
 
-const float TAU = 6.28318530718;
-
 float hash11(float p) {
 	p = fract(p * 0.1031);
 	p *= p + 33.33;

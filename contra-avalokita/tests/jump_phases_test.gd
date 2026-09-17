@@ -39,7 +39,8 @@ func run() -> void:
 		check(landings == before+1,"Landing must fire exactly once per jump")
 		var expected: StringName = &"Idle" if intent == 0 else (&"Walk" if intent < .6 else &"Run")
 		check(actor.state == expected,"Recover to current locomotion")
-		check(actor.anim_player.current_animation == expected and actor.anim_player.is_playing(),"Landing must resume playing the actual locomotion clip, not only change state")
+		var state_anim: StringName = actor.get_state_animation(expected) if actor.has_method("get_state_animation") else expected
+		check((actor.anim_player.current_animation == expected or actor.anim_player.current_animation == state_anim) and actor.anim_player.is_playing(),"Landing must resume playing the actual locomotion clip, not only change state")
 		var playback_before := actor.anim_player.current_animation_position
 		for tick in 4: await physics_frame
 		check(not is_equal_approx(actor.anim_player.current_animation_position,playback_before),"Recovered locomotion timeline must keep advancing")

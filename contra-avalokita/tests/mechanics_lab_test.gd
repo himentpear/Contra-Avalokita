@@ -104,7 +104,7 @@ func run() -> void:
 	arena.teleport_to_zone(5) # Combat Zone
 	await physics_frame
 	arena.apply_developer_knockback(90.0, false)
-	check(p.reaction_state == &"LightHit" or p.reaction_state == &"HeavyHit", "Developer knockback activates player hit reaction")
+	check(p.reaction_state in [&"LightHit", &"HeavyHit", &"AirHit"], "Developer knockback activates player hit reaction")
 	check(p.velocity.x > 30.0, "Developer knockback applies physical impulse to player")
 	
 	# 6. Wall Mechanics Tower

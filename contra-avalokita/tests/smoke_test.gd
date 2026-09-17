@@ -42,7 +42,7 @@ func run() -> void:
 	check(p.state == &"Jump" and p.velocity.y < 0, "Jump leaves floor")
 	await ticks(65)
 	check(p.is_on_floor(), "Jump returns to stable collision")
-	p.position = Vector2(370, 281)
+	p.position = Vector2(370, 136)
 	p.facing = 1
 	p.velocity = Vector2.ZERO
 	p.set_intent(0)

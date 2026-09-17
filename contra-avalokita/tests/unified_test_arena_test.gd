@@ -25,9 +25,12 @@ func run() -> void:
 	check(arena.item_pickups.size() == 5, "Formal arena contains all five item acquisition stations")
 	check(get_nodes_in_group(&"climbable_surface").size() >= 3, "Formal arena contains the climbable wall mechanics surfaces")
 	arena.player.player_controlled = false
-	arena.player.position = Vector2(3395.0, 92.0)
-	arena.player.velocity = Vector2(70.0, 25.0)
-	arena.player.set_intent(1.0)
+	var tower_wall := arena.get_node_or_null("World/GameplayWorld/Platforms/WallTowerRight") as StaticBody2D
+	check(tower_wall != null, "Wall tower exposes its climbable fixture")
+	if tower_wall != null:
+		arena.player.position = tower_wall.global_position + Vector2(25.0, 62.0)
+		arena.player.velocity = Vector2(-70.0, 25.0)
+		arena.player.set_intent(-1.0)
 	for tick in 20:
 		await physics_frame
 		if arena.player.is_wall_attached(): break
@@ -53,7 +56,7 @@ func run() -> void:
 	check(enemy.score_profile != null and enemy.get_node_or_null("Hurtbox") is Area2D and enemy.is_armed(), "Real enemy uses score, hurtbox and weapon pipelines")
 	var start_x := enemy.position.x
 	for tick in 20: await physics_frame
-	check(enemy.position.x < start_x, "Spawned enemy actively approaches the player")
+	check(absf(enemy.position.x - arena.player.position.x) < absf(start_x - arena.player.position.x), "Spawned enemy actively approaches the player")
 
 	var hit := HitEvent.new()
 	hit.attacker = arena.player

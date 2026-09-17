@@ -18,9 +18,10 @@ func run() -> void:
 	for facing in [1.0,-1.0]:
 		actor.facing = facing
 		actor._sync_visual(0)
-		await process_frame
-		await RenderingServer.frame_post_draw
-		root.get_texture().get_image().save_png("res://artifacts/leg_visibility_%s.png" % ("right" if facing > 0 else "left"))
+		if DisplayServer.get_name() != "headless":
+			await process_frame
+			await RenderingServer.frame_post_draw
+			root.get_texture().get_image().save_png("res://artifacts/leg_visibility_%s.png" % ("right" if facing > 0 else "left"))
 	print("PASS: rear/front limb passes above background in both facings")
 	for child in arena.find_children("*","CharacterBody2D"):
 		if child is MudCharacter and child.rig:
