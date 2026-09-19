@@ -127,7 +127,7 @@ func _vector_from(source: Object, property: StringName, default_value: Vector2) 
 func _value_from(source: Object, property: StringName, default_value: Variant) -> Variant:
 	if not is_instance_valid(source):
 		return default_value
-	for descriptor in source.get_property_list():
-		if StringName(descriptor.name) == property:
-			return source.get(property)
-	return default_value
+	# Object.get returns null for a missing property. Scanning get_property_list()
+	# for every field made each NPC's per-frame animation snapshot very costly.
+	var value: Variant = source.get(property)
+	return default_value if value == null else value

@@ -102,6 +102,12 @@ void fragment() {
 	vec2 gradient = vec2(0.0);
 	for (int i = 0; i < MAX_SEGMENTS; i++) {
 		if (i >= segment_count) { break; }
+		// A broad-phase capsule bound avoids distance/sqrt work on empty pixels.
+		// The fusion margin preserves the existing smooth-union silhouette.
+		float reach = max(properties[i].x, properties[i].y) + max(properties[i].z, 0.01);
+		vec2 bound_min = min(endpoints[i].xy, endpoints[i].zw) - vec2(reach);
+		vec2 bound_max = max(endpoints[i].xy, endpoints[i].zw) + vec2(reach);
+		if (p.x < bound_min.x || p.x > bound_max.x || p.y < bound_min.y || p.y > bound_max.y) { continue; }
 		float s = capsule(p, endpoints[i], properties[i].xy);
 		float k = max(properties[i].z, 0.01);
 		float h = clamp(0.5 + 0.5 * (s - d) / k, 0.0, 1.0);

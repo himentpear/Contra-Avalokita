@@ -45,10 +45,13 @@ func begin_attack(stage: int = 0) -> void:
 	attack_stage = stage
 	hit_targets.clear()
 	trail_points.clear()
+	queue_redraw()
 	active = false
 	hitbox.set_deferred("monitoring", false)
 
 func set_combat_enabled(enabled: bool) -> void:
+	if combat_enabled == enabled and (enabled or (trail_remaining <= 0.0 and impact_flash_timer <= 0.0 and trail_points.is_empty())):
+		return
 	combat_enabled = enabled
 	if enabled:
 		return
@@ -56,6 +59,7 @@ func set_combat_enabled(enabled: bool) -> void:
 	trail_points.clear()
 	trail_remaining = 0.0
 	impact_flash_timer = 0.0
+	queue_redraw()
 	if is_instance_valid(hitbox):
 		hitbox.set_deferred("monitoring", false)
 
@@ -93,6 +97,7 @@ func update_attack(t: float, attacking: bool) -> void:
 		previous_grip = grip
 		previous_blade = blade
 		trail_remaining = trail_lifetime
+		queue_redraw()
 	hitbox.set_deferred("monitoring", active)
 	# Recheck overlaps so starting inside a hurtbox still produces one hit.
 	if active and hitbox.monitoring:
@@ -102,6 +107,8 @@ var impact_flash_point := Vector2.ZERO
 var impact_flash_timer := 0.0
 
 func _process(delta: float) -> void:
+	if trail_remaining <= 0.0 and impact_flash_timer <= 0.0:
+		return
 	trail_remaining = maxf(0.0,trail_remaining-delta)
 	if trail_remaining == 0.0: trail_points.clear()
 	impact_flash_timer = maxf(0.0, impact_flash_timer - delta)

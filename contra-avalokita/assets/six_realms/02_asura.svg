@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <title>Asura / 修罗道</title>
+  <desc>Vector recreation from the supplied Six Realms icon reference. White artwork on a transparent 1:1 canvas.</desc>
+
+  <defs>
+    <mask id="center-cut">
+      <rect width="300" height="300" fill="white"/>
+      <path d="M150 113L188 150L150 187L112 150Z" fill="black"/>
+    </mask>
+  </defs>
+  <g fill="none" stroke="#ffffff" stroke-width="21" stroke-linecap="round" stroke-linejoin="round">
+    <path id="top-bar" d="M92 38H208"/>
+    <path id="bottom-bar" d="M92 262H208"/>
+    <path id="left-bar" d="M32 82V218"/>
+    <path id="right-bar" d="M268 82V218"/>
+  </g>
+  <g mask="url(#center-cut)" fill="none" stroke="#ffffff" stroke-width="23" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 39V95L99 150H32"/>
+    <path d="M150 39V95L201 150H268"/>
+    <path d="M32 150H99L150 205V261"/>
+    <path d="M268 150H201L150 205V261"/>
+  </g>
+  <path id="inner-diamond" d="M150 129L171 150L150 171L129 150Z" fill="#ffffff"/>
+</svg>

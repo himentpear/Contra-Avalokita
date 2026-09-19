@@ -16,6 +16,8 @@
 [ext_resource type="Texture2D" uid="uid://dt5uyybxj30ss" path="res://assets/shelter/structure.png" id="9_f6iex"]
 [ext_resource type="PackedScene" uid="uid://b2k8y4xv6mlaq" path="res://scenes/environment/foreground_pipe_cluster.tscn" id="9_pipe"]
 [ext_resource type="PackedScene" uid="uid://bhdxbr7je0wnp" path="res://scenes/mud_character.tscn" id="10_char"]
+[ext_resource type="Script" path="res://scripts/training_enemy_controller.gd" id="11_enemy_ai"]
+[ext_resource type="Resource" path="res://resources/grunt_score.tres" id="11_grunt_score"]
 [ext_resource type="Script" uid="uid://bfritix3gwca7" path="res://scripts/training_dummy.gd" id="12_dummy"]
 [ext_resource type="Script" uid="uid://ctpajsn6xutyt" path="res://scripts/test_dummy_target.gd" id="13_test_dummy"]
 [ext_resource type="Script" uid="uid://blgv0t8wkgw47" path="res://scripts/coyote_item_pickup.gd" id="14_pickup"]
@@ -536,6 +538,17 @@ position = Vector2(3405, 58)
 position = Vector2(4202, 59)
 
 [node name="Enemies" type="Node2D" parent="World/GameplayWorld" unique_id=1187555570]
+
+[node name="NpcAttackTest" parent="World/GameplayWorld/Enemies" instance=ExtResource("10_char")]
+position = Vector2(4100, 158)
+player_controlled = false
+score_credit_enabled = true
+score_profile = ExtResource("11_grunt_score")
+max_health = 45.0
+
+[node name="EnemyController" type="Node" parent="World/GameplayWorld/Enemies/NpcAttackTest"]
+script = ExtResource("11_enemy_ai")
+target_path = NodePath("../../../Player")
 
 [node name="Player" parent="World/GameplayWorld" unique_id=1424812994 instance=ExtResource("10_char")]
 position = Vector2(400, 136)

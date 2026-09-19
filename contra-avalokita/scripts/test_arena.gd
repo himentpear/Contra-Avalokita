@@ -16,6 +16,10 @@ const COYOTE_ITEMS: Array[CoyoteItem] = [
 
 const MAIN_SURFACE_Y := 138.0
 const TEST_KILL_Y := 480.0
+const NPC_ATTACK_TEST_X := 4100.0
+const NPC_GROUND_OFFSET_Y := 2.0
+const NPC_SPAWN_SEARCH_STEP := 48.0
+const NPC_SPAWN_SEARCH_ATTEMPTS := 4
 
 @export_group("Arena Presentation")
 @export var background_color := Color("1a222c")
@@ -44,6 +48,7 @@ var damage_dummy: CharacterBody2D
 var knockback_dummy: CharacterBody2D
 var ledge_dummy: CharacterBody2D
 var scoring_enemy: MudCharacter
+var npc_attack_test: MudCharacter
 var crowd: Array[MudCharacter] = []
 var real_enemies: Array[MudCharacter] = []
 var item_pickups: Array[Node] = []
@@ -133,6 +138,7 @@ func _ready() -> void:
 		_spawn_actors()
 		_build_camera()
 		_build_ui()
+	_ensure_npc_attack_test()
 	
 	var game := get_node_or_null("/root/Game")
 	if game and is_instance_valid(game.current_session) and game.current_session.has_method("set_player") and is_instance_valid(player):
@@ -165,6 +171,7 @@ func _setup_from_scene_tree() -> void:
 		damage_dummy = actors_node.get_node_or_null("DamageDummy")
 		knockback_dummy = actors_node.get_node_or_null("KnockbackDummy")
 		ledge_dummy = actors_node.get_node_or_null("LedgeDummy")
+	npc_attack_test = gameplay_world.get_node_or_null("Enemies/NpcAttackTest") as MudCharacter
 	
 	item_pickups.clear()
 	var pickups_container: Node = gameplay_world.get_node_or_null("ItemPickups") if gameplay_world else null
@@ -500,6 +507,65 @@ func _spawn_actors() -> void:
 	# 5. Five Item Pickups in baseline area (X: 80 to 280) for real station collection test
 	spawn_item_pickups()
 
+func _ensure_npc_attack_test() -> void:
+	if not is_instance_valid(npc_attack_test):
+		npc_attack_test = CHARACTER.instantiate() as MudCharacter
+		npc_attack_test.name = "NpcAttackTest"
+		npc_attack_test.player_controlled = false
+		npc_attack_test.score_profile = preload("res://resources/grunt_score.tres")
+		npc_attack_test.score_credit_enabled = true
+		npc_attack_test.max_health = 45.0
+		var enemies := gameplay_world.get_node_or_null("Enemies")
+		(enemies if enemies else gameplay_world).add_child(npc_attack_test)
+	_place_npc_on_ground(npc_attack_test, NPC_ATTACK_TEST_X)
+	if not npc_attack_test.has_node("EnemyController"):
+		var controller := ENEMY_CONTROLLER.new() as TrainingEnemyController
+		controller.name = "EnemyController"
+		controller.actor = npc_attack_test
+		controller.target = player
+		npc_attack_test.add_child(controller)
+	else:
+		var controller := npc_attack_test.get_node("EnemyController") as TrainingEnemyController
+		controller.actor = npc_attack_test
+		controller.target = player
+	npc_attack_test.add_to_group(&"training_enemy")
+	if npc_attack_test.body_renderer:
+		npc_attack_test.body_renderer.mud_color = Color("87505a")
+
+func _place_npc_on_ground(npc: MudCharacter, desired_x: float) -> void:
+	if not is_instance_valid(npc):
+		return
+	npc.global_position = _find_grounded_npc_spawn(desired_x)
+	npc.velocity = Vector2.ZERO
+
+func _find_grounded_npc_spawn(desired_x: float) -> Vector2:
+	if not is_inside_tree() or get_world_2d() == null:
+		return Vector2(desired_x, MAIN_SURFACE_Y - NPC_GROUND_OFFSET_Y)
+	var offsets: Array[float] = [0.0]
+	for step in range(1, NPC_SPAWN_SEARCH_ATTEMPTS + 1):
+		offsets.append(float(step) * NPC_SPAWN_SEARCH_STEP)
+		offsets.append(-float(step) * NPC_SPAWN_SEARCH_STEP)
+	for offset in offsets:
+		var x := desired_x + offset
+		var query := PhysicsRayQueryParameters2D.create(Vector2(x, -320.0), Vector2(x, TEST_KILL_Y), 1)
+		query.collide_with_areas = false
+		query.collide_with_bodies = true
+		var hit := get_world_2d().direct_space_state.intersect_ray(query)
+		if not hit.is_empty():
+			return Vector2(x, (hit["position"] as Vector2).y - NPC_GROUND_OFFSET_Y)
+	# The authored baseline is a safe fallback while physics is still initializing.
+	return Vector2(desired_x, MAIN_SURFACE_Y - NPC_GROUND_OFFSET_Y)
+
+func _physics_process(_delta: float) -> void:
+	var npcs: Array[MudCharacter] = []
+	if is_instance_valid(npc_attack_test):
+		npcs.append(npc_attack_test)
+	npcs.append_array(real_enemies)
+	npcs.append_array(crowd)
+	for npc in npcs:
+		if is_instance_valid(npc) and npc.state != &"Dead" and npc.global_position.y > TEST_KILL_Y:
+			npc.die()
+
 func spawn_item_pickups() -> void:
 	for pickup in item_pickups:
 		if is_instance_valid(pickup): pickup.queue_free()
@@ -718,6 +784,16 @@ func _process(delta: float) -> void:
 			if is_instance_valid(pickup): pickup.reset_pickup()
 		for d in [stationary_dummy, blocking_dummy, damage_dummy, knockback_dummy, ledge_dummy]:
 			if is_instance_valid(d): d.reset_state(d.global_position)
+		if is_instance_valid(npc_attack_test):
+			npc_attack_test.revive()
+			_place_npc_on_ground(npc_attack_test, NPC_ATTACK_TEST_X)
+			var controller := npc_attack_test.get_node_or_null("EnemyController") as TrainingEnemyController
+			if controller: controller.cooldown = 0.25
+		for enemy in real_enemies:
+			if is_instance_valid(enemy): enemy.queue_free()
+		real_enemies.clear()
+	if Input.is_action_just_pressed("spawn_enemy"):
+		spawn_real_enemy()
 	
 	# Zone Teleport shortcuts (1-6)
 	if Input.is_key_pressed(KEY_1): teleport_to_zone(0)
@@ -760,8 +836,8 @@ func cycle_crowd() -> void:
 	for i in count:
 		var npc := CHARACTER.instantiate() as MudCharacter
 		npc.player_controlled = false
-		npc.position = Vector2(60.0 + (i % 15) * 45.0, MAIN_SURFACE_Y - 2.0)
 		parent_node.add_child(npc)
+		_place_npc_on_ground(npc, 60.0 + (i % 15) * 45.0)
 		npc.rig.time = i * 0.31
 		npc.rig.gait.phase = fposmod(i * 0.31, 1.0)
 		npc.body_renderer.mud_color = Color.from_hsv(0.18 + i * 0.005, 0.42, 0.45 + (i % 3) * 0.08)
@@ -777,11 +853,15 @@ func spawn_real_enemy() -> MudCharacter:
 	enemy.score_profile = preload("res://resources/grunt_score.tres")
 	enemy.score_credit_enabled = true
 	enemy.max_health = 45.0
-	var desired_x := player.position.x + player.facing * 140.0
-	enemy.position = Vector2(desired_x, MAIN_SURFACE_Y - 2.0)
+	# Alternate sides and stagger each rank so repeated F3 spawns never stack
+	# their hurtboxes and sword areas on the same physics coordinate.
+	var spawn_index := real_enemies.size()
+	var side := player.facing if spawn_index % 2 == 0 else -player.facing
+	var desired_x := player.position.x + side * (140.0 + floori(spawn_index / 2.0) * 56.0)
 	var parent_node: Node = gameplay_world.get_node_or_null("Enemies") if gameplay_world else null
 	if not parent_node: parent_node = gameplay_world if gameplay_world else (world_node if world_node else self)
 	parent_node.add_child(enemy)
+	_place_npc_on_ground(enemy, desired_x)
 	enemy.body_renderer.mud_color = Color("87505a")
 	enemy.add_to_group(&"training_enemy")
 	if game and is_instance_valid(game.current_session) and is_instance_valid(game.current_session.combat_context):
@@ -913,6 +993,7 @@ func _draw_zone_markers() -> void:
 	# =========================================================================
 	draw_line(Vector2(3980, MAIN_SURFACE_Y - 60), Vector2(3980, MAIN_SURFACE_Y), Color("8b6fb5"), 1.0)
 	draw_string(font_res, Vector2(3910, MAIN_SURFACE_Y - 66), "COMBAT SYMMETRY LINE", HORIZONTAL_ALIGNMENT_CENTER, 140, 8, Color("8b6fb5"))
+	draw_string(font_res, Vector2(4020, 28), "NPC ATTACK TEST / F3 EXTRA ENEMY", HORIZONTAL_ALIGNMENT_LEFT, 220, 8, Color("d6a2a9"))
 
 func _on_tactical_overlay_draw() -> void:
 	if not font or not is_instance_valid(player): return
@@ -944,7 +1025,7 @@ func _on_tactical_overlay_draw() -> void:
 	# Bottom control bar
 	tactical_overlay.draw_rect(Rect2(0, 324, 640, 36), Color(0.04, 0.07, 0.09, 0.94))
 	tactical_overlay.draw_line(Vector2(0, 324), Vector2(640, 324), Color("293a3b"), 1.0)
-	tactical_overlay.draw_string(font, Vector2(14, 338), "1-6 TELEPORT ZONES  |  7-9 KNOCKBACK (W/M/H)  |  R RESPAWN  |  K DIE  |  F1 STATS  |  F2 ITEMS", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("d1d9b7"))
+	tactical_overlay.draw_string(font, Vector2(14, 338), "1-6 ZONES  |  7-9 KNOCKBACK  |  R RESET  |  K DIE  |  F1 STATS  |  F2 ITEMS  |  F3 NPC", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color("d1d9b7"))
 	tactical_overlay.draw_string(font, Vector2(14, 352), "A/D MOVE  |  SHIFT RUN  |  SPACE JUMP  |  J ATTACK  |  L BLOCK  |  F6 ITEM CARDS  |  C SHAKE [%s]" % ("ON" if camera_shake_enabled else "OFF"), HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color("81947e"))
 
 func _draw_live_stats_panel() -> void:

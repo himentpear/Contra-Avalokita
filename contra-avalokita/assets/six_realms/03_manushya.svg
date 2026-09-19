@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <title>Manushya / 人道</title>
+  <desc>Vector recreation from the supplied Six Realms icon reference. White artwork on a transparent 1:1 canvas.</desc>
+
+  <path id="interlocking-path"
+        d="M140 39H74C50 39 33 56 33 80V202C33 216 43 226 57 226H132C143 226 150 219 150 208V113C150 100 159 91 172 91H237C255 91 267 103 267 121V226C267 247 253 261 232 261H140"
+        fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle id="left-dot" cx="80" cy="150" r="27" fill="#ffffff"/>
+  <circle id="right-dot" cx="212" cy="150" r="27" fill="#ffffff"/>
+</svg>

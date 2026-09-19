@@ -5,6 +5,7 @@
 [ext_resource type="Shader" path="res://shaders/character/stylized_character.gdshader" id="3_wpn_shader"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sword"]
+resource_local_to_scene = true
 shader = ExtResource("3_wpn_shader")
 shader_parameter/weapon_highlight_strength = 1.4
 shader_parameter/metal_highlight_width = 0.08

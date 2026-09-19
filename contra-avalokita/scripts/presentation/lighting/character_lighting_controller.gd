@@ -170,7 +170,7 @@ func _inject_shader_parameters() -> void:
 			})
 
 	for wpn_item in binding.weapon_renderers:
-		if is_instance_valid(wpn_item):
+		if is_instance_valid(wpn_item) and wpn_item.material is ShaderMaterial:
 			var local_dir := _to_item_local_dir(wpn_item, current_direction)
 			_write_material_params(wpn_item, {
 				"light_direction": local_dir,
@@ -227,13 +227,8 @@ func _write_material_params(item: CanvasItem, params: Dictionary) -> void:
 				if is_instance_valid(sm):
 					for k: String in params:
 						sm.set_shader_parameter(k, params[k])
-	# Also update materials on child CanvasItems (e.g. ColorRect layers)
-	for child in item.get_children():
-		if child is CanvasItem and is_instance_valid((child as CanvasItem).material):
-			var cm := (child as CanvasItem).material as ShaderMaterial
-			if is_instance_valid(cm):
-				for k: String in params:
-					cm.set_shader_parameter(k, params[k])
+	# Bound weapon sprites are visited directly. MudBodyRenderer exposes its own
+	# depth materials above, so recursing into children only writes them twice.
 
 func _apply_light_masks() -> void:
 	var actor_mask: int = profile.actor_light_mask if profile else 8

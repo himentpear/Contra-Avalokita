@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <title>Preta / 饿鬼道</title>
+  <desc>Vector recreation from the supplied Six Realms icon reference. White artwork on a transparent 1:1 canvas.</desc>
+
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path id="outer-top" d="M33 91V79C33 56 50 40 73 40H227C250 40 267 56 267 79V91"/>
+    <path id="outer-bottom-left" d="M33 141V219C33 243 51 261 75 261H135"/>
+    <path id="outer-bottom-right" d="M267 141V219C267 243 249 261 225 261H165"/>
+  </g>
+  <rect id="top-stem" x="139" y="40" width="22" height="57" fill="#ffffff"/>
+  <circle id="center-dot" cx="150" cy="149" r="26" fill="#ffffff"/>
+  <path id="left-diagonal" d="M47 245L108 189" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="square"/>
+  <path id="right-diagonal" d="M192 189L253 245" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="square"/>
+</svg>

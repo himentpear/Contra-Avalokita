@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <title>Tiryag / 畜生道</title>
+  <desc>Vector recreation from the supplied Six Realms icon reference. White artwork on a transparent 1:1 canvas.</desc>
+
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path id="outer-top" d="M33 139V78C33 55 50 39 73 39H227C250 39 267 55 267 78V139"/>
+    <path id="outer-bottom" d="M33 161V222C33 245 50 261 73 261H227C250 261 267 245 267 222V161"/>
+    <path id="inner-left-corner" d="M72 119V106C72 91 83 80 98 80H108"/>
+    <path id="inner-right-corner" d="M192 80H202C217 80 228 91 228 106V119"/>
+    <circle id="center-ring" cx="150" cy="150" r="45"/>
+    <path id="lower-slot" d="M104 225H196"/>
+  </g>
+</svg>

@@ -17,6 +17,9 @@ func run() -> void:
 	assert(Glyphs.digits(36) == [1,0,0])
 	assert(Glyphs.number_tokens(1.5) == [1,-1,3])
 	assert(Glyphs.number_tokens(5.999) == [1,0])
+	assert(Glyphs.TEXTURES.size() == 6)
+	for icon in Glyphs.TEXTURES:
+		assert(icon.get_size() == Vector2(24, 24), "Six Realm SVGs must import at the 24px glyph size")
 	var sheet := Sheet.new()
 	root.add_child(sheet)
 	for i in 6:
@@ -29,7 +32,7 @@ func run() -> void:
 	title.text = "SIX REALMS / BASE SIX\nWHITE-LINE COMBAT NUMERALS"
 	title.position = Vector2(24,20)
 	root.add_child(title)
-	var feedback := preload("res://gameplay/combat/hit/realm_hit_feedback.gd").new()
+	var feedback := preload("res://scripts/realm_hit_feedback.gd").new()
 	root.add_child(feedback)
 	feedback.add_number(Vector2(180,255),10)
 	feedback.add_number(Vector2(440,255),36)
@@ -39,9 +42,10 @@ func run() -> void:
 	note.position = Vector2(55,290)
 	note.add_theme_font_size_override("font_size",12)
 	root.add_child(note)
-	await process_frame
-	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png("res://artifacts/six_realms_symbols.png")
+	if DisplayServer.get_name() != "headless":
+		await process_frame
+		await RenderingServer.frame_post_draw
+		root.get_texture().get_image().save_png("res://artifacts/six_realms_symbols.png")
 	for i in 30: feedback.add_number(Vector2.ZERO,i)
 	assert(feedback.popups.size() == feedback.max_popups)
 	feedback._process(2.0)

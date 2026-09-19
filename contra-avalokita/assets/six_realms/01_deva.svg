@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+  <title>Deva / 天道</title>
+  <desc>Vector recreation from the supplied Six Realms icon reference. White artwork on a transparent 1:1 canvas.</desc>
+
+  <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+    <path id="outer-top-left" d="M140 38H72C50 38 33 55 33 77V142H104"/>
+    <path id="outer-top-right" d="M160 38H228C250 38 267 55 267 77V142H196"/>
+    <path id="outer-bottom-left" d="M104 158H33V223C33 245 50 262 72 262H140"/>
+    <path id="outer-bottom-right" d="M196 158H267V223C267 245 250 262 228 262H160"/>
+    <path id="upper-arc" d="M80 111C101 62 199 62 220 111"/>
+    <path id="lower-arc" d="M80 189C101 238 199 238 220 189"/>
+  </g>
+  <circle id="center-dot" cx="150" cy="150" r="23" fill="#ffffff"/>
+</svg>
