@@ -350,25 +350,6 @@ points = PackedVector2Array(-60, -16, 60, -16)
 width = 1.0
 default_color = Color(0.831, 0.855, 0.878, 1)
 
-[node name="GravityDropPlatform" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=224894940]
-visible = false
-position = Vector2(1481.0001, -34)
-scale = Vector2(1.2722684, 1.7395881)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/GameplayWorld/StaticGeometry/GravityDropPlatform" unique_id=1468869705]
-shape = SubResource("RectangleShape2D_ledge_120")
-
-[node name="Surface" type="Polygon2D" parent="World/GameplayWorld/StaticGeometry/GravityDropPlatform" unique_id=217998448]
-z_index = -5
-color = Color(0.439, 0.471, 0.51, 1)
-polygon = PackedVector2Array(-60, -16, 60, -16, 60, 16, -60, 16)
-
-[node name="TopEdge" type="Line2D" parent="World/GameplayWorld/StaticGeometry/GravityDropPlatform" unique_id=144567324]
-z_index = -4
-points = PackedVector2Array(-60, -16, 60, -16)
-width = 1.0
-default_color = Color(0.831, 0.855, 0.878, 1)
-
 [node name="GravityDropFloor" type="StaticBody2D" parent="World/GameplayWorld/StaticGeometry" unique_id=675562984]
 position = Vector2(1479, 14)
 
@@ -390,9 +371,9 @@ default_color = Color(0.831, 0.855, 0.878, 1)
 position = Vector2(1620, 144)
 
 [node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform0" unique_id=153777418]
-position = Vector2(11, -173)
+position = Vector2(16, -159)
 scale = Vector2(1.0853873, 1.0853873)
-polygon = PackedVector2Array(-63.571777, 1.8426609, 382.35205, 0.9213295, 393.40796, 23.954582, 529.7649, 32.24655, 667.9645, 32.24655, 805.24255, 29.482563, 898.297, 15.662611, 939.7567, 6.4493103, 1299.0756, 3.68532, 1299.0756, 87.52636, -24, 41)
+polygon = PackedVector2Array(-106.87427, 2.7639894, 386.03735, 2.7639894, 392.4867, 27.639902, 529.7649, 32.24655, 667.9645, 32.24655, 805.24255, 29.482563, 898.297, 15.662611, 939.7567, 6.4493103, 1428.983, 1.84266, 1429.9044, 82.91971, -163.07544, 41.459854)
 
 [node name="CollisionPolygon2D2" type="CollisionPolygon2D" parent="World/GameplayWorld/StaticGeometry/GapPlatform0" unique_id=1533096145]
 position = Vector2(171, -55)

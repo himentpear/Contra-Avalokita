@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://h8ehp503ug1b"
+
+[deps]
+
+files=["res://artifacts/kinetic_typography/first_half_second_cadence.time.translation", "res://artifacts/kinetic_typography/first_half_second_cadence.change.translation"]
+
+source_file="res://artifacts/kinetic_typography/first_half_second_cadence.csv"
+dest_files=["res://artifacts/kinetic_typography/first_half_second_cadence.time.translation", "res://artifacts/kinetic_typography/first_half_second_cadence.change.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
